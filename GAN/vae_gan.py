@@ -6,13 +6,13 @@ from keras.optimizers import Adam
 
 from gan import GAN, ElapsedTimer, random_data
 
-class VAE_GAN(GAN):
+class VAE_GAN(GAN, object):
 
 	# generator is decoder
 	def __init__(self, batch_size):
 		self.E = None
 		self.EM = None
-		super().__init__(batch_size)
+		super(VAE_GAN, self).__init__(batch_size)
 
 	def encoder(self):
 		if self.E:
@@ -53,7 +53,7 @@ class VAE_GAN(GAN):
 			d_loss = self.discriminator_model().train_on_batch(x, y)
 			
 			y = np.ones([self.batch_size, 1])
-			noise = np.random.uniform(-1.0, 1.0, size=[batch_size, 100])
+			noise = np.random.uniform(-1.0, 1.0, size=[self.batch_size, self.latent_size])
 			a_loss = self.adversarial_model().train_on_batch(noise, y)
 
 			e_loss = self.encoder_model().train_on_batch(true_x, y)
