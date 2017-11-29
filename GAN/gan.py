@@ -109,9 +109,10 @@ class GAN:
 			# fake ones are 1
 
 			d_loss = self.discriminator_model().train_on_batch(x, y)
+			
 			y = np.ones([self.batch_size, 1])
-			noise = np.random.uniform(-1.0, 1.0, size=[batch_size, 100])
-			a_loss = self.adversarial_model().train_on_batch(noise, y)
+			noise_x = np.random.uniform(-1.0, 1.0, size=[self.batch_size, self.latent_size])
+			a_loss = self.adversarial_model().train_on_batch(noise_x, y)
 
 			log_mesg = "%d: [D loss: %f, acc: %f]" % (i, d_loss[0], d_loss[1])
 			log_mesg = "%s  [A loss: %f, acc: %f]" % (log_mesg, a_loss[0], a_loss[1])
