@@ -70,4 +70,3 @@ if __name__ == '__main__':
 	timer = ElapsedTimer()
 	gan.train(x)
 	timer.elapsed_time()
-	gan.plot_image()
