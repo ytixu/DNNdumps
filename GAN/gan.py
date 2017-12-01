@@ -1,12 +1,11 @@
 import numpy as np
 import time
 
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Flatten, Reshape
 from keras.optimizers import Adam
+
+from utils import arg_parse, image
 
 class ElapsedTimer(object):
 	def __init__(self):
@@ -26,13 +25,14 @@ class ElapsedTimer(object):
 
 class GAN:
 
-	def __init__(self, batch_size):
+	def __init__(self, args):
 		self.D = None   # discriminator
 		self.G = None   # generator
 		self.AM = None  # adversarial model
 		self.DM = None  # discriminator model
 
-		self.batch_size = batch_size
+		self.batch_size = args['batch_size']
+		self.epoch = args['epoch']
 		self.input_size = 0
 		self.latent_size = 0
 		self.X = None
@@ -82,23 +82,17 @@ class GAN:
 		self.AM.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy'])
 		return self.AM
 
-	def load_data(self, data=[], file_name=None):
-		if data.any():
-			self.X = data
-		elif file_name:
-			self.X = np.array([map(float, x.split()) for x in open(file_name, 'r').read().split('\n')])/self.norm_max
-		else:
-			return
-
+	def set_data(self, data):
+		self.X = data
 		self.input_size = len(self.X[0])
 		self.latent_size = self.input_size/4
-		self.norm_max = np.amax(np.amax(np.abs(self.X)))
+		# self.norm_max = np.amax(np.amax(np.abs(self.X)))
 
 
-	def train(self, data, train_steps=5):
-		self.load_data(data)
+	def train(self, data):
+		self.set_data(data)
 
-		for i in range(train_steps):
+		for i in range(self.epoch):
 			true_x = self.X[np.random.choice(range(len(self.X)), self.batch_size),:]
 			noise_x = np.random.uniform(-1.0, 1.0, size=[self.batch_size, self.latent_size])
 			fake_x = self.generator().predict(noise_x)
@@ -114,39 +108,19 @@ class GAN:
 			noise_x = np.random.uniform(-1.0, 1.0, size=[self.batch_size, self.latent_size])
 			a_loss = self.adversarial_model().train_on_batch(noise_x, y)
 
-			log_mesg = "%d: [D loss: %f, acc: %f]" % (i, d_loss[0], d_loss[1])
-			log_mesg = "%s  [A loss: %f, acc: %f]" % (log_mesg, a_loss[0], a_loss[1])
-			print(log_mesg)
+			if i % 100 == 1:
+				log_mesg = "%d: [D loss: %f, acc: %f]" % (i, d_loss[0], d_loss[1])
+				log_mesg = "%s  [A loss: %f, acc: %f]" % (log_mesg, a_loss[0], a_loss[1])
+				print(log_mesg)
 
-	def plot_image(self):
-		noise_x = np.random.uniform(-1.0, 1.0, size=[self.batch_size, self.latent_size])
-		fake_x = self.generator().predict(noise_x)
-		
-		for x in fake_x:
-			xs = [x[i]*self.norm_max for i in range(0, len(x), 3)]
-			ys = [x[i]*self.norm_max for i in range(1, len(x), 3)]
-			zs = [x[i]*self.norm_max for i in range(2, len(x), 3)]
+	
 
-			fig = plt.figure()
-			ax = fig.add_subplot(111, projection='3d')
-			ax.plot(xs, ys, zs)
-			plt.show()
-
-
-def random_data(n=50, b=16, j=6):
-	x = np.zeros((n*b, j*3))
-	for i in range(j*3):
-		coord = np.random.randint(1,9)
-		x[:,i] = np.random.normal(coord, 0.1, n*b)
-		print i, coord
-
-	return x
 
 if __name__ == '__main__':
-	gan = GAN(16)
-	x = random_data()
+	x, config = arg_parse.get_parse()
 	# print x
+	gan = GAN(config)
 	timer = ElapsedTimer()
 	gan.train(x)
 	timer.elapsed_time()
-	gan.plot_image()
+	image.generate_and_plot(gan)
