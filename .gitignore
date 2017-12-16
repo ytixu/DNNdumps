@@ -1,1 +1,4 @@
-./GAN/data/*
+out/*
+*.pyc
+*/*.pyc
+*/*/*.pyc
