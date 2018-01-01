@@ -18,7 +18,13 @@ class AE(ae_model, object):
 		self.decoder = None
 		super(AE, self).__init__(args)
 
-	
+	def set_input_dim(self, x, y):
+		self.input_dim = len(x[0])
+		self.output_dim = len(y[0])
+		self.latent_dim = (self.input_dim+self.output_dim)/2
+		self.input_intermediate_dim = (self.input_dim+self.latent_dim)/2
+		self.output_intermediate_dim = (self.output_dim+self.latent_dim)/2
+		
 	def make_model(self):
 		x_input = Input(shape=(self.input_dim,))
 		h = Dense(self.input_intermediate_dim, activation='relu')(x_input)
