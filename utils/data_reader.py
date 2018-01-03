@@ -16,14 +16,14 @@ def read(data_file, refe_file, _H, _W, header=False):
 	mat_data = []
 	mat_refe = []
 	for k,v in data.iteritems():
-		if k != u'header':
+		if k != u'header' and k!= u'dimension':
 			mat_data.append(data[k])
 			mat_refe.append(refe[k])
 
-	mat_data = np.asfarray(mat_data)
-	mat_refe = np.asfarray(mat_refe)
-	X = rescale(mat_data, _W, _H)
-	Y = rescale(mat_refe, _W, _H)
+	X = np.asfarray(mat_data)
+	Y = np.asfarray(mat_refe)
+	# X = rescale(X, _W, _H)
+	# Y = rescale(Y, _W, _H)
 
 	if header:
 		return X, Y, data[u'header']
