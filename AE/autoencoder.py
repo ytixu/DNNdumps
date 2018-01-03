@@ -10,6 +10,10 @@ from keras import metrics, objectives
 from _ae_model import ae_model
 from DNNdumps.utils import arg_parse, image
 
+
+# python -m DNNdumps.AE.autoencoder -d DNNdumps/data/openpose_utk_pose.json -r DNNdumps/data/utk_pose.json
+
+
 class AE(ae_model, object):
 
 	def __init__(self, args):
@@ -77,7 +81,7 @@ class AE(ae_model, object):
 			poses[i*(n+1)+n] = x2
 		
 		poses = self.autoencoder.predict(np.array(poses))
-		image.plot_batch(poses, (n+1)**2)
+		image.animate(poses)
 
 	def run(self, x, y):
 		self.set_input_dim(x, y)
@@ -106,10 +110,9 @@ class AE(ae_model, object):
 						batch_size=self.batch_size,
 						validation_data=(x_test, y_test))
 
-				# display a 2D plot of the digit classes in the latent space
 				z_test_encoded = self.encoder.predict(x_test[:8])
 				y_test_decoded = self.decoder.predict(z_test_encoded)
-				image.plot_batch(np.concatenate([y_test[:8], y_test_decoded], axis=0), 16)
+				image.plot_batch(y_test[:8], y_test_decoded, 16, dim=3)
 				# image.plot_batch(np.concatenate([x_test, x_test], axis=0), self.batch_size)
 				self.autoencoder.save_weights(self.load_path, overwrite=True)
 
