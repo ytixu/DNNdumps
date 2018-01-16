@@ -10,18 +10,25 @@ def rescale(x, w, h):
 	return X
 
 
-def read(data_file, refe_file, _H, _W, header=False):
+def read(data_file, refe_file=None, _H=0, _W=0, header=False):
 	data = json.load(open(data_file, 'r'))
-	refe = json.load(open(refe_file, 'r'))
 	mat_data = []
-	mat_refe = []
-	for k,v in data.iteritems():
-		if k != u'header' and k!= u'dimension':
-			mat_data.append(data[k])
-			mat_refe.append(refe[k])
+	
+	if refe_file:
+		refe = json.load(open(refe_file, 'r'))
+		mat_refe = []
+	for k,v in data[u'poses'].iteritems():
+		mat_data.append(v['pose'])
+		if refe_file:
+			mat_refe.append(refe[u'poses'][k])
 
 	X = np.asfarray(mat_data)
-	Y = np.asfarray(mat_refe)
+
+	if refe_file:
+		l = len(refe[u'header'])
+		keys = np.array([refe[u'header'].index(i) for i in ['R_Hip', 'R_Shoulder','R_Elbow','R_Wrist','R_Hand']])
+		keys = np.concatenate([keys, keys + l, keys + l*2]) 
+		Y = np.asfarray(mat_refe)[:,keys]
 	# X = rescale(X, _W, _H)
 	# Y = rescale(Y, _W, _H)
 
