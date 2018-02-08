@@ -32,7 +32,7 @@ def animate(batch, dim=3):
 
 def plot_batch(batch_true, batch_predict=[], size=0, title='Poses', dim=2):
 	plot_dim = int(np.sqrt(size))
-	if any(batch_predict):
+	if batch_predict.any():
 		batch = np.concatenate([batch_true, batch_predict], axis=0)
 	else:
 		batch = batch_true
