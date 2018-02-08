@@ -25,10 +25,10 @@ def read(data_file, refe_file=None, _H=0, _W=0, header=False):
 	X = np.asfarray(mat_data)
 
 	if refe_file:
-		l = len(refe[u'header'])
-		keys = np.array([refe[u'header'].index(i) for i in ['R_Hip', 'R_Shoulder','R_Elbow','R_Wrist','R_Hand']])
-		keys = np.concatenate([keys, keys + l, keys + l*2]) 
-		Y = np.asfarray(mat_refe)[:,keys]
+		# l = len(refe[u'header'])
+		# keys = np.array([refe[u'header'].index(i) for i in ['R_Hip', 'R_Shoulder','R_Elbow','R_Wrist','R_Hand']])
+		# keys = np.concatenate([keys, keys + l, keys + l*2]) 
+		Y = np.asfarray(mat_refe)#[:,keys]
 	# X = rescale(X, _W, _H)
 	# Y = rescale(Y, _W, _H)
 
