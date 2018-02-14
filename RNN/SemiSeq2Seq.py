@@ -21,7 +21,7 @@ class LSTM_AE:
 		self.timesteps = args['timesteps'] if 'timesteps' in args else 5
 		self.input_dim = args['input_dim']
 		self.output_dim = args['output_dim']
-		self.latent_dim = (self.timesteps + self.input_dim + self.output_dim)/3
+		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
 
 

@@ -4,7 +4,10 @@ from sklearn import cross_validation
 from keras.layers import Input, LSTM, RepeatVector
 from keras.models import Model
 
-from utils import parser, image, embedding_plotter
+from utils import parser, image, embedding_plotter, recorder
+
+
+NAME = 'LSTM'
 
 class LSTM_AE:
 
@@ -21,10 +24,12 @@ class LSTM_AE:
 		self.timesteps = args['timesteps'] if 'timesteps' in args else 5
 		self.input_dim = args['input_dim']
 		self.output_dim = args['output_dim']
-		self.latent_dim = 100
+		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
 		self.load_path = args['load_path']
+		self.log_path = args['log_path']
 
+		self.history = recorder.LossHistory()
 
 	def make_model(self):
 		inputs = Input(shape=(self.timesteps, self.input_dim))
@@ -45,8 +50,6 @@ class LSTM_AE:
 
 		if self.trained:
 			self.autoencoder.load_weights(self.load_path)
-			embedding_plotter.see_embedding(self.encoder, data_iterator)
-
 		else:
 			iter1, iter2 = tee(data_iterator)
 			for i in range(self.periods):
@@ -56,16 +59,23 @@ class LSTM_AE:
 								shuffle=True,
 								epochs=self.epochs,
 								batch_size=self.batch_size,
-								validation_data=(x_test, y_test))
+								validation_data=(x_test, y_test),
+								callbacks=[self.history])
 
 					y_test_decoded = self.autoencoder.predict(x_test[:1])
 					image.plot_batch_1D(y_test[:1], y_test_decoded)
-					self.autoencoder.save_weights(self.load_path, overwrite=True)
+					# self.autoencoder.save_weights(self.load_path, overwrite=True)
 				iter1, iter2 = tee(iter2)
 
-			embedding_plotter.see_embedding(self.encoder, iter2)
+			data_iterator = iter2
+		
+		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
+		embedding_plotter.see_embedding(self.encoder, data_iterator, model_vars)
+		self.history.record(self.log_path, model_vars)
+
+
 
 if __name__ == '__main__':
-	data_iterator, config = parser.get_parse('LSTM')
+	data_iterator, config = parser.get_parse(NAME)
 	ae = LSTM_AE(config)
 	ae.run(data_iterator)

@@ -3,6 +3,12 @@ import matplotlib.pyplot as plt
 # from mpl_toolkits.mplot3d import Axes3D
 from time import gmtime, strftime
 
+
+# def plot_time_series(x, title):
+# 	plt.scatter(x, range(len(x)))
+# 	plt.suptitle(title)
+# 	plt.show()
+
 def add_point(plt_canvas, coords, color, size):
 	l = len(coords)/2
 	plt_canvas.scatter(x=coords[:,0], y=coords[:,1], c=color, s=size)
