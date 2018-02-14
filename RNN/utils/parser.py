@@ -20,7 +20,7 @@ def data_generator(input_dir, output_dir, timesteps, batch_size):
 	# output one batch of <timesteps> data
 	norm = 1
 	if '_robot' in output_dir:
-		norm = np.pi/2
+		norm = np.pi*2
 
 	x, y = [], []
 	batch_count = 0
@@ -53,7 +53,11 @@ def data_generator(input_dir, output_dir, timesteps, batch_size):
 	if len(x) != 0:
 		yield x, y/norm
 
+def get_model_load_name(model_name):
+	return '../models/%s_%d.hdf5'%(model_name, time.time())
 
+def get_log_name(model_name):
+	return '../models/%s_%d.log'%(model_name, time.time())
 
 def get_parse(model_name):
 	ap = argparse.ArgumentParser()
@@ -63,8 +67,13 @@ def get_parse(model_name):
 	ap.add_argument('-m', '--mode', required=False, help='Choose between training mode or sampling mode.', default='train', choices=list_of_modes)
 	ap.add_argument('-ep', '--epochs', required=False, help='Number of epochs', default='10', type=int)
 	ap.add_argument('-bs', '--batch_size', required=False, help='Batch size', default='16', type=int)
-	ap.add_argument('-lp', '--load_path', required=False, help='Model path', default='../models/%s_%d.hdf5'%(model_name, time.time()))
+	ap.add_argument('-lp', '--load_path', required=False, help='Model path', default=get_model_load_name(model_name))
 	ap.add_argument('-t', '--timesteps', required=False, help='Timestep size', default='5', type=int)
+	ap.add_argument('-p', '--periods', required=False, help='Number of iterations of the data', default='10', type=int)
+	ap.add_argument('-ld', '--latent_dim', required=False, help='Embedding size', default='100', type=int)
+	ap.add_argument('-l', '--log_path', required=False, help='Log file for loss history', default=get_log_name(model_name))
+	
+
 	# ap.add_argument('-lr', '--learning_rate', required=False, help='Learning rate', default='5000', choices=list_of_modes)
 
 	args = vars(ap.parse_args())

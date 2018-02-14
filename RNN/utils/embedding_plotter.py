@@ -1,9 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from time import gmtime, strftime
 
 from sklearn.decomposition import PCA as sklearnPCA
 
-def see_embedding(encoder, data_iterator, concat=False):
+def see_embedding(encoder, data_iterator, args, concat=False):
 		embedding = np.array([])
 		for x, y in data_iterator:
 			if concat:
@@ -16,9 +17,9 @@ def see_embedding(encoder, data_iterator, concat=False):
 			else:
 				embedding = np.concatenate((embedding, e), axis=0)
 
-		plot(embedding)
+		plot(embedding, args)
 
-def plot(embedding):
+def plot(embedding, args):
 	pca = sklearnPCA(n_components=2) #2-dimensional PCA
 	X_norm = (embedding - embedding.min())/(embedding.max() - embedding.min())
 	transformed = pca.fit_transform(X_norm)
@@ -34,4 +35,7 @@ def plot(embedding):
 
 	# Display legend and show plot
 	# plt.legend(loc=3)
-	plt.show()
+	plt.savefig('../out/embedding_'+ '-'.join(map(str, args)) + strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png') 
+	plt.close()
+
+	# plt.show()
