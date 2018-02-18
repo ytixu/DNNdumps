@@ -1,8 +1,10 @@
 import numpy as np
 from itertools import tee
+import itertools.product
 from sklearn import cross_validation
-from keras.layers import Input, LSTM, RepeatVector
+from keras.layers import Input, LSTM, RepeatVector, Flatten
 from keras.models import Model
+import theano.tensor as Tim
 
 from utils import parser, image, embedding_plotter, recorder
 
@@ -25,22 +27,31 @@ class Option_LSTM:
 		self.input_dim = args['input_dim']
 		self.output_dim = args['output_dim']
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
+		self.option_dim = args['option_dim'] if 'option_dim' in args else 2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
 		self.load_path = args['load_path']
 		self.log_path = args['log_path']
 
 		self.history = recorder.LossHistory()
 
-	def make_model(self):
+	def make_model(self):	
 		inputs = Input(shape=(self.timesteps, self.input_dim))
 		encoded = LSTM(self.latent_dim)(inputs)
-
-		decoded = RepeatVector(self.timesteps)(encoded)
-		decoded = LSTM(self.output_dim, return_sequences=True)(decoded)
+		
+		optioned = RepeatVector(self.option_dim)(encoded)
+		optioned = Flatten(optioned)
+		
+		decoded = RepeatVector(self.timesteps)(optioned)
+		decoded = LSTM(self.output_dim*self.option_dim, return_sequences=True)(decoded)
 		
 		self.encoder = Model(inputs, encoded)
 		self.autoencoder = Model(inputs, decoded)
-		self.autoencoder.compile(optimizer='RMSprop', loss='mean_squared_error')
+		
+		def min_loss(y_true, y_pred):
+			reshaped_y = T.reshape(y_pred, [self.option_dim, self.output_dim])
+			#return T.min(T.squared_difference(reshaped_y, y_true))
+
+		self.autoencoder.compile(optimizer='RMSprop', loss=min_loss)
 
 		self.autoencoder.summary()
 		self.encoder.summary()
