@@ -13,6 +13,7 @@ class LSTM_AE:
 	def __init__(self, args):
 		self.autoencoder = None
 		self.encoder = None
+		self.decoder = None
 
 		self.epochs = args['epochs']
 		self.batch_size = args['batch_size']
@@ -29,20 +30,29 @@ class LSTM_AE:
 		self.log_path = args['log_path']
 
 		self.history = recorder.LossHistory()
-		
+
 	def make_model(self):
 		inputs = Input(shape=(self.timesteps, self.data_dim))
 		encoded = LSTM(self.latent_dim)(inputs)
 
-		decoded = RepeatVector(self.timesteps)(encoded)
-		decoded = LSTM(self.data_dim, return_sequences=True)(decoded)
+		z = Input(shape=(self.latent_dim,))
+		decode_1 = RepeatVector(self.timesteps)
+		decode_2 = LSTM(self.data_dim, return_sequences=True)
+
+		decoded = decode_1(encoded)
+		decoded = decode_2(decoded)
+
+		decoded_ = decode_1(z)
+		decoded_ = decode_2(decoded_)
 		
 		self.encoder = Model(inputs, encoded)
+		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
 		self.autoencoder.compile(optimizer='RMSprop', loss='mean_squared_error')
 
 		self.autoencoder.summary()
 		self.encoder.summary()
+		self.decoder.summary()
 
 	def load(self):
 		self.make_model()

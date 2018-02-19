@@ -73,8 +73,6 @@ class LSTM_AE:
 		embedding_plotter.see_embedding(self.encoder, data_iterator, model_vars)
 		self.history.record(self.log_path, model_vars)
 
-
-
 if __name__ == '__main__':
 	data_iterator, config = parser.get_parse(NAME)
 	ae = LSTM_AE(config)

@@ -19,11 +19,21 @@ def see_embedding(encoder, data_iterator, args, concat=False):
 
 		plot(embedding, args)
 
-def plot(embedding, args):
+def pca_reduce(embedding):
 	pca = sklearnPCA(n_components=2) #2-dimensional PCA
 	X_norm = (embedding - embedding.min())/(embedding.max() - embedding.min())
 	transformed = pca.fit_transform(X_norm)
+	return transformed	
 
+def plot_points(embedding, indices):
+	transformed = pca_reduce(embedding)
+	plt.scatter(transformed[:,0], transformed[:,1], c='blue')
+	plt.scatter(transformed[indices,0], transformed[indices,1], c='red')
+	plt.show()
+
+
+def plot(embedding, args):
+	transformed = pca_reduce(embedding)
 	plt.scatter(transformed[:,0], transformed[:,1], c='blue')
 	
 	for c in ['red', 'lightgreen', 'yellow']:
@@ -39,3 +49,5 @@ def plot(embedding, args):
 	plt.close()
 
 	# plt.show()
+
+
