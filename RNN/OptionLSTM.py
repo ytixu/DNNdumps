@@ -4,7 +4,7 @@ import itertools.product
 from sklearn import cross_validation
 from keras.layers import Input, LSTM, RepeatVector, Flatten
 from keras.models import Model
-import theano.tensor as Tim
+from keras import backend as K
 
 from utils import parser, image, embedding_plotter, recorder
 
@@ -48,8 +48,9 @@ class Option_LSTM:
 		self.autoencoder = Model(inputs, decoded)
 		
 		def min_loss(y_true, y_pred):
-			reshaped_y = T.reshape(y_pred, [self.option_dim, self.output_dim])
-			#return T.min(T.squared_difference(reshaped_y, y_true))
+			ry_pred = K.reshape(y_pred, [self.option_dim, self.output_dim])
+			ry_true = K.repeat_elements(y_true, self.option_dim, axis=0)
+			return K.min(K.square(ry_pred - ry_true), axis=0)
 
 		self.autoencoder.compile(optimizer='RMSprop', loss=min_loss)
 
