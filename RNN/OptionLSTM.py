@@ -51,7 +51,7 @@ class Option_LSTM:
 			ry_pred = K.reshape(y_pred, [-1, self.option_dim, self.out_dim])
 			ry_true = K.tile(K.reshape(y_true, [-1, self.out_dim]), (1, self.option_dim))
 			ry_true = K.reshape(ry_true, [-1, self.option_dim, self.out_dim])
-			return K.sum(K.min(K.sum(K.square(ry_pred - ry_true), axis=2), axis=1))
+			return K.sum(K.min(K.sum(K.square(ry_pred - ry_true), axis=2), axis=1))/self.timesteps/self.batch_size
 
 		self.autoencoder.compile(optimizer='RMSprop', loss=min_loss)
 
@@ -98,14 +98,14 @@ class Option_LSTM:
 			data_iterator = iter2
 			self.history.record(self.log_path, model_vars)
 
-		iter1, iter2 = tee(data_iterator)
-		# embedding_plotter.see_embedding(self.encoder, iter1, model_vars)
+		# iter1, iter2 = tee(data_iterator)
+		embedding_plotter.see_embedding(self.encoder, data_iterator, model_vars)
 
-		for x, y in iter2:
-			y_decoded = self.autoencoder.predict(x)
-			y_encoded = self.encoder.predict(x)
-			opt = self.best_option(y, y_decoded).flatten()
-			option_visualizer.visualize(y, y_encoded, y_decoded, opt)
+		# for x, y in iter2:
+		# 	y_decoded = self.autoencoder.predict(x)
+		# 	y_encoded = self.encoder.predict(x)
+		# 	opt = self.best_option(y, y_decoded).flatten()
+		# 	option_visualizer.visualize(y, y_encoded, y_decoded, opt)
 
 if __name__ == '__main__':
 	data_iterator, config = parser.get_parse(NAME)
