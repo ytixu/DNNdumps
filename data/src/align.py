@@ -45,11 +45,13 @@ def normalize():
 	seq = sorted(sequence, key=lambda x:x['h'][-1])
 	return _reformat(seq)
 
-ref = np.array([[-0.,-0.07765717,-0.35011166,-0.56932296,0.,0.8265,0.67871046,0.67477705,0.,-0.19268457,-0.25632532,-0.42875513],
-	[-0.,-0.07900089,-0.35394524,-0.63903786,0.,0.8265,0.68305478,0.65486365,0.,-0.19246484,-0.25182092,-0.36776599],
-	[-0.,-0.07476571,-0.3091818,-0.55153422,0.,0.8265,0.65089581,0.6348223,0.,-0.19378894,-0.26056458,-0.44473157],
-	[-0.,-0.07321952,-0.26960053,-0.41750074,0.,0.8265,0.63462285,0.63496442,0.,-0.1946167,-0.2612124,-0.51932092],
-	[-0.,-0.07423346,-0.27115487,-0.30292141,0.,0.8265,0.62468486,0.63116413,0.,-0.19530432,-0.26849707,-0.55359692]])
+ref = np.array([[-0.,-0.06400316,-0.13125549,-0.18743867,0.,0.8265,0.5884453,0.5607307,0.,-0.14909998,-0.36195703,-0.63159509],
+	[-0.,-0.06408317,-0.08681219,-0.06308334,0.,0.8265,0.57959338,0.54030711,0.,-0.15148401,-0.38082593,-0.64645837],
+	[-0.,-0.06149184,-0.03949452,0.0530897,0.,0.8265,0.59517447,0.57323712,0.,-0.13990808,-0.37280945,-0.61457776],
+	[-0.,-0.06903787,-0.01493435,0.13286532,0.,0.8265,0.66051291,0.716621,0.,-0.14534814,-0.40437964,-0.60659436],
+	[-0.,-0.06770515,-0.08009978,0.00116798,0.,0.8265,0.72553529,0.89342841,0.,-0.16127197,-0.42768701,-0.60475244],
+	[-0.,-0.07142286,-0.12216105,-0.10452317,0.,0.8265,0.71311848,0.86693926,0.,-0.15838123,-0.42345142,-0.62883472],
+	[-0.,-0.06196463,-0.09405238,-0.08625121,0.,0.8265,0.60023923,0.61528172,0.,-0.1477688,-0.39800403,-0.65694214]])
 
 ref_length = len(ref)
 ref = ref.flatten()
@@ -83,20 +85,20 @@ def plot():
 	x = np.concatenate([np.arange(ref_length)/8.0+i for i in range(7)])
 	print x
 	for i, match in enumerate(matching_sequences):
-		if matching_sequences_dist[i] > 0.35:
+		if matching_sequences_dist[i] > 0.30:
 			plt.scatter(x, match/2/np.pi, c='#f0f0f0')
 	for i, match in enumerate(matching_sequences):
-		if matching_sequences_dist[i] > 0.35:
+		if matching_sequences_dist[i] > 0.30:
 			continue
-		elif matching_sequences_dist[i] > 0.3:
+		elif matching_sequences_dist[i] > 0.25:
 			plt.scatter(x, match/2/np.pi, c='#c0c0c0')
 	for i, match in enumerate(matching_sequences):
-		if matching_sequences_dist[i] > 0.3:
+		if matching_sequences_dist[i] > 0.25:
 			continue
-		elif matching_sequences_dist[i] > 0.27:
+		elif matching_sequences_dist[i] > 0.20:
 			plt.scatter(x, match/2/np.pi, c='#909090')
 	for i, match in enumerate(matching_sequences):
-		if matching_sequences_dist[i] > 0.27:
+		if matching_sequences_dist[i] > 0.20:
 			continue
 		plt.scatter(x, match/2/np.pi)
 	plt.show()
