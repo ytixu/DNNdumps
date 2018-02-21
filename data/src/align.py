@@ -45,7 +45,14 @@ def normalize():
 	seq = sorted(sequence, key=lambda x:x['h'][-1])
 	return _reformat(seq)
 
-ref = np.array([[-0.,-0.03560034,-0.06574796,0.20380635,0.,0.8265,0.60281187,0.66822247,0.,-0.16868311,-0.30241724,-0.45005017],[-0.,-0.05100711,-0.09400163,0.05651277,0.,0.8265,0.67989624,0.93307932,0.,-0.17062439,-0.34221436,-0.46242981],[-0.,-0.06744191,-0.11358131,-0.05843297,0.,0.8265,0.66993254,0.93584393,0.,-0.17070239,-0.34890369,-0.4917937,],[-0.,-0.068549,-0.14301926,-0.1544953,0.,0.8265,0.63294165,0.8690079,0.,-0.18192029,-0.32567432,-0.50546936],[-0.,-0.05271277,-0.11189134,-0.10901235,0.,0.8265,0.60190224,0.60749255,0.,-0.1807168,-0.2474812,-0.56240491]])
+ref = np.array([[-0.,-0.06400316,-0.13125549,-0.18743867,0.,0.8265,0.5884453,0.5607307,0.,-0.14909998,-0.36195703,-0.63159509],
+	[-0.,-0.06408317,-0.08681219,-0.06308334,0.,0.8265,0.57959338,0.54030711,0.,-0.15148401,-0.38082593,-0.64645837],
+	[-0.,-0.06149184,-0.03949452,0.0530897,0.,0.8265,0.59517447,0.57323712,0.,-0.13990808,-0.37280945,-0.61457776],
+	[-0.,-0.06903787,-0.01493435,0.13286532,0.,0.8265,0.66051291,0.716621,0.,-0.14534814,-0.40437964,-0.60659436],
+	[-0.,-0.06770515,-0.08009978,0.00116798,0.,0.8265,0.72553529,0.89342841,0.,-0.16127197,-0.42768701,-0.60475244],
+	[-0.,-0.07142286,-0.12216105,-0.10452317,0.,0.8265,0.71311848,0.86693926,0.,-0.15838123,-0.42345142,-0.62883472],
+	[-0.,-0.06196463,-0.09405238,-0.08625121,0.,0.8265,0.60023923,0.61528172,0.,-0.1477688,-0.39800403,-0.65694214]])
+
 ref_length = len(ref)
 ref = ref.flatten()
 
@@ -63,33 +70,38 @@ def plot():
 	# 	for j in range(6):
 	# 		plt.scatter(x+j, y[:,j], c=cl[i])
 	# plt.show()
-
-	X = pca_reduce()
-	# X = np.concatenate([e[1] for e in sequence])[:,2]
-	idx = 0
-	for i, seq in enumerate(sequence):
-		y,_ = seq
-		x = X[idx:idx+len(y)].flatten()
-		for j in range(7):
-			plt.plot(x+j*0.5, y[:,j], c=cl[i])
-		idx += len(y)
-	plt.show()
-
-	# x = np.concatenate([np.arange(ref_length)/8.0+i for i in range(7)])
-	# print x
-	# for i, match in enumerate(matching_sequences):
-	# 	if matching_sequences_dist[i] > 0.35:
-	# 		plt.scatter(x, match/2/np.pi, c='#f0f0f0')
-	# for i, match in enumerate(matching_sequences):
-	# 	if matching_sequences_dist[i] > 0.35:
-	# 		continue
-	# 	elif matching_sequences_dist[i] > 0.3:
-	# 		plt.scatter(x, match/2/np.pi, c='#c0c0c0')
-	# for i, match in enumerate(matching_sequences):
-	# 	if matching_sequences_dist[i] > 0.3:
-	# 		continue
-	# 	plt.scatter(x, match/2/np.pi)
+	#
+	# X = pca_reduce()
+	# # X = np.concatenate([e[1] for e in sequence])[:,2]
+	# idx = 0
+	# for i, seq in enumerate(sequence):
+	# 	y,_ = seq
+	# 	x = X[idx:idx+len(y)].flatten()
+	# 	for j in range(7):
+	# 		plt.scatter(x+j*0.5, y[:,j], c=cl[i])
+	# 	idx += len(y)
 	# plt.show()
+
+	x = np.concatenate([np.arange(ref_length)/8.0+i for i in range(7)])
+	print x
+	for i, match in enumerate(matching_sequences):
+		if matching_sequences_dist[i] > 0.30:
+			plt.scatter(x, match/2/np.pi, c='#f0f0f0')
+	for i, match in enumerate(matching_sequences):
+		if matching_sequences_dist[i] > 0.30:
+			continue
+		elif matching_sequences_dist[i] > 0.25:
+			plt.scatter(x, match/2/np.pi, c='#c0c0c0')
+	for i, match in enumerate(matching_sequences):
+		if matching_sequences_dist[i] > 0.25:
+			continue
+		elif matching_sequences_dist[i] > 0.20:
+			plt.scatter(x, match/2/np.pi, c='#909090')
+	for i, match in enumerate(matching_sequences):
+		if matching_sequences_dist[i] > 0.20:
+			continue
+		plt.scatter(x, match/2/np.pi)
+	plt.show()
 
 def dist_ref(seq):
 	return distance.euclidean(ref, np.array(seq).flatten())
