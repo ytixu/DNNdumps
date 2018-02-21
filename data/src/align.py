@@ -8,7 +8,7 @@ import random
 
 from sklearn.decomposition import PCA as sklearnPCA
 
-end_count = 300
+end_count = 20
 start = 0
 
 sequence = []
@@ -64,32 +64,32 @@ def plot():
 	# 		plt.scatter(x+j, y[:,j], c=cl[i])
 	# plt.show()
 
-	# X = pca_reduce()
-	# # X = np.concatenate([e[1] for e in sequence])[:,2]
-	# idx = 0
-	# for i, seq in enumerate(sequence):
-	# 	y,_ = seq
-	# 	x = X[idx:idx+len(y)].flatten()
-	# 	for j in range(7):
-	# 		plt.scatter(x+j*0.5, y[:,j], c=cl[i])
-	# 	idx += len(y)
-	# plt.show()
-
-	x = np.concatenate([np.arange(ref_length)/8.0+i for i in range(7)])
-	print x
-	for i, match in enumerate(matching_sequences):
-		if matching_sequences_dist[i] > 0.35:
-			plt.scatter(x, match/2/np.pi, c='#f0f0f0')
-	for i, match in enumerate(matching_sequences):
-		if matching_sequences_dist[i] > 0.35:
-			continue
-		elif matching_sequences_dist[i] > 0.3:
-			plt.scatter(x, match/2/np.pi, c='#c0c0c0')
-	for i, match in enumerate(matching_sequences):
-		if matching_sequences_dist[i] > 0.3:
-			continue
-		plt.scatter(x, match/2/np.pi)
+	X = pca_reduce()
+	# X = np.concatenate([e[1] for e in sequence])[:,2]
+	idx = 0
+	for i, seq in enumerate(sequence):
+		y,_ = seq
+		x = X[idx:idx+len(y)].flatten()
+		for j in range(7):
+			plt.plot(x+j*0.5, y[:,j], c=cl[i])
+		idx += len(y)
 	plt.show()
+
+	# x = np.concatenate([np.arange(ref_length)/8.0+i for i in range(7)])
+	# print x
+	# for i, match in enumerate(matching_sequences):
+	# 	if matching_sequences_dist[i] > 0.35:
+	# 		plt.scatter(x, match/2/np.pi, c='#f0f0f0')
+	# for i, match in enumerate(matching_sequences):
+	# 	if matching_sequences_dist[i] > 0.35:
+	# 		continue
+	# 	elif matching_sequences_dist[i] > 0.3:
+	# 		plt.scatter(x, match/2/np.pi, c='#c0c0c0')
+	# for i, match in enumerate(matching_sequences):
+	# 	if matching_sequences_dist[i] > 0.3:
+	# 		continue
+	# 	plt.scatter(x, match/2/np.pi)
+	# plt.show()
 
 def dist_ref(seq):
 	return distance.euclidean(ref, np.array(seq).flatten())
@@ -120,23 +120,24 @@ for file_idx in filenames:
 						matching_sequences.append(np.array([data['poses_seq'][str(i)]['r'] for i in range(l, l+ref_length)]).T.flatten())
 						matching_sequences_dist.append(dist)
 
-			# subseq = subseq + [format(data['poses_seq'][str(i)]) for i in range(count)]
+			subseq = subseq + [format(data['poses_seq'][str(i)]) for i in range(count)]
 			pose_count += count
 
 		idx += 1
 		if idx > 100:
 			break
 
-	# if len(sequence) < 1:
-	# 	sequence = subseq[start:end_count]
-	# 	init_pose = sequence[0]['h']
-	# else:
-	# 	sequence = sequence + subseq[start:end_count]
+	if len(sequence) < 1:
+		sequence = subseq[start:end_count]
+		init_pose = sequence[0]['h']
+	else:
+		sequence = sequence + subseq[start:end_count]
 
-	# sequences[colors] = subseq[start:end_count]
+	sequences[colors] = subseq[start:end_count]
 	colors += 1
 
-print colors, len(matching_sequences)
+print 'sequences', colors
+# print len(matching_sequences)
 # sequence = normalize()
-# sequence = _reformat(sequence)
+sequence = _reformat(sequence)
 plot()
