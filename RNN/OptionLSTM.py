@@ -98,8 +98,15 @@ class Option_LSTM:
 			data_iterator = iter2
 			self.history.record(self.log_path, model_vars)
 
-		# iter1, iter2 = tee(data_iterator)
-		embedding_plotter.see_embedding(self.encoder, data_iterator, model_vars)
+		iter1, iter2 = tee(data_iterator)
+		# embedding_plotter.see_embedding(self.encoder, iter1, model_vars)
+
+		for x,y in iter2:
+			random_idx = 0#np.random.choice(len(x))
+			print x[random_idx:random_idx+1]
+			y_test_decoded = self.autoencoder.predict(x[random_idx:random_idx+1])
+			y_test_decoded = np.reshape(y_test_decoded, [-1, self.option_dim, self.timesteps, self.output_dim])
+			image.plot_options(y[random_idx:random_idx+1], y_test_decoded)
 
 		# for x, y in iter2:
 		# 	y_decoded = self.autoencoder.predict(x)
