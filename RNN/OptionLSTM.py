@@ -102,7 +102,7 @@ class Option_LSTM:
 		# embedding_plotter.see_embedding(self.encoder, iter1, model_vars)
 
 		for x,y in iter2:
-			random_idx = 0#np.random.choice(len(x))
+			random_idx = np.random.choice(len(x))
 			print x[random_idx:random_idx+1]
 			y_test_decoded = self.autoencoder.predict(x[random_idx:random_idx+1])
 			y_test_decoded = np.reshape(y_test_decoded, [-1, self.option_dim, self.timesteps, self.output_dim])
