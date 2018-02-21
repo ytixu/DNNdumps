@@ -71,6 +71,7 @@ def get_parse(model_name):
 	ap.add_argument('-t', '--timesteps', required=False, help='Timestep size', default='5', type=int)
 	ap.add_argument('-p', '--periods', required=False, help='Number of iterations of the data', default='10', type=int)
 	ap.add_argument('-ld', '--latent_dim', required=False, help='Embedding size', default='100', type=int)
+	ap.add_argument('-o', '--option_dim', required=False, help='Number of options', default='2', type=int)
 	ap.add_argument('-l', '--log_path', required=False, help='Log file for loss history', default=get_log_name(model_name))
 	
 

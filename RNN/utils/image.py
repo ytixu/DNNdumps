@@ -54,3 +54,13 @@ def plot_batch_1D(batch_true, batch_predict, title='Poses (prediction in blue)')
 		
 	f.savefig('../out/' + title.lower().replace(' ', '_') + strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png') 
 	plt.close(f)
+
+def plot_options(ref, opts, title='Options'):
+	size = len(ref[0])
+	n = len(batch_true[0][0])
+	f, axarr = plt.subplots(len(opts[0])+1, size, sharex=True, sharey=True)
+	for i, x in enumerate(ref[0]):
+		new_x = np.zeros((n, 2))
+		new_x[:,0] = range(n)
+		new_x[:,1] = x
+		add_point(axarr[0, i], new_x, 'r', 10,)
