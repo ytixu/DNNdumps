@@ -71,37 +71,37 @@ def plot():
 	# 		plt.scatter(x+j, y[:,j], c=cl[i])
 	# plt.show()
 	#
-	# X = pca_reduce()
-	# # X = np.concatenate([e[1] for e in sequence])[:,2]
-	# idx = 0
-	# for i, seq in enumerate(sequence):
-	# 	y,_ = seq
-	# 	x = X[idx:idx+len(y)].flatten()
-	# 	for j in range(7):
-	# 		plt.scatter(x+j*0.5, y[:,j], c=cl[i])
-	# 	idx += len(y)
-	# plt.show()
-
-	x = np.concatenate([np.arange(ref_length)/8.0+i for i in range(7)])
-	print x
-	for i, match in enumerate(matching_sequences):
-		if matching_sequences_dist[i] > 0.30:
-			plt.scatter(x, match/2/np.pi, c='#f0f0f0')
-	for i, match in enumerate(matching_sequences):
-		if matching_sequences_dist[i] > 0.30:
-			continue
-		elif matching_sequences_dist[i] > 0.25:
-			plt.scatter(x, match/2/np.pi, c='#c0c0c0')
-	for i, match in enumerate(matching_sequences):
-		if matching_sequences_dist[i] > 0.25:
-			continue
-		elif matching_sequences_dist[i] > 0.20:
-			plt.scatter(x, match/2/np.pi, c='#909090')
-	for i, match in enumerate(matching_sequences):
-		if matching_sequences_dist[i] > 0.20:
-			continue
-		plt.scatter(x, match/2/np.pi)
+	X = pca_reduce()
+	# X = np.concatenate([e[1] for e in sequence])[:,2]
+	idx = 0
+	for i, seq in enumerate(sequence):
+		y,_ = seq
+		x = X[idx:idx+len(y)].flatten()
+		for j in range(7):
+			plt.plot(x+j*0.5, y[:,j], c=cl[i])
+		idx += len(y)
 	plt.show()
+
+	# x = np.concatenate([np.arange(ref_length)/8.0+i for i in range(7)])
+	# print x
+	# for i, match in enumerate(matching_sequences):
+	# 	if matching_sequences_dist[i] > 0.30:
+	# 		plt.scatter(x, match/2/np.pi, c='#f0f0f0')
+	# for i, match in enumerate(matching_sequences):
+	# 	if matching_sequences_dist[i] > 0.30:
+	# 		continue
+	# 	elif matching_sequences_dist[i] > 0.25:
+	# 		plt.scatter(x, match/2/np.pi, c='#c0c0c0')
+	# for i, match in enumerate(matching_sequences):
+	# 	if matching_sequences_dist[i] > 0.25:
+	# 		continue
+	# 	elif matching_sequences_dist[i] > 0.20:
+	# 		plt.scatter(x, match/2/np.pi, c='#909090')
+	# for i, match in enumerate(matching_sequences):
+	# 	if matching_sequences_dist[i] > 0.20:
+	# 		continue
+	# 	plt.scatter(x, match/2/np.pi)
+	# plt.show()
 
 def dist_ref(seq):
 	return distance.euclidean(ref, np.array(seq).flatten())
@@ -113,8 +113,8 @@ for datafile in glob.glob('raw_data/*.json'):
 filenames = sorted(list(set(filenames)))
 
 for file_idx in filenames:
-	# if file_idx < 1518363647:
-	# 	continue
+	if file_idx < 1519249593:
+		continue
 	pose_count = 0
 	subseq = []
 	idx = 0
