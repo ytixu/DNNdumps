@@ -19,7 +19,9 @@ r_poses = {}
 
 for filename in glob.glob('raw_data/*'):
 	file_ids = map(int, filename.split('.')[0].split('-')[-2:])
-	if file_ids[0] == 1518298961:
+	# if file_ids[0] < 1519157716:
+	# if file_ids[0] < 1519249593:
+	if file_ids[0] < 1519510262:
 		continue
 	poses = json.load(open(filename, 'r'))
 	last_idx = -1
