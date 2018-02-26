@@ -17,16 +17,26 @@ for filename in glob.glob('h_raw_data/*'):
 h_poses = [format_pose(h_poses[i][str(j)][1]) for i in range(file_count + 1) for j in sorted(map(int, h_poses[i].keys()))]
 r_poses = {}
 
+def normalize(pose):
+	return np.array(pose) / 2 / np.pi
+
 for filename in glob.glob('raw_data/*'):
 	file_ids = map(int, filename.split('.')[0].split('-')[-2:])
-	# if file_ids[0] < 1519157716:
+	if file_ids[0] < 1519157716:
 	# if file_ids[0] < 1519249593:
-	if file_ids[0] < 1519510262:
+	# if file_ids[0] < 1519510262:
 		continue
 	poses = json.load(open(filename, 'r'))
 	last_idx = -1
 	split_n = 0.0
+	# last_pose = []
 	for i in range(poses['count']):
+		p = normalize(poses['poses_seq'][str(i)]['r'])[:-1]
+		if len(last_pose) > 0:
+			diff = np.absolute(last_pose - p)
+			if max(diff) > 1:
+				print diff
+		last_pose = p
 		pose = format_pose(poses['poses_seq'][str(i)]['h'])
 		# print np.argmin([np.absolute(pose - p) for p in h_poses])
 		idx = []
@@ -46,7 +56,7 @@ for filename in glob.glob('raw_data/*'):
 			elif key not in r_poses[file_ids[0]]:
 				r_poses[file_ids[0]][key] = []
 			last_idx = idx[0]
-			r_poses[file_ids[0]][key].append((idx[0], poses['poses_seq'][str(i)]['r']))
+			r_poses[file_ids[0]][key].append((idx[0], normalize(poses['poses_seq'][str(i)]['r'])))
 
 # print r_poses
 
