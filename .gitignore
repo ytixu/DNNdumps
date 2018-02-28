@@ -1,4 +1,7 @@
-
+out/*
 *.pyc
 */*.pyc
 */*/*.pyc
+*/*/*/*.pyc
+data/src/MPI-INF-3DHP
+data/mpi
