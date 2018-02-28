@@ -18,12 +18,15 @@ h_poses = [format_pose(h_poses[i][str(j)][1]) for i in range(file_count + 1) for
 r_poses = {}
 
 def normalize(pose):
-	return np.array(pose) / 2 / np.pi
+	return np.array(pose)# / 2 / np.pi %1
+
+min_ = 1100
+max_ = 0
 
 for filename in glob.glob('raw_data/*'):
 	file_ids = map(int, filename.split('.')[0].split('-')[-2:])
-	if file_ids[0] < 1519157716:
-	# if file_ids[0] < 1519249593:
+	# if file_ids[0] < 1519670558:
+	if file_ids[0] < 1519249593:
 	# if file_ids[0] < 1519510262:
 		continue
 	poses = json.load(open(filename, 'r'))
@@ -31,12 +34,14 @@ for filename in glob.glob('raw_data/*'):
 	split_n = 0.0
 	# last_pose = []
 	for i in range(poses['count']):
-		p = normalize(poses['poses_seq'][str(i)]['r'])[:-1]
-		if len(last_pose) > 0:
-			diff = np.absolute(last_pose - p)
-			if max(diff) > 1:
-				print diff
-		last_pose = p
+		# p = normalize(poses['poses_seq'][str(i)]['r'])[:-1]
+		# if len(last_pose) > 0:
+		# 	diff = np.absolute(last_pose - p)
+		# 	if max(diff) > 0.5:
+		# 		if file_ids[0] in r_poses:
+		# 			del r_poses[file_ids[0]]
+		# 			break
+		# last_pose = p
 		pose = format_pose(poses['poses_seq'][str(i)]['h'])
 		# print np.argmin([np.absolute(pose - p) for p in h_poses])
 		idx = []
@@ -48,6 +53,8 @@ for filename in glob.glob('raw_data/*'):
 			except:
 				break
 		if len(idx) == 1:
+			if idx[0] > 1100 or idx < 101:
+				continue
 			if last_idx > idx[0]:
 				split_n += 0.001
 			key = file_ids[1]+split_n
@@ -59,7 +66,7 @@ for filename in glob.glob('raw_data/*'):
 			r_poses[file_ids[0]][key].append((idx[0], normalize(poses['poses_seq'][str(i)]['r'])))
 
 # print r_poses
-
+print len(r_poses)
 n = 6
 f, axarr = plt.subplots(n, 1, sharex=True, sharey=True)
 for name,ps in r_poses.iteritems():
@@ -69,5 +76,6 @@ for name,ps in r_poses.iteritems():
 		y = np.array([j for _,j in p])
 		for i in range(n):
 			axarr[i].plot(x, y[:,i])
+
 plt.show()
 plt.close(f)
