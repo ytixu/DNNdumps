@@ -4,6 +4,21 @@ import glob
 import os.path
 import numpy as np
 
+def random_data_generator(timesteps, batch_size):
+	# two gaussians 
+	for i in range(10000):
+		data = np.random.random_sample((batch_size, timesteps, 2))*0.2-0.1
+		a_ind = np.random.randint(0,batch_size,np.random.randint(batch_size/3))
+		b_ind = list(set(range(batch_size)) - set(a_ind.tolist()))
+		data[:,:,0] = data[:,:1,1]
+
+		for j in range(1,timesteps):
+			data[a_ind,j,1] = data[a_ind,j-1,1]-0.5/timesteps
+			data[b_ind,j,1] = data[b_ind,j-1,1]+0.5/timesteps
+		
+		yield data[:,:,:1], data[:,:,1:]
+
+
 def data_dimensions(input_dir, output_dir):
 	for input_file in glob.glob(input_dir+'*'):
 		name_id = os.path.basename(input_file)
@@ -80,5 +95,6 @@ def get_parse(model_name):
 	args = vars(ap.parse_args())
 	data_iterator = data_generator(args['input_data'], args['output_data'], args['timesteps'], 5000)
 	args['input_dim'], args['output_dim'] = data_dimensions(args['input_data'], args['output_data'])
-
+	# data_iterator = random_data_generator(args['timesteps'], 5000)
+	# args['input_dim'], args['output_dim'] = 1, 1
 	return data_iterator, args
