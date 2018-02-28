@@ -45,6 +45,50 @@ def plot_batch_3D(batch_true, batch_predict, title='Poses (prediction in blue)')
 	f.savefig('../out/' + title.lower().replace(' ', '_') + strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png') 
 	plt.close(f)
 
+# def plot_batch_2D(batch_true, batch_predict, title='Poses (prediction in blue)'):
+# 	size = len(batch_true[0])
+# 	f, axarr = plt.subplots(2, size, sharex=True, sharey=True)
+# 	for i, p in enumerate(batch_true[0]):
+# 		new_p = np.reshape(p, (-1,2))
+# 		add_point(axarr[0, i], new_p, 'r', 10)
+# 		new_p = np.reshape(batch_predict[0][i], (-1,2))
+# 		add_point(axarr[1, i], new_p, 'b', 10)
+
+# 	f.subplots_adjust(hspace=0.1)
+# 	plt.suptitle(title)
+		
+# 	f.savefig('../out/' + title.lower().replace(' ', '_') + strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png') 
+# 	plt.close(f)
+
+
+def plot_batch_2D(batch_complete, batch_true, batch_predict, best_opt, p_best_opt, title='Poses (Green, Cyan: predicted best option)'):
+	size = len(batch_true[0])
+	f, axarr = plt.subplots(len(batch_predict[0])+1, size, sharex=True, sharey=True)
+	for i, p in enumerate(batch_true[0]):
+		new_p = np.reshape(p, (-1,2))
+		pose = np.reshape(batch_complete[0][i], (-1, 2))
+		add_point(axarr[0, i], new_p, 'r', 10)
+		add_point(axarr[0, i], pose, 'y', 10)
+
+		for j in range(len(batch_predict[0])):
+			new_p = np.reshape(batch_predict[0][j][i], (-1,2))
+			c = 'b'
+			if j == best_opt[0]:
+				if best_opt[0] == p_best_opt[0]:
+					c = 'g'
+				else:
+					c = 'm'
+			elif j == p_best_opt[0]:
+				c = 'c'
+			add_point(axarr[j+1, i], new_p, c, 10)
+			add_point(axarr[j+1, i], pose, 'y', 10)
+
+	f.subplots_adjust(hspace=0.1)
+	plt.suptitle(title)
+		
+	f.savefig('../out/' + title.lower().replace(' ', '_') + strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png') 
+	plt.close(f)
+
 def plot_batch_1D(batch_true, batch_predict, title='Poses (prediction in blue)'):
 	size = len(batch_true[0])
 	n = len(batch_true[0][0])
@@ -62,6 +106,27 @@ def plot_batch_1D(batch_true, batch_predict, title='Poses (prediction in blue)')
 		
 	f.savefig('../out/' + title.lower().replace(' ', '_') + strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png') 
 	plt.close(f)
+
+def plot_graph(batch_x, batch_true, batch_predict, best_opt, p_best_opt, title='Poses (Green, Cyan: predicted best option)'):
+	print batch_x.shape, batch_true.shape, batch_predict.shape, best_opt.shape, p_best_opt.shape
+	t = range(len(batch_true[0]))
+	for i, p in enumerate(batch_true):
+		plt.plot(t+batch_x[i].flatten(), p.flatten(), c='r')
+	for i, p in enumerate(batch_predict):
+		for j in range(len(p)):
+			c = 'b'
+			if j == best_opt[i]:
+				if best_opt[i] == p_best_opt[i]:
+					c = 'g'
+				else:
+					c = 'm'
+			elif j == p_best_opt[i]:
+				c = 'c'
+
+			plt.plot(t+batch_x[i].flatten(), p[j].flatten(), c=c)
+	plt.suptitle(title)
+	plt.savefig('../out/' + title.lower().replace(' ', '_') + strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png') 
+	plt.close()
 
 def plot_options(ref, opts, title='Options'):
 	colors = get_color(len(opts[0])+1)
