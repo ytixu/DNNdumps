@@ -10,6 +10,10 @@ from utils import parser, image, embedding_plotter, recorder, option_visualizer
 
 
 NAME = 'Option_LSTM'
+USE_GRU = False
+if USE_GRU:
+	from keras.layers import GRU
+
 
 class Option_LSTM:
 
@@ -38,13 +42,20 @@ class Option_LSTM:
 
 	def make_model(self):	
 		inputs = Input(shape=(self.timesteps, self.input_dim))
-		encoded = LSTM(self.latent_dim)(inputs)
-		
+		encoded = None
+		if USE_GRU:
+			encoded = GRU(self.latent_dim)(inputs)
+		else:
+			encoded = LSTM(self.latent_dim)(inputs)
+
 		optioned = RepeatVector(self.option_dim)(encoded)
 		optioned = Flatten()(optioned)
 		
 		decoded = RepeatVector(self.timesteps)(optioned)
-		decoded = LSTM(self.output_dim*self.option_dim, return_sequences=True)(decoded)
+		if USE_GRU:
+			decoded = GRU(self.output_dim*self.option_dim, return_sequences=True)(decoded)
+		else:
+			decoded = LSTM(self.output_dim*self.option_dim, return_sequences=True)(decoded)
 		decoded = Flatten()(decoded)
 
 		class_layer = Dense(self.option_dim, activation='softmax')(encoded)

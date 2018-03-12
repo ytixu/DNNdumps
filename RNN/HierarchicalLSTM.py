@@ -1,70 +1,110 @@
 import numpy as np
 from itertools import tee
 from sklearn import cross_validation
-from keras.layers import Input, LSTM, RepeatVector, TimeDistributed
-from keras.models import Model, Sequential
+from keras.layers import Input, RepeatVector, Lambda, concatenate
+from keras.models import Model
 
-from utils import parser, image
+from utils import parser, image, embedding_plotter, recorder
 
-class H_LSTM:
+NAME = 'LSTM_AE'
+USE_GRU = False
+if USE_GRU:
+	from keras.layers import GRU
+else:
+	from keras.layers import LSTM
+
+class LSTM_AE:
 
 	def __init__(self, args):
-		self.model = None
+		self.autoencoder = None
+		self.encoder = None
+		self.decoder = None
 
-		self.epochs = args['epochs'] if 'epochs' in args else 10
-		self.periods = args['periods'] if 'periods' in args else 5
-		self.batch_size = args['batch_size'] if 'batch_size' in args else 16
+		self.epochs = args['epochs']
+		self.batch_size = args['batch_size']
+		self.periods = args['periods'] if 'periods' in args else 10
 		self.cv_splits = args['cv_splits'] if 'cv_splits' in args else 0.2
 
 		self.timesteps = args['timesteps'] if 'timesteps' in args else 5
-		self.level_n = args['level_n'] if 'level_n' in args else 5
 		self.input_dim = args['input_dim']
 		self.output_dim = args['output_dim']
+		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
+		self.load_path = args['load_path']
+		self.log_path = args['log_path']
 
+		self.history = recorder.LossHistory()
 
 	def make_model(self):
-		inputs = Input(shape=(self.level_n, self.timesteps, self.input_dim))
-		encoded_rows = TimeDistributed(LSTM(self.input_dim))(inputs)
-		encoded_columns = LSTM(self.input_dim)(encoded_rows)
+		inputs = Input(shape=(self.timesteps, self.input_dim))
+		encoded = LSTM(self.latent_dim, return_sequences=True)(inputs)
 
-		decoded_columns = RepeatVector(self.timesteps)(encoded_columns)
-		decoded_columns = LSTM(self.output_dim)(decoded_columns)
-		decoded__rows = RepeatVector(self.timesteps)(decoded_columns)
-		decoded_rows = LSTM(self.output_dim, return_sequences=True)(decoded__rows)
+		z = Input(shape=(self.latent_dim,))
+		decode_1 = RepeatVector(self.timesteps)
+		decode_2 = LSTM(self.output_dim, return_sequences=True)
+
+		decoded = [None]*self.timesteps
+		for i in range(self.timesteps):
+			e = Lambda(lambda x: x[:,i], output_shape=(self.latent_dim,))(encoded)
+			decoded[i] = decode_1(e)
+			decoded[i] = decode_2(decoded[i])
+		decoded = concatenate(decoded, axis=1)
+
+		decoded_ = decode_1(z)
+		decoded_ = decode_2(decoded_)
 		
-		self.model = Model(inputs, decoded_rows)
-		self.model.compile(optimizer='RMSprop', loss='mean_squared_error')
+		self.encoder = Model(inputs, encoded)
+		self.decoder = Model(z, decoded_)
+		self.autoencoder = Model(inputs, decoded)
+		self.autoencoder.compile(optimizer='RMSprop', loss='mean_squared_error')
 
-		self.model.summary()
+		self.autoencoder.summary()
+		self.encoder.summary()
+		self.decoder.summary()
 
-	
-	def run(self, data_iterator): 
+	def load(self):
 		self.make_model()
-
 		if self.trained:
-			self.model.load_weights(self.load_path)
-			# blah
+			self.autoencoder.load_weights(self.load_path)
+			return True
+		return False
 
-		else:
+	def __alter_y(self, y):
+		y = np.repeat(y, self.timesteps, axis=0)
+		y = np.reshape(y, (-1, self.timesteps, self.timesteps, y.shape[-1]))
+		for i in range(self.timesteps-1):
+			y[:,i,i+1:,:] = 0.0
+		return np.reshape(y, (-1, self.timesteps**2, y.shape[-1]))
+		
+
+	def run(self, data_iterator): 
+		if not self.load():
 			iter1, iter2 = tee(data_iterator)
 			for i in range(self.periods):
 				for x, y in iter1:
-					norm_y = y/np.pi/2
-					x_train, x_test, y_train, y_test = cross_validation.train_test_split(x, norm_y, test_size=self.cv_splits)
-					self.model.fit(x_train, y_train,
+					x_train, x_test, y_train, y_test = cross_validation.train_test_split(x, y, test_size=self.cv_splits)
+					y_train = self.__alter_y(y_train)
+					y_test_orig = np.copy(y_test[:1])
+					y_test = self.__alter_y(y_test)
+					self.autoencoder.fit(x_train, y_train,
 								shuffle=True,
 								epochs=self.epochs,
 								batch_size=self.batch_size,
-								validation_data=(x_test, y_test))
+								validation_data=(x_test, y_test),
+								callbacks=[self.history])
 
-					y_test_decoded = self.model.predict(x_test[:1])
-					image.plot_batch_1D(y_test[:1], y_test_decoded)
-					# self.model.save_weights(self.load_path, overwrite=True)
-				
+					y_test_decoded = self.autoencoder.predict(x_test[:1])
+					image.plot_hierarchies(y_test_orig, y_test_decoded)
+					self.autoencoder.save_weights(self.load_path, overwrite=True)
 				iter1, iter2 = tee(iter2)
+			
+			data_iterator = iter2
+
+		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
+		# embedding_plotter.see_embedding(self.encoder, data_iterator, model_vars, concat=True)
+		self.history.record(self.log_path, model_vars)
 
 if __name__ == '__main__':
-	data_iterator, config = parser.get_parse('LSTM_AE')
-	ae = H_LSTM(config)
+	data_iterator, config = parser.get_parse(NAME)
+	ae = LSTM_AE(config)
 	ae.run(data_iterator)
