@@ -176,3 +176,30 @@ def plot_hierarchies(batch_true, batch_predict, title='Prediction in Blue'):
 	# plt.show()
 	f.savefig('../out/' + title.lower().replace(' ', '_') + strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png') 
 	plt.close(f)
+
+def plot_poses(batch, batch2=[], title='Poses'):
+	timesteps = len(batch[0])
+	n = len(batch) 
+	n_total = len(batch) + len(batch2)
+	skip_n = 5
+	skip_t = timesteps/skip_n
+	f, axarr = plt.subplots(n_total, skip_n, sharex=True, sharey=True)
+
+	for i in range(n):
+		new_x = np.reshape(batch[i], (timesteps, -1, 3))
+		for j in range(skip_n):
+			for l in M_POSE_LINES:
+				add_line(axarr[i, j], (new_x[j*skip_t])[l,:2], 'r', 3)
+
+	for i in range(len(batch2)):
+		new_x = np.reshape(batch2[i], (timesteps, -1, 3))
+		for j in range(skip_n):
+			for l in M_POSE_LINES:
+				add_line(axarr[i+n, j], (new_x[j*skip_t])[l,:2], 'b', 3)
+			
+
+	f.subplots_adjust(hspace=0.1)
+	# plt.suptitle(title)
+	# plt.show()
+	f.savefig('../out/' + title.lower().replace(' ', '_') + strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png') 
+	plt.close(f)

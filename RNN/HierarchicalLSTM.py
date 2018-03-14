@@ -6,14 +6,14 @@ from keras.models import Model
 
 from utils import parser, image, embedding_plotter, recorder
 
-NAME = 'LSTM_AE'
+NAME = 'H_LSTM'
 USE_GRU = False
 if USE_GRU:
 	from keras.layers import GRU
 else:
 	from keras.layers import LSTM
 
-class LSTM_AE:
+class H_LSTM:
 
 	def __init__(self, args):
 		self.autoencoder = None
@@ -28,6 +28,7 @@ class LSTM_AE:
 		self.timesteps = args['timesteps'] if 'timesteps' in args else 5
 		self.input_dim = args['input_dim']
 		self.output_dim = args['output_dim']
+		# self.hierarchies = args['hierarchies'] if 'hierarchies' in args else 4
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
 		self.load_path = args['load_path']
@@ -78,6 +79,8 @@ class LSTM_AE:
 		
 
 	def run(self, data_iterator): 
+		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
+
 		if not self.load():
 			iter1, iter2 = tee(data_iterator)
 			for i in range(self.periods):
@@ -100,11 +103,11 @@ class LSTM_AE:
 			
 			data_iterator = iter2
 
-		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
-		# embedding_plotter.see_embedding(self.encoder, data_iterator, model_vars, concat=True)
-		self.history.record(self.log_path, model_vars)
+			self.history.record(self.log_path, model_vars)
+
+		embedding_plotter.see_hierarchical_embedding(self.encoder, self.decoder, data_iterator, model_vars)
 
 if __name__ == '__main__':
 	data_iterator, config = parser.get_parse(NAME)
-	ae = LSTM_AE(config)
+	ae = H_LSTM(config)
 	ae.run(data_iterator)
