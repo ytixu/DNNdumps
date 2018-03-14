@@ -10,6 +10,7 @@ from utils import parser, image, embedding_plotter, recorder, option_visualizer
 
 
 NAME = 'OptionLSTM_2'
+
 USE_GRU = False
 if USE_GRU:
 	from keras.layers import GRU

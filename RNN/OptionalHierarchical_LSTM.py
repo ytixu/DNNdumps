@@ -6,14 +6,19 @@ from keras.models import Model
 
 from utils import parser, image, embedding_plotter, recorder
 
-NAME = 'H_LSTM'
+NAME = 'OH_LSTM'
+# supports:
+# 1) Multiple modalities of output (options)
+# 2) Distribution vector of most common modalities
+# 3) Multiple output sequence length (hierarchies)
+
 USE_GRU = False
 if USE_GRU:
 	from keras.layers import GRU
 else:
 	from keras.layers import LSTM
 
-class H_LSTM:
+class OH_LSTM:
 	def __init__(self, args):
 		self.autoencoder = None
 		self.encoder = None
@@ -27,7 +32,6 @@ class H_LSTM:
 		self.timesteps = args['timesteps'] if 'timesteps' in args else 5
 		self.input_dim = args['input_dim']
 		self.output_dim = args['output_dim']
-		# self.hierarchies = args['hierarchies'] if 'hierarchies' in args else 4
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
 		self.load_path = args['load_path']
@@ -80,34 +84,32 @@ class H_LSTM:
 	def run(self, data_iterator): 
 		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
 		if not self.load():
-			from keras.utils import plot_model
-			plot_model(self.autoencoder, to_file='model.png')
-		# 	iter1, iter2 = tee(data_iterator)
-		# 	for i in range(self.periods):
-		# 		for x, y in iter1:
-		# 			x_train, x_test, y_train, y_test = cross_validation.train_test_split(x, y, test_size=self.cv_splits)
-		# 			y_train = self.__alter_y(y_train)
-		# 			y_test_orig = np.copy(y_test[:1])
-		# 			y_test = self.__alter_y(y_test)
-		# 			self.autoencoder.fit(x_train, y_train,
-		# 						shuffle=True,
-		# 						epochs=self.epochs,
-		# 						batch_size=self.batch_size,
-		# 						validation_data=(x_test, y_test),
-		# 						callbacks=[self.history])
+			iter1, iter2 = tee(data_iterator)
+			for i in range(self.periods):
+				for x, y in iter1:
+					x_train, x_test, y_train, y_test = cross_validation.train_test_split(x, y, test_size=self.cv_splits)
+					y_train = self.__alter_y(y_train)
+					y_test_orig = np.copy(y_test[:1])
+					y_test = self.__alter_y(y_test)
+					self.autoencoder.fit(x_train, y_train,
+								shuffle=True,
+								epochs=self.epochs,
+								batch_size=self.batch_size,
+								validation_data=(x_test, y_test),
+								callbacks=[self.history])
 
-		# 			y_test_decoded = self.autoencoder.predict(x_test[:1])
-		# 			image.plot_hierarchies(y_test_orig, y_test_decoded)
-		# 			self.autoencoder.save_weights(self.load_path, overwrite=True)
-		# 		iter1, iter2 = tee(iter2)
+					y_test_decoded = self.autoencoder.predict(x_test[:1])
+					image.plot_hierarchies(y_test_orig, y_test_decoded)
+					self.autoencoder.save_weights(self.load_path, overwrite=True)
+				iter1, iter2 = tee(iter2)
 			
-		# 	data_iterator = iter2
+			data_iterator = iter2
 
-		# 	self.history.record(self.log_path, model_vars)
+			self.history.record(self.log_path, model_vars)
 
-		# embedding_plotter.see_hierarchical_embedding(self.encoder, self.decoder, data_iterator, model_vars)
+		embedding_plotter.see_hierarchical_embedding(self.encoder, self.decoder, data_iterator, model_vars)
 
 if __name__ == '__main__':
 	data_iterator, config = parser.get_parse(NAME)
-	ae = H_LSTM(config)
+	ae = OH_LSTM(config)
 	ae.run(data_iterator)
