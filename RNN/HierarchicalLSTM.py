@@ -14,7 +14,6 @@ else:
 	from keras.layers import LSTM
 
 class H_LSTM:
-
 	def __init__(self, args):
 		self.autoencoder = None
 		self.encoder = None
@@ -80,7 +79,6 @@ class H_LSTM:
 
 	def run(self, data_iterator): 
 		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
-
 		if not self.load():
 			iter1, iter2 = tee(data_iterator)
 			for i in range(self.periods):

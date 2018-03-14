@@ -185,6 +185,7 @@ def subembedding(embedding, args):
 	plt.savefig('../out/embedding_'+ '-'.join(map(str, args)) + strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png') 
 	plt.close()
 
+
 def pca_reduce(embedding):
 	pca = sklearnPCA(n_components=2) #2-dimensional PCA
 	X_norm = (embedding - embedding.min())/(embedding.max() - embedding.min())
@@ -215,7 +216,6 @@ def plot(embedding, args):
 	plt.close()
 
 	# plt.show()
-
 
 if __name__ == '__main__':
 	embedding = np.load('../../data/data.embedding_Tue-13-Mar-2018-19_36_37.npy')

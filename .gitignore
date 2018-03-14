@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+out/*
+>>>>>>> e6ee3c0df4d5b9c420787dd0c54a9e626b24e9c3
 *.pyc
 */*.pyc
 */*/*.pyc
