@@ -14,6 +14,7 @@ Some DNNs for getting a thesis.
 - RNN/PriorLSTM.py: adding first timestep of the output sequence as input
 - RNN/LSTM_UNIT.py: coupled sequence-to-sequence autoencoder
 - RNN/OptionLSTM.py: explode output into n modalities, match with the best modality
+- RNN/Option_Prior_LSTM.py: encode also the output to learn the modality distribution 
 - RNN/OptionLSTM_VAE.py: same as previous, but using VAE
 - RNN/HierarchicalLSMT.py: encode and decode sequence of multiple lengths
 - RNN/OptionalHierarchical_LSMT.py: combining Option with Hierarchy

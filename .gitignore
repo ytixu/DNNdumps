@@ -1,6 +1,8 @@
-out/*
+
 *.pyc
 */*.pyc
 */*/*.pyc
 */*/*/*.pyc
 data/mpi
+models/*
+data/src/model_anal/*/*

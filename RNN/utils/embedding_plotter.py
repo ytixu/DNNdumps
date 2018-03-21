@@ -2,9 +2,8 @@ import matplotlib.pyplot as plt
 from scipy.spatial import ConvexHull
 import numpy as np
 from time import gmtime, strftime
-import networkx as nx
 from sklearn.decomposition import PCA as sklearnPCA
-from fa2 import ForceAtlas2
+
 
 
 def see_embedding(encoder, data_iterator, args, concat=False):
@@ -22,7 +21,26 @@ def see_embedding(encoder, data_iterator, args, concat=False):
 
 	plot(embedding, args)
 
+def see_variational_length_embedding(encoder, decoder, data_iterator, t, args):
+	embedding = [[] for i in range(t)]
+	for x, y in data_iterator:
+		for i in range(t):
+			x_alter = np.zeros(x.shape)
+			x_alter[:,:i+1] = x[:,:i+1]
+			e = encoder.predict(x_alter)
+			if len(embedding[i]) == 0:
+				embedding[i] = e
+			else:
+				embedding[i] = np.concatenate((embedding[i], e), axis=0)
+		# break
+	l = len(embedding[0])
+	e_list = np.concatenate(embedding, axis=0)
+	plot_convex_halls(e_list, l, t, args)
+
 def see_hierarchical_embedding(encoder, decoder, data_iterator, args):
+	# get_hierarchical_distances(encoder, data_iterator)
+	# # plot_centers(decoder)
+	# plot_communities(decoder)
 	embedding = []
 	h = 0
 	for x, y in data_iterator:
@@ -32,52 +50,134 @@ def see_hierarchical_embedding(encoder, decoder, data_iterator, args):
 			h = e.shape[1]
 		else:
 			embedding = np.concatenate((embedding, e), axis=0)
+		break
 
 	l = embedding.shape[0]
+	e_list = np.concatenate(embedding, axis=0)
+	print embedding.shape, e_list.shape
 	# print'saving.....'
 	# np.save('../data.embedding_%s.npy'%strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()), embedding)
 
 	# check_min_max(e_list, decoder, h, args)
 	# subembedding(embedding[:,h-1], args)
 	# embedding_stats(embedding, args)
-	# plot_fa((embedding[:,h-1])[:50], args)
+	# plot_fa(e_list)
 	# interpolate(embedding[:,h-1], encoder, decoder)
-	go_up_hierarchy(embedding, decoder, h)
+	# go_up_hierarchy(embedding, decoder, h)
+	# plot_convex_halls(e_list, l, h, args)
+	# check_concept_space(embedding, h)
+	k_mean_clusters(e_list, decoder)
 
-	# transformed = pca_reduce(e_list)
-	# for i in range(h):
-	# 	choices = transformed[i::h]
-	# 	hull = ConvexHull(choices)
-	# 	for simplex in hull.simplices:
-	# 		plt.plot(choices[simplex, 0], choices[simplex, 1], c='#'+('%s'%('{0:01X}'.format(i+2)))*6)
-	# 	# plt.scatter(choices[:,0], choices[:,1], c='#'+('%s'%('{0:01X}'.format(i+2)))*6)
+def get_hierarchical_distances(encoder, data_iterator):
+	i = 0
+	for x, y in data_iterator:
+		idx = np.random.choice(x.shape[0], 10)
+		e = encoder.predict(x[idx])
+		np.save('../out/embedding_list_%d.npy'%i, e)
+		np.save('../out/embedding_orig_list_%d.npy'%i, x[idx])
+		print i, e.shape
+		i += 1
+
+def check_concept_space(embedding, levels):
+	from scipy.spatial import Delaunay
+	from tqdm import tqdm
+
+	polygones = []
+	for i in tqdm(range(levels)):
+		hull = Delaunay(embedding[:,i])
+		p = embedding[:,i+1:]
+		if len(p) > 0:
+			n = np.random.choice(len(p), 10)
+			for j in n:
+				assert(hull.find_simplex(p[j])==-1)
+		p = embedding[:,:i]
+		if len(p) > 0:
+			n = np.random.choice(len(p), 10)
+			for j in n:
+				assert(hull.find_simplex(p[j])==-1)
+
+def plot_centers(decoder):
+	import image
+	# centers = np.load('../data/src/model_anal/centers.npy')
+	# print centers.shape
+	# p_poses = decoder.predict(centers)
+	# for i in range(len(p_poses)/5+1):
+	# 	image.plot_poses(p_poses[i*5:(i+1)*5])
+
+
+	# centers = np.load('../data/src/model_anal/centers_orig.npy')
+	# centers = 
+	# # p_poses = decoder.predict(centers)
+	# for i in range(len(centers)/5+1):
+	# 	image.plot_poses(centers[i*5:(i+1)*5])
+
+
+	centers = np.load('../data/src/model_anal/centers_orig_0.npy')
+	for i in range(len(centers)/5):
+		image.plot_poses(centers[i*5:(i+1)*5])
+
+def k_mean_clusters(embedding, decoder, n=10):
+	import image
+	from sklearn.cluster import KMeans
+	n_random = np.random.choice(len(embedding), 2000)
+	kmeans = KMeans(n_clusters=n, random_state=0).fit(embedding[n_random])
+	poses = decoder.predict(kmeans.cluster_centers_)
+	for i in range(len(poses)/5):
+		image.plot_poses(poses[i*5:(i+1)*5])
+
+def plot_communities(decoder):
+	import image
+	import glob
+	for std in [2]:
+		# for c_files in glob.glob('../data/src/model_anal/H_LSTM_l100_t10/communities/community_*_orig_%dstd.npy'%(std)):
+		# 	args = '_orig_'+str(std)+'_'+ c_files.split('_')[-3]+'_'
+		# 	poses = np.load(c_files)
+		# 	for i in range(len(poses)/5):
+		# 		image.plot_poses(poses[i*5:(i+1)*5], args=args)
+
+		for c_files in glob.glob('../data/src/model_anal/H_LSTM_l100_t10/communities/community_*_emb_vector_%dstd.npy'%(std)):
+			args = '_gen_'+str(std)+'_'+ c_files.split('_')[-4]+'_'
+			emb = np.load(c_files)
+			poses = decoder.predict(emb)
+			for i in range(len(poses)/5):
+				image.plot_poses(poses[i*5:(i+1)*5], args=args)
+
+
+def plot_convex_halls(embedding, sample_n, levels, args):
+	transformed = pca_reduce(embedding)
+	for i in range(levels):
+		choices = transformed[i::levels]
+		hull = ConvexHull(choices)
+		for simplex in hull.simplices:
+			plt.plot(choices[simplex, 0], choices[simplex, 1], c='#'+('%s'%('{0:01X}'.format(i+2)))*6)
+		# plt.scatter(choices[:,0], choices[:,1], c='#'+('%s'%('{0:01X}'.format(i+2)))*6)
 	
-	# for c in ['red', 'green', 'blue']:
-	# 	n = np.random.randint(0, l-50)
-	# 	for i, s in enumerate(['x', '+', 'd']):
-	# 		random_sequence = (transformed[i*(h-1)/2::h])[n:n+50:10]
-	# 		print random_sequence.shape
-	# 		plt.scatter(random_sequence[:,0], random_sequence[:,1], c=c, marker=s)
-	# # plt.scatter(lda_transformed[y==2][0], lda_transformed[y==2][1], label='Class 2', c='blue')
-	# # plt.scatter(lda_transformed[y==3][0], lda_transformed[y==3][1], label='Class 3', c='lightgreen')
+	for c in ['red', 'green', 'blue']:
+		n = np.random.randint(0, sample_n-50)
+		for i, s in enumerate(['x', '+', 'd']):
+			random_sequence = (transformed[i*(levels-1)/2::levels])[n:n+50:10]
+			print random_sequence.shape
+			plt.scatter(random_sequence[:,0], random_sequence[:,1], c=c, marker=s)
+	# plt.scatter(lda_transformed[y==2][0], lda_transformed[y==2][1], label='Class 2', c='blue')
+	# plt.scatter(lda_transformed[y==3][0], lda_transformed[y==3][1], label='Class 3', c='lightgreen')
 
-	# # Display legend and show plot
-	# # plt.legend(loc=3)
-	# plt.savefig('../out/embedding_'+ '-'.join(map(str, args)) + strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png') 
-	# plt.close()
-	# # plt.show()
+	# Display legend and show plot
+	# plt.legend(loc=3)
+	plt.savefig('../out/plot_convex_halls_'+ '-'.join(map(str, args)) + strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png') 
+	plt.close()
+	# plt.show()
 
 def go_up_hierarchy(embedding, decoder, h):
 	import image
 	n = np.random.randint(len(embedding[:,0]))
 	z_ref = (embedding[:,0])[n]
-	zs = [z_ref]
+	zs = [z_ref, (embedding[:,h-1])[n]]
 	for i in range(2,h,2):
 		e = embedding[:,i]
 		weights = [np.linalg.norm(e[j]-z_ref) for j in range(len(e))]
 		zs.append(e[np.argmin(weights)])
 	p_poses = decoder.predict(np.array(zs))
-	image.plot_poses(p_poses[:1], p_poses[1:])
+	image.plot_poses(p_poses[:2], p_poses[2:])
 
 
 def interpolate(embedding, encoder, decoder, l=8):
@@ -149,10 +249,12 @@ def check_min_max(embedding, decoder, h, args):
 	
 	plt.bar(bin_edges[:-1], hist, width = 1)
 	plt.xlim(min(bin_edges), max(bin_edges))
-	plt.savefig('../out/embedding_'+ '-'.join(map(str, args)) + strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png') 
+	plt.savefig('../out/check_min_max_'+ '-'.join(map(str, args)) + strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png') 
 	plt.close()
 
 def plot_fa(embedding):
+	import networkx as nx
+	from fa2 import ForceAtlas2
 	fa2 = ForceAtlas2()
 	G = nx.DiGraph()
 	weights = [(i, j, np.linalg.norm(embedding[i]-embedding[j])) for i in range(len(embedding)) for j in range(i)]
@@ -160,6 +262,7 @@ def plot_fa(embedding):
 	positions = fa2.forceatlas2_networkx_layout(G, pos=None, iterations=2000)
 	nx.draw_networkx(G, positions, cmap=plt.get_cmap('jet'), node_size=50, with_labels=False, width=1, arrows=False)
 	plt.show()
+
 
 def embedding_stats(embedding, args):
 	# r = plt.hist(embedding, density=True)
@@ -175,14 +278,14 @@ def embedding_stats(embedding, args):
 		axarr[i].plot(x, y, c='#'+('%s'%('{0:01X}'.format(i+2)))*6)
 		axarr[i].fill_between(x, y-err, y+err, facecolor='#'+('%s'%('{0:01X}'.format(i+2)))*6)
 
-	plt.savefig('../out/embedding_'+ '-'.join(map(str, args)) + strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png') 
+	plt.savefig('../out/embedding_stats_'+ '-'.join(map(str, args)) + strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png') 
 	plt.close()
 	# plt.show()
 
 def subembedding(embedding, args):
 	transformed = pca_reduce(embedding)
 	plt.scatter(transformed[:,0], transformed[:,1])
-	plt.savefig('../out/embedding_'+ '-'.join(map(str, args)) + strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png') 
+	plt.savefig('../out/subembedding_'+ '-'.join(map(str, args)) + strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png') 
 	plt.close()
 
 

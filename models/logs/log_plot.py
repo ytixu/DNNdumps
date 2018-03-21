@@ -21,7 +21,7 @@ def get_logs(files_exp):
 def plot(data):
 	for name, seq in data.iteritems():
 		time = range(len(seq))
-		plt.plot(time, seq, label=name)
+		plt.scatter(time, seq, label=name, s=2)
 
 	plt.legend()
 	plt.show()

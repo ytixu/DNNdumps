@@ -49,10 +49,11 @@ save_path = '../../mpi/'
 # n_2d = max_2d - min_2d
 relevant_idx = [5, 6, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20, 23, 24, 25]
 non_relevant_idx = list(set(range(28)) - set(relevant_idx))
-
+MIN_DIFF = 0.0397236685401 + 0.0274501646596
 r_arm = [14, 16] 
 # [23, 14, 15, 16, 17]
 non_r_arm = list(set(relevant_idx) - set(r_arm))
+prev_pose = []
 
 for f_id, filename in enumerate(glob.glob(path)):
 	mat = scipy.io.loadmat(filename)
@@ -60,10 +61,20 @@ for f_id, filename in enumerate(glob.glob(path)):
 		for cam_view_id in range(mat['univ_annot3'][cam_id].shape[0]):
 			pose_3d = mat['univ_annot3'][cam_id][cam_view_id]
 			pose_3d = np.reshape(pose_3d, (len(pose_3d), -1, 3))[:,relevant_idx]
+			valid_idx = []
 			for i in range(len(pose_3d)):
 				# recenter to the neck 
 				pose_3d[i] = (pose_3d[i] - pose_3d[i][0])/np.linalg.norm(pose_3d[i][2]-pose_3d[i][6])/7
+				if len(prev_pose) == 0:
+					prev_pose = pose_3d[i]
+				else:
+					if np.linalg.norm(pose_3d[i]-prev_pose) > MIN_DIFF:
+						prev_pose = pose_3d[i]
+						valid_idx.append(i)
 
+			print len(pose_3d)
+			print len(valid_idx)
+			pose_3d = pose_3d[valid_idx]
 
 			# pose_2d = mat['annot2'][cam_id][0]
 			# min_2d = np.min(pose_2d, axis=1)
@@ -92,7 +103,7 @@ for f_id, filename in enumerate(glob.glob(path)):
 
 			assert np.max(pose_3d) < 1
 			assert np.min(pose_3d) > -1
-			np.save(save_path+'normalized_3d/%d-%d.npy'%(f_id,cam_id), np.reshape(pose_3d, (len(pose_3d), -1)))
+			np.save(save_path+'normalized_equidistance_3d/%d-%d.npy'%(f_id,cam_id), np.reshape(pose_3d, (len(pose_3d), -1)))
 		# # np.save(save_path+'2d/%d-%d.npy'%(f_id,cam_id), pose_2d[:,relevant_idx])
 		# pose_2d = np.reshape(pose_2d, (len(pose_2d), -1, 2))
 		# for i in range(pose_2d.shape[0]): 

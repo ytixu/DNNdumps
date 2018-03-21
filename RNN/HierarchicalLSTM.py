@@ -80,32 +80,32 @@ class H_LSTM:
 	def run(self, data_iterator): 
 		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
 		if not self.load():
-			from keras.utils import plot_model
-			plot_model(self.autoencoder, to_file='model.png')
-		# 	iter1, iter2 = tee(data_iterator)
-		# 	for i in range(self.periods):
-		# 		for x, y in iter1:
-		# 			x_train, x_test, y_train, y_test = cross_validation.train_test_split(x, y, test_size=self.cv_splits)
-		# 			y_train = self.__alter_y(y_train)
-		# 			y_test_orig = np.copy(y_test[:1])
-		# 			y_test = self.__alter_y(y_test)
-		# 			self.autoencoder.fit(x_train, y_train,
-		# 						shuffle=True,
-		# 						epochs=self.epochs,
-		# 						batch_size=self.batch_size,
-		# 						validation_data=(x_test, y_test),
-		# 						callbacks=[self.history])
+			# from keras.utils import plot_model
+			# plot_model(self.autoencoder, to_file='model.png')
+			iter1, iter2 = tee(data_iterator)
+			for i in range(self.periods):
+				for x, y in iter1:
+					x_train, x_test, y_train, y_test = cross_validation.train_test_split(x, y, test_size=self.cv_splits)
+					y_train = self.__alter_y(y_train)
+					y_test_orig = np.copy(y_test[:1])
+					y_test = self.__alter_y(y_test)
+					self.autoencoder.fit(x_train, y_train,
+								shuffle=True,
+								epochs=self.epochs,
+								batch_size=self.batch_size,
+								validation_data=(x_test, y_test),
+								callbacks=[self.history])
 
-		# 			y_test_decoded = self.autoencoder.predict(x_test[:1])
-		# 			image.plot_hierarchies(y_test_orig, y_test_decoded)
-		# 			self.autoencoder.save_weights(self.load_path, overwrite=True)
-		# 		iter1, iter2 = tee(iter2)
+					y_test_decoded = self.autoencoder.predict(x_test[:1])
+					image.plot_hierarchies(y_test_orig, y_test_decoded)
+					self.autoencoder.save_weights(self.load_path, overwrite=True)
+				iter1, iter2 = tee(iter2)
 			
-		# 	data_iterator = iter2
+			data_iterator = iter2
 
-		# 	self.history.record(self.log_path, model_vars)
+			self.history.record(self.log_path, model_vars)
 
-		# embedding_plotter.see_hierarchical_embedding(self.encoder, self.decoder, data_iterator, model_vars)
+		embedding_plotter.see_hierarchical_embedding(self.encoder, self.decoder, data_iterator, model_vars)
 
 if __name__ == '__main__':
 	data_iterator, config = parser.get_parse(NAME)

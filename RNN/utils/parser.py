@@ -62,9 +62,10 @@ def data_generator(input_dir, output_dir, timesteps, batch_size):
 				y = np.concatenate((y, new_y), axis=0)
 
 			batch_count += len(new_x)
-			if batch_count == batch_size:
+			if batch_count >= batch_size:
 				batch_count = 0
 				yield x, y/norm
+				x, y = [], []
 	if len(x) != 0:
 		yield x, y/norm
 
@@ -93,7 +94,7 @@ def get_parse(model_name):
 	# ap.add_argument('-lr', '--learning_rate', required=False, help='Learning rate', default='5000', choices=list_of_modes)
 
 	args = vars(ap.parse_args())
-	data_iterator = data_generator(args['input_data'], args['output_data'], args['timesteps'], 5000)
+	data_iterator = data_generator(args['input_data'], args['output_data'], args['timesteps'], 50000)
 	args['input_dim'], args['output_dim'] = data_dimensions(args['input_data'], args['output_data'])
 	# data_iterator = random_data_generator(args['timesteps'], 5000)
 	# args['input_dim'], args['output_dim'] = 1, 1

@@ -149,12 +149,13 @@ def plot_options(ref, opts, title='Options'):
 	# plt.savefig('../out/' + title.lower().replace(' ', '_') + strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png') 
 	# plt.close(f)
 
-M_POSE_LINES = [[1, 0, 2, 3, 4, 5],
-				[0, 6, 7, 8, 9],
-				[0, 10, 11, 12],
-				[0, 13, 14, 15]]
+M_POSE_LINES = {'r':[1, 0],
+				'g':[0, 2, 3, 4, 5],
+				'b':[0, 6, 7, 8, 9],
+				'm':[0, 10, 11, 12],
+				'k':[0, 13, 14, 15]}
 
-def plot_hierarchies(batch_true, batch_predict, title='Prediction in Blue'):
+def plot_hierarchies(batch_true, batch_predict, title='Reference is the first line'):
 	timesteps = len(batch_true[0])
 	hierarchies = len(batch_predict[0])/timesteps
 	n = 5
@@ -163,13 +164,13 @@ def plot_hierarchies(batch_true, batch_predict, title='Prediction in Blue'):
 	f, axarr = plt.subplots(n+1, n, sharex=True, sharey=True)
 	for i in range(n):
 		new_x = np.reshape(batch_true[0][i*skip_t], (-1, 3))
-		for l in M_POSE_LINES:
-			add_line(axarr[0, i], new_x[l,:2], 'r', 3)
+		for c, l in M_POSE_LINES.iteritems():
+			add_line(axarr[0, i], new_x[l,:2], c, 3)
 		
 		for j in range(n):
 			new_x = np.reshape(batch_predict[0][j*skip_h*hierarchies+i*skip_t], (-1, 3))
-			for l in M_POSE_LINES:
-				add_line(axarr[j+1, i], new_x[l,:2], 'b', 3)
+			for c, l in M_POSE_LINES.iteritems():
+				add_line(axarr[j+1, i], new_x[l,:2], c, 3)
 
 	f.subplots_adjust(hspace=0.1)
 	plt.suptitle(title)
@@ -177,7 +178,34 @@ def plot_hierarchies(batch_true, batch_predict, title='Prediction in Blue'):
 	f.savefig('../out/' + title.lower().replace(' ', '_') + strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png') 
 	plt.close(f)
 
-def plot_poses(batch, batch2=[], title='Poses'):
+def plot_options_hierarchies(batch_true, batch_predict, title='Reference is the first line'):
+	print batch_predict.shape
+	batch, hierarchies, options, _ = batch_predict.shape
+	_, timesteps, _ = batch_true.shape
+	batch_predict = np.reshape(batch_predict, (batch, hierarchies, options, timesteps,-1))
+	n = 5
+	skip_t = timesteps/n
+	timestamp = strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime())
+	for h in range(0, hierarchies, 2):
+		f, axarr = plt.subplots(options+1, n, sharex=True, sharey=True)
+		for i in range(n):
+			new_x = np.reshape(batch_true[0][i*skip_t], (-1, 3))
+			for c, l in M_POSE_LINES.iteritems():
+				add_line(axarr[0, i], new_x[l,:2], c, 3)
+			
+			for j in range(options):
+				new_x = np.reshape(batch_predict[0,h,j,i*skip_t], (-1, 3))
+				for c, l in M_POSE_LINES.iteritems():
+					add_line(axarr[j+1, i], new_x[l,:2], c, 3)
+
+		f.subplots_adjust(hspace=0.1)
+		plt.suptitle(title)
+		# plt.show()
+		f.savefig('../out/' + title.lower().replace(' ', '_') + timestamp + '--%d'%(h) + '.png') 
+		plt.close(f)
+
+
+def plot_poses(batch, batch2=[], title='Poses', args=''):
 	timesteps = len(batch[0])
 	n = len(batch) 
 	n_total = len(batch) + len(batch2)
@@ -188,18 +216,18 @@ def plot_poses(batch, batch2=[], title='Poses'):
 	for i in range(n):
 		new_x = np.reshape(batch[i], (timesteps, -1, 3))
 		for j in range(skip_n):
-			for l in M_POSE_LINES:
-				add_line(axarr[i, j], (new_x[j*skip_t])[l,:2], 'r', 3)
+			for c, l in M_POSE_LINES.iteritems():
+				add_line(axarr[i, j], (new_x[j*skip_t])[l,:2], c, 3)
 
 	for i in range(len(batch2)):
 		new_x = np.reshape(batch2[i], (timesteps, -1, 3))
 		for j in range(skip_n):
-			for l in M_POSE_LINES:
-				add_line(axarr[i+n, j], (new_x[j*skip_t])[l,:2], 'b', 3)
+			for c, l in M_POSE_LINES.iteritems():
+				add_line(axarr[i+n, j], (new_x[j*skip_t])[l,:2], c, 3)
 			
 
 	f.subplots_adjust(hspace=0.1)
-	# plt.suptitle(title)
+	plt.suptitle(title)
 	# plt.show()
-	f.savefig('../out/' + title.lower().replace(' ', '_') + strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png') 
+	f.savefig('../out/' + title.lower().replace(' ', '_')+args+ strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png') 
 	plt.close(f)
