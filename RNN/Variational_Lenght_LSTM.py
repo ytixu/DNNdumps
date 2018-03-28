@@ -7,7 +7,7 @@ from keras.models import Model
 from utils import parser, image, embedding_plotter, recorder
 
 NAME = 'H_LSTM'
-USE_GRU = False
+USE_GRU = True
 if USE_GRU:
 	from keras.layers import GRU
 else:
@@ -37,11 +37,19 @@ class H_LSTM:
 
 	def make_model(self):
 		inputs = Input(shape=(self.timesteps, self.input_dim))
-		encoded = LSTM(self.latent_dim)(inputs)
+		encoded = None
+		if USE_GRU:
+			encoded = GRU(self.latent_dim)(inputs)
+		else:
+			encoded = LSTM(self.latent_dim)(inputs)
 
 		z = Input(shape=(self.latent_dim,))
 		decode_1 = RepeatVector(self.timesteps)
-		decode_2 = LSTM(self.output_dim, return_sequences=True)
+		decode_2 = None
+		if USE_GRU:
+			decode_2 = GRU(self.output_dim, return_sequences=True)
+		else:
+			decode_2 = LSTM(self.output_dim, return_sequences=True)
 
 		decoded = decode_1(encoded)
 		decoded = decode_2(decoded)
@@ -108,9 +116,9 @@ class H_LSTM:
 
 			self.history.record(self.log_path, model_vars)
 
-		embedding_plotter.see_variational_length_embedding(self.encoder, self.decoder, data_iterator, self.timesteps, model_vars)
+		# embedding_plotter.see_variational_length_embedding(self.encoder, self.decoder, data_iterator, self.timesteps, model_vars)
 
 if __name__ == '__main__':
-	data_iterator, config = parser.get_parse(NAME)
+	data_iterator, _, config = parser.get_parse(NAME)
 	ae = H_LSTM(config)
 	ae.run(data_iterator)

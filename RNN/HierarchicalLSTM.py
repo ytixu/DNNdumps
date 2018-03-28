@@ -4,10 +4,10 @@ from sklearn import cross_validation
 from keras.layers import Input, RepeatVector, Lambda, concatenate
 from keras.models import Model
 
-from utils import parser, image, embedding_plotter, recorder
+from utils import parser, image, embedding_plotter, recorder, evaluate
 
 NAME = 'H_LSTM'
-USE_GRU = False
+USE_GRU = True
 if USE_GRU:
 	from keras.layers import GRU
 else:
@@ -37,11 +37,19 @@ class H_LSTM:
 
 	def make_model(self):
 		inputs = Input(shape=(self.timesteps, self.input_dim))
-		encoded = LSTM(self.latent_dim, return_sequences=True)(inputs)
+		encoded = None
+		if USE_GRU:
+			encoded = GRU(self.latent_dim, return_sequences=True)(inputs)
+		else:		
+			encoded = LSTM(self.latent_dim, return_sequences=True)(inputs)
 
 		z = Input(shape=(self.latent_dim,))
 		decode_1 = RepeatVector(self.timesteps)
-		decode_2 = LSTM(self.output_dim, return_sequences=True)
+		decoder_2 = None 
+		if USE_GRU:
+			decode_2 = GRU(self.output_dim, return_sequences=True)
+		else:
+			decode_2 = LSTM(self.output_dim, return_sequences=True)
 
 		decoded = [None]*self.timesteps
 		for i in range(self.timesteps):
@@ -77,7 +85,7 @@ class H_LSTM:
 		return np.reshape(y, (-1, self.timesteps**2, y.shape[-1]))
 		
 
-	def run(self, data_iterator): 
+	def run(self, data_iterator, valid_data): 
 		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
 		if not self.load():
 			# from keras.utils import plot_model
@@ -89,7 +97,7 @@ class H_LSTM:
 					y_train = self.__alter_y(y_train)
 					y_test_orig = np.copy(y_test[:1])
 					y_test = self.__alter_y(y_test)
-					self.autoencoder.fit(x_train, y_train,
+					history = self.autoencoder.fit(x_train, y_train,
 								shuffle=True,
 								epochs=self.epochs,
 								batch_size=self.batch_size,
@@ -101,13 +109,14 @@ class H_LSTM:
 					self.autoencoder.save_weights(self.load_path, overwrite=True)
 				iter1, iter2 = tee(iter2)
 			
-			data_iterator = iter2
-
 			self.history.record(self.log_path, model_vars)
-
-		embedding_plotter.see_hierarchical_embedding(self.encoder, self.decoder, data_iterator, model_vars)
+			data_iterator = iter2
+		embedding_plotter.see_hierarchical_embedding(self.encoder, self.decoder, data_iterator, valid_data, model_vars)
+		iter1, iter2 = tee(data_iterator)
+		# evaluate.random_baseline(iter1)
+		# evaluate.eval_pattern_reconstruction(self.encoder, self.decoder, iter2)
 
 if __name__ == '__main__':
-	data_iterator, config = parser.get_parse(NAME)
+	data_iterator, valid_data, config = parser.get_parse(NAME)
 	ae = H_LSTM(config)
-	ae.run(data_iterator)
+	ae.run(data_iterator, valid_data)

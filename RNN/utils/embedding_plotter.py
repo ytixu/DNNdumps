@@ -37,10 +37,11 @@ def see_variational_length_embedding(encoder, decoder, data_iterator, t, args):
 	e_list = np.concatenate(embedding, axis=0)
 	plot_convex_halls(e_list, l, t, args)
 
-def see_hierarchical_embedding(encoder, decoder, data_iterator, args):
+def see_hierarchical_embedding(encoder, decoder, data_iterator, validation_data, args):
 	# get_hierarchical_distances(encoder, data_iterator)
 	# # plot_centers(decoder)
 	# plot_communities(decoder)
+	# go_up_hierarchy_enc(encoder, decoder, data_iterator, 6)
 	embedding = []
 	h = 0
 	for x, y in data_iterator:
@@ -50,7 +51,6 @@ def see_hierarchical_embedding(encoder, decoder, data_iterator, args):
 			h = e.shape[1]
 		else:
 			embedding = np.concatenate((embedding, e), axis=0)
-		break
 
 	l = embedding.shape[0]
 	e_list = np.concatenate(embedding, axis=0)
@@ -63,10 +63,18 @@ def see_hierarchical_embedding(encoder, decoder, data_iterator, args):
 	# embedding_stats(embedding, args)
 	# plot_fa(e_list)
 	# interpolate(embedding[:,h-1], encoder, decoder)
-	# go_up_hierarchy(embedding, decoder, h)
 	# plot_convex_halls(e_list, l, h, args)
+	# eval_go_up_hierarchy(embedding[:,-1], validation_data, encoder, decoder, h/2-1)
+	go_up_hierarchy_sim(embedding, validation_data, encoder, decoder, h)
+	go_up_hierarchy_sim(embedding, validation_data, encoder, decoder, h)
+	go_up_hierarchy_sim(embedding, validation_data, encoder, decoder, h)
+	go_up_hierarchy_sim(embedding, validation_data, encoder, decoder, h)
+	go_up_hierarchy_dist(embedding, validation_data, encoder, decoder, h)
+	go_up_hierarchy_dist(embedding, validation_data, encoder, decoder, h)
+	go_up_hierarchy_dist(embedding, validation_data, encoder, decoder, h)
+	go_up_hierarchy_dist(embedding, validation_data, encoder, decoder, h)
 	# check_concept_space(embedding, h)
-	k_mean_clusters(e_list, decoder)
+	# k_mean_clusters(e_list, decoder)
 
 def get_hierarchical_distances(encoder, data_iterator):
 	i = 0
@@ -167,17 +175,74 @@ def plot_convex_halls(embedding, sample_n, levels, args):
 	plt.close()
 	# plt.show()
 
-def go_up_hierarchy(embedding, decoder, h):
+def eval_go_up_hierarchy(e, validation_data, encoder, decoder, cut=1):
+	scores = {'sim':[], 'dist':[], 'e_sim':[], 'e_dist':[]}
+	for i in range(100):
+		n = np.random.randint(len(validation_data))
+		pose = validation_data[n]
+		enc = encoder.predict(validation_data[n:n+1])
+		z_ref = enc[0,cut]
+		z_ref_true = enc[0,-1]
+		
+		weights = [np.linalg.norm(e[j]-z_ref) for j in range(len(e))]
+		w_i = np.argsort(weights)[:30]
+		sim_e = e[np.argmin(weights)]
+		dist_e = np.sum([e[d]/weights[d] for d in w_i], axis=0)/np.sum([1.0/weights[d] for d in w_i])
+		scores['e_dist'].append(np.linalg.norm(dist_e-z_ref_true))
+		scores['e_sim'].append(np.linalg.norm(sim_e-z_ref_true))
+
+		p_poses = decoder.predict(np.array([sim_e, dist_e]))
+		diff = [np.linalg.norm(pp-pose) for pp in p_poses]
+		scores['sim'].append(diff[0])
+		scores['dist'].append(diff[1])
+	print [(k,np.mean(d),np.std(d)) for k,d in scores.iteritems()]
+
+
+def go_up_hierarchy_sim(embedding, validation_data, encoder, decoder, h, cut=1):
 	import image
-	n = np.random.randint(len(embedding[:,0]))
-	z_ref = (embedding[:,0])[n]
-	zs = [z_ref, (embedding[:,h-1])[n]]
-	for i in range(2,h,2):
+	n = np.random.randint(len(validation_data))
+	enc = encoder.predict(validation_data[n:n+1])
+	pose = np.copy(validation_data[n])
+	pose[cut+1:] = 0
+	z_ref = enc[0,cut]
+	zs = [z_ref]
+	for i in range(1,h,2):
 		e = embedding[:,i]
 		weights = [np.linalg.norm(e[j]-z_ref) for j in range(len(e))]
 		zs.append(e[np.argmin(weights)])
 	p_poses = decoder.predict(np.array(zs))
-	image.plot_poses(p_poses[:2], p_poses[2:])
+	image.plot_poses([pose, validation_data[n]], p_poses, title='Pattern matching (best) (prediction in bold)')
+
+def go_up_hierarchy_dist(embedding, validation_data, encoder, decoder, h, cut=1):
+	import image
+	n = np.random.randint(len(validation_data))
+	enc = encoder.predict(validation_data[n:n+1])
+	pose = np.copy(validation_data[n])
+	pose[cut+1:] = 0
+	z_ref = enc[0,cut]
+	zs = [z_ref]
+	for i in range(1,h,2):
+		e = embedding[:,i]
+		weights = [np.linalg.norm(e[j]-z_ref) for j in range(len(e))]
+		w_i = np.argsort(weights)[:30]
+		new_e = np.sum([e[d]/weights[d] for d in w_i], axis=0)/np.sum([1.0/weights[d] for d in w_i])
+		zs.append(new_e)
+	p_poses = decoder.predict(np.array(zs))
+	image.plot_poses([pose, validation_data[n]], p_poses, title='Pattern matching (mean) (prediction in bold)')
+
+def go_up_hierarchy_enc(encoder, decoder, data_iterator, h):
+	import image
+	for x, y in data_iterator:
+		n = np.random.randint(len(x))
+		x_ref = np.copy(x[n:n+1])
+		zs = []
+		for i in range(h,0,-1):
+			print x_ref.shape
+			x_ref[:,i:] = 0
+			x_enc = encoder.predict(x_ref)
+			zs.append(x_enc[0,-1])
+		p_poses = decoder.predict(np.array(zs))
+		image.plot_poses(p_poses, x[n:n+1])
 
 
 def interpolate(embedding, encoder, decoder, l=8):
@@ -200,7 +265,7 @@ def interpolate(embedding, encoder, decoder, l=8):
 	x_poses = np.array([x1,x2,x3])
 	zs_pred = encoder.predict(x_poses)
 	p_poses = decoder.predict(zs_pred[:,-1])
-	image.plot_poses(t_poses, p_poses)
+	image.plot_poses(t_poses, p_poses, title="Interpolation")
 
 
 def k_mean(embedding, decoder, n=8):

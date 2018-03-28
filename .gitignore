@@ -1,8 +1,12 @@
-
+out
 *.pyc
 */*.pyc
 */*/*.pyc
 */*/*/*.pyc
 data/mpi
+data/h3.6
 models/*
 data/src/model_anal/*/*
+data/src/MPI-INF-3DHP/out
+data/seq_human
+data/pose_data

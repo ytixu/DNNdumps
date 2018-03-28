@@ -80,8 +80,10 @@ def get_parse(model_name):
 	list_of_modes = ['train', 'sample']
 	ap.add_argument('-id', '--input_data', required=True, help='Input data directory')
 	ap.add_argument('-od', '--output_data', required=True, help='Output data directory')
+	ap.add_argument('-vid', '--validation_input_data', required=False, help='Validation input data directory')
+	ap.add_argument('-vod', '--validation_output_data', required=False, help='Validation output data directory')
 	ap.add_argument('-m', '--mode', required=False, help='Choose between training mode or sampling mode.', default='train', choices=list_of_modes)
-	ap.add_argument('-ep', '--epochs', required=False, help='Number of epochs', default='10', type=int)
+	ap.add_argument('-ep', '--epochs', required=False, help='Number of epochs', default='2', type=int)
 	ap.add_argument('-bs', '--batch_size', required=False, help='Batch size', default='16', type=int)
 	ap.add_argument('-lp', '--load_path', required=False, help='Model path', default=get_model_load_name(model_name))
 	ap.add_argument('-t', '--timesteps', required=False, help='Timestep size', default='5', type=int)
@@ -94,8 +96,15 @@ def get_parse(model_name):
 	# ap.add_argument('-lr', '--learning_rate', required=False, help='Learning rate', default='5000', choices=list_of_modes)
 
 	args = vars(ap.parse_args())
-	data_iterator = data_generator(args['input_data'], args['output_data'], args['timesteps'], 50000)
+	train_data = data_generator(args['input_data'], args['output_data'], args['timesteps'], 50000)
+	validation_data = []
+	if args['validation_input_data']:
+		vd = data_generator(args['validation_input_data'], args['validation_input_data'], args['timesteps'], 10000000)
+		for v, _ in vd:
+			validation_data = v
+			break
+
 	args['input_dim'], args['output_dim'] = data_dimensions(args['input_data'], args['output_data'])
 	# data_iterator = random_data_generator(args['timesteps'], 5000)
 	# args['input_dim'], args['output_dim'] = 1, 1
-	return data_iterator, args
+	return train_data, validation_data, args

@@ -6,6 +6,40 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from mpl_toolkits.mplot3d import Axes3D
 
+
+def rot_y(x, axis):
+	rot_mat_y = np.zeros((3,3))
+	rot_mat_y[1,1] = 1
+	c = np.sqrt(axis[2]**2 + axis[0]**2)
+	cos = axis[0]/c
+	sin = axis[2]/c
+	rot_mat_y[0] = np.array([cos, 0, sin])
+	rot_mat_y[2] = np.array([-sin, 0, cos])
+	axis = np.dot(rot_mat_y, axis)
+
+	return np.dot(rot_mat_y, x.T).T
+
+def rot_x(x, axis):
+	rot_mat_y = np.zeros((3,3))
+	rot_mat_y[1,1] = 1
+	c = np.sqrt(axis[2]**2 + axis[0]**2)
+	cos = axis[0]/c
+	sin = axis[2]/c
+	rot_mat_y[0] = np.array([cos, 0, sin])
+	rot_mat_y[2] = np.array([-sin, 0, cos])
+	axis = np.dot(rot_mat_y, axis)
+
+	rot_mat_x = np.zeros((3,3))
+	rot_mat_x[0,0] = 1
+	c = np.sqrt(axis[1]**2 + axis[0]**2)
+	cos = axis[0]/c
+	sin = axis[1]/c
+	rot_mat_x[1:,1:] = np.array([[cos, -sin], [sin, cos]])
+
+	return np.dot(rot_mat_x, np.dot(rot_mat_y, x.T)).T
+
+
+
 # max_3d = 0
 # min_3d = 10000
 
@@ -49,7 +83,7 @@ save_path = '../../mpi/'
 # n_2d = max_2d - min_2d
 relevant_idx = [5, 6, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20, 23, 24, 25]
 non_relevant_idx = list(set(range(28)) - set(relevant_idx))
-MIN_DIFF = 0.0397236685401 + 0.0274501646596
+MIN_DIFF = 0.0397236685401 + 2*0.0274501646596
 r_arm = [14, 16] 
 # [23, 14, 15, 16, 17]
 non_r_arm = list(set(relevant_idx) - set(r_arm))
@@ -64,7 +98,13 @@ for f_id, filename in enumerate(glob.glob(path)):
 			valid_idx = []
 			for i in range(len(pose_3d)):
 				# recenter to the neck 
-				pose_3d[i] = (pose_3d[i] - pose_3d[i][0])/np.linalg.norm(pose_3d[i][2]-pose_3d[i][6])/7
+				pelvis = (pose_3d[i][10] + pose_3d[i][13])/2
+				pose_3d[i] = (pose_3d[i] - pelvis)/np.linalg.norm(pose_3d[i][2]-pose_3d[i][6])/5
+				# rotate
+				pose_3d[i] = rot_x(pose_3d[i], pose_3d[i,10])
+				# pose_3d[i] = rot_y(pose_3d[i], pose_3d[i,0])
+
+
 				if len(prev_pose) == 0:
 					prev_pose = pose_3d[i]
 				else:
@@ -72,8 +112,7 @@ for f_id, filename in enumerate(glob.glob(path)):
 						prev_pose = pose_3d[i]
 						valid_idx.append(i)
 
-			print len(pose_3d)
-			print len(valid_idx)
+			print cam_id, '%d/%d' %(len(valid_idx), len(pose_3d))
 			pose_3d = pose_3d[valid_idx]
 
 			# pose_2d = mat['annot2'][cam_id][0]
@@ -87,23 +126,24 @@ for f_id, filename in enumerate(glob.glob(path)):
 			# 	fig = plt.figure()
 			# 	ax = fig.add_subplot(111, projection='3d')
 			# 	pose = np.reshape(pose, (-1,3))
-			# 	ax.set_xlim(0, 1)
-			# 	ax.set_ylim(0, 1)
-			# 	ax.set_zlim(-1, 0)
+			# 	ax.set_xlim(-1, 1)
+			# 	ax.set_ylim(-1, 1)
+			# 	ax.set_zlim(-1, 1)
 			# 	xs = pose[:,0]
 			# 	ys = pose[:,2]
 			# 	zs = -pose[:,1]
 			# 	for l in lines:
 			# 		ax.plot(xs[l], ys[l], zs[l], color='b')
 			# 	# ax.scatter(xs[relevant_idx], ys[relevant_idx], zs[relevant_idx], color='r')
-			# 	# ax.scatter(xs[non_relevant_idx], ys[non_relevant_idx], zs[non_relevant_idx], color='b')
+			# 	# ax.scatter(xs[-1:], ys[-1:], zs[-1:], color='b')
+			# 	ax.plot([0, xs[0]], [0, ys[0]], [0, zs[0]], color='r')
+			# 	ax.plot(xs[[10,13]], ys[[10,13]], zs[[10,13]], color='r')
 			# 	plt.show()
-
-			print cam_id
 
 			assert np.max(pose_3d) < 1
 			assert np.min(pose_3d) > -1
-			np.save(save_path+'normalized_equidistance_3d/%d-%d.npy'%(f_id,cam_id), np.reshape(pose_3d, (len(pose_3d), -1)))
+			np.save(save_path+'1st_camera/%d-%d.npy'%(f_id,cam_id), np.reshape(pose_3d, (len(pose_3d), -1)))
+		break
 		# # np.save(save_path+'2d/%d-%d.npy'%(f_id,cam_id), pose_2d[:,relevant_idx])
 		# pose_2d = np.reshape(pose_2d, (len(pose_2d), -1, 2))
 		# for i in range(pose_2d.shape[0]): 
