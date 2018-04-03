@@ -3,7 +3,7 @@ from scipy.spatial import ConvexHull
 import numpy as np
 from time import gmtime, strftime
 from sklearn.decomposition import PCA as sklearnPCA
-
+from tqdm import tqdm
 
 
 def see_embedding(encoder, data_iterator, args, concat=False):
@@ -21,23 +21,44 @@ def see_embedding(encoder, data_iterator, args, concat=False):
 
 	plot(embedding, args)
 
-def see_variational_length_embedding(encoder, decoder, data_iterator, t, args):
-	embedding = [[] for i in range(t)]
-	for x, y in data_iterator:
-		for i in range(t):
-			x_alter = np.zeros(x.shape)
-			x_alter[:,:i+1] = x[:,:i+1]
-			e = encoder.predict(x_alter)
-			if len(embedding[i]) == 0:
-				embedding[i] = e
-			else:
-				embedding[i] = np.concatenate((embedding[i], e), axis=0)
-		# break
-	l = len(embedding[0])
-	e_list = np.concatenate(embedding, axis=0)
-	plot_convex_halls(e_list, l, t, args)
+def see_variational_length_embedding(encoder, decoder, data_iterator, validation_data, t, args):
+	import metrics
+	metrics.validate(validation_data, encoder, decoder, 10, metrics.ML_LSTM)
+
+	# embedding = [[] for i in range(t)]
+	# for x, y in data_iterator:
+	# 	for i in range(t):
+	# 		x_alter = np.zeros(x.shape)
+	# 		x_alter[:,:i+1] = x[:,:i+1]
+	# 		e = encoder.predict(x_alter)
+	# 		if len(embedding[i]) == 0:
+	# 			embedding[i] = e
+	# 		else:
+	# 			embedding[i] = np.concatenate((embedding[i], e), axis=0)
+	# 	# break
+	# l = len(embedding[0])
+	# e_list = np.concatenate(embedding, axis=0)
+	# embedding = np.array(embedding)
+	# print embedding.shape
+	# interpolate(embedding[t-1], encoder, decoder)
+	# interpolate(embedding[t-1], encoder, decoder)
+	# interpolate(embedding[t-1], encoder, decoder)
+	# interpolate(embedding[t/2-1], encoder, decoder)
+	# interpolate(embedding[t/2-1], encoder, decoder)
+	# interpolate(embedding[t/2-1], encoder, decoder)
+	# plot_convex_halls(e_list, l, t, args)
+	# import metrics
+	# metrics.plot_convex_hall(embedding, t, metrics.ML_LSTM)
+	# go_up_hierarchy_vl(embedding, validation_data, encoder, decoder, t)
+	# go_up_hierarchy_random_vl(embedding, validation_data, encoder, decoder, t)
+	# go_up_hierarchy_random_test_bound_vl(embedding, validation_data, encoder, decoder, t)
+	# ch = get_convex_hall(embedding[-1])
+	# go_up_hierarchy_convexhall_vl(embedding, ch, validation_data, encoder, decoder, t/2-1)
+	# go_up_hierarchy_dist(embedding, validation_data, encoder, decoder, t)
 
 def see_hierarchical_embedding(encoder, decoder, data_iterator, validation_data, args):
+	# import metrics
+	# metrics.validate(validation_data, encoder, decoder, 10, metrics.H_LSTM)
 	# get_hierarchical_distances(encoder, data_iterator)
 	# # plot_centers(decoder)
 	# plot_communities(decoder)
@@ -51,7 +72,7 @@ def see_hierarchical_embedding(encoder, decoder, data_iterator, validation_data,
 			h = e.shape[1]
 		else:
 			embedding = np.concatenate((embedding, e), axis=0)
-
+		# break
 	l = embedding.shape[0]
 	e_list = np.concatenate(embedding, axis=0)
 	print embedding.shape, e_list.shape
@@ -63,16 +84,22 @@ def see_hierarchical_embedding(encoder, decoder, data_iterator, validation_data,
 	# embedding_stats(embedding, args)
 	# plot_fa(e_list)
 	# interpolate(embedding[:,h-1], encoder, decoder)
+	# interpolate(embedding[:,h/2-1], encoder, decoder)
 	# plot_convex_halls(e_list, l, h, args)
-	# eval_go_up_hierarchy(embedding[:,-1], validation_data, encoder, decoder, h/2-1)
-	go_up_hierarchy_sim(embedding, validation_data, encoder, decoder, h)
-	go_up_hierarchy_sim(embedding, validation_data, encoder, decoder, h)
-	go_up_hierarchy_sim(embedding, validation_data, encoder, decoder, h)
-	go_up_hierarchy_sim(embedding, validation_data, encoder, decoder, h)
-	go_up_hierarchy_dist(embedding, validation_data, encoder, decoder, h)
-	go_up_hierarchy_dist(embedding, validation_data, encoder, decoder, h)
-	go_up_hierarchy_dist(embedding, validation_data, encoder, decoder, h)
-	go_up_hierarchy_dist(embedding, validation_data, encoder, decoder, h)
+	import metrics
+	# metrics.plot_convex_hall(embedding, h, metrics.H_LSTM)
+	# metrics.go_up_hierarchy_sim(embedding, validation_data, encoder, decoder, h, metrics.H_LSTM, cut=h/2-1)
+	metrics.gen_long_sequence(embedding, validation_data, encoder, decoder, h, metrics.H_LSTM)
+	# idx = np.random.choice(len(validation_data), 100, replace=False)
+	# eval_go_up_hierarchy(embedding, validation_data[idx], encoder, decoder, h/2-1)
+	# go_up_hierarchy(embedding, validation_data, encoder, decoder, h)
+	# ch = get_convex_hall(embedding[:-1])
+	# ch = embedding[:5, -1]
+	# go_up_hierarchy_convexhall(embedding, ch, validation_data, encoder, decoder, h/2-1)
+	# go_up_hierarchy_random(embedding, validation_data, encoder, decoder, h)
+	# go_up_hierarchy_random_test_bound(embedding, validation_data, encoder, decoder, h)
+	# go_up_hierarchy_sim(embedding, validation_data, encoder, decoder, h)
+	# go_up_hierarchy_dist(embedding, validation_data, encoder, decoder, h)
 	# check_concept_space(embedding, h)
 	# k_mean_clusters(e_list, decoder)
 
@@ -151,6 +178,8 @@ def plot_communities(decoder):
 				image.plot_poses(poses[i*5:(i+1)*5], args=args)
 
 
+
+
 def plot_convex_halls(embedding, sample_n, levels, args):
 	transformed = pca_reduce(embedding)
 	for i in range(levels):
@@ -175,30 +204,122 @@ def plot_convex_halls(embedding, sample_n, levels, args):
 	plt.close()
 	# plt.show()
 
-def eval_go_up_hierarchy(e, validation_data, encoder, decoder, cut=1):
-	scores = {'sim':[], 'dist':[], 'e_sim':[], 'e_dist':[]}
-	for i in range(100):
+def get_convex_hall(embedding):
+	hull = ConvexHull(embedding)
+	ch = None 
+	for simplex in hull.simplices:
+		return embedding[simplex]
+
+
+def go_up_hierarchy_convexhall_vl(embedding, convex_hall, validation_data, encoder, decoder, cut=1):
+	import image
+	for _ in tqdm(range(10)):
 		n = np.random.randint(len(validation_data))
-		pose = validation_data[n]
-		enc = encoder.predict(validation_data[n:n+1])
-		z_ref = enc[0,cut]
-		z_ref_true = enc[0,-1]
-		
-		weights = [np.linalg.norm(e[j]-z_ref) for j in range(len(e))]
+		pose = np.copy(validation_data[n])
+		pose[cut+1:] = 0
+		enc = encoder.predict(np.array([pose]))
+		z_ref = enc[0]
+		zs = [z_ref]
+		weights = [np.linalg.norm(convex_hall[j]-z_ref) for j in range(len(convex_hall))]
 		w_i = np.argsort(weights)[:30]
-		sim_e = e[np.argmin(weights)]
-		dist_e = np.sum([e[d]/weights[d] for d in w_i], axis=0)/np.sum([1.0/weights[d] for d in w_i])
-		scores['e_dist'].append(np.linalg.norm(dist_e-z_ref_true))
-		scores['e_sim'].append(np.linalg.norm(sim_e-z_ref_true))
+		new_e = np.sum([convex_hall[d]/weights[d] for d in w_i], axis=0)/np.sum([1.0/weights[d] for d in w_i])
+		zs.append(new_e)
+		p_poses = decoder.predict(np.array(zs))
+		image.plot_poses([pose, validation_data[n]], p_poses, title='Pattern matching (convex hall) (prediction in bold)')
 
-		p_poses = decoder.predict(np.array([sim_e, dist_e]))
-		diff = [np.linalg.norm(pp-pose) for pp in p_poses]
-		scores['sim'].append(diff[0])
-		scores['dist'].append(diff[1])
-	print [(k,np.mean(d),np.std(d)) for k,d in scores.iteritems()]
+def go_up_hierarchy_random_vl(embedding, validation_data, encoder, decoder, h):
+	import metrics
+	metrics.gen_random(embedding, validation_data, encoder, decoder, h, metrics.ML_LSTM)
+
+def go_up_hierarchy_convexhall(embedding, convex_hall, validation_data, encoder, decoder, cut=1):
+	import image
+	for _ in tqdm(range(10)):
+		n = np.random.randint(len(validation_data))
+		enc = encoder.predict(validation_data[n:n+1])
+		pose = np.copy(validation_data[n])
+		pose[cut+1:] = 0
+		z_ref = enc[0,cut]
+		zs = [z_ref]
+		weights = [np.linalg.norm(convex_hall[j]-z_ref) for j in range(len(convex_hall))]
+		w_i = np.argsort(weights)[:30]
+		new_e = np.sum([convex_hall[d]/weights[d] for d in w_i], axis=0)/np.sum([1.0/weights[d] for d in w_i])
+		zs.append(new_e)
+		p_poses = decoder.predict(np.array(zs))
+		image.plot_poses([pose, validation_data[n]], p_poses, title='Pattern matching (convex hall) (prediction in bold)')
+
+def go_up_hierarchy_random_test_bound_vl(embedding, validation_data, encoder, decoder, h):
+	import metrics 
+	metrics.plot_metrics(embedding, validation_data, encoder, decoder, h, metrics.ML_LSTM, 3)
+
+def go_up_hierarchy_random_test_bound(embedding, validation_data, encoder, decoder, h):
+	import metrics 
+	metrics.plot_metrics(embedding, validation_data, encoder, decoder, h, metrics.H_LSTM)
+
+def go_up_hierarchy_random(embedding, validation_data, encoder, decoder, h):
+	import metrics 
+	metrics.gen_random(embedding, validation_data, encoder, decoder, h, metrics.H_LSTM)
+
+def go_up_hierarchy(embedding, validation_data, encoder, decoder, h, q=4):
+	import image
+	for _ in range(q):
+		n = np.random.randint(len(validation_data))
+		enc = encoder.predict(validation_data[n:n+1])
+		pose = np.copy(validation_data[n])
+		p_poses = decoder.predict(enc[0])
+		image.plot_poses(np.array([pose]), p_poses, title='')
+		
+		for cut in range(h-1):
+			pose[cut+1:] = 0
+			z_ref = enc[0,cut]
+			zs_sim = [z_ref, enc[0,-1]]
+			zs_dist= [z_ref, enc[0,-1]]
+			for i in range(1,h,2):
+				e = embedding[:,i]
+				weights = [np.linalg.norm(e[j]-z_ref) for j in range(len(e))]
+				zs_sim.append(e[np.argmin(weights)])
+
+				w_i = np.argsort(weights)[:30]
+				new_e = np.sum([e[d]/weights[d] for d in w_i], axis=0)/np.sum([1.0/weights[d] for d in w_i])
+				zs_dist.append(new_e)
+
+			sim_poses = decoder.predict(np.array(zs_sim))
+			dist_poses = decoder.predict(np.array(zs_dist))
+
+			image.plot_poses(sim_poses[:2], sim_poses[2:], title='Pattern matching (closest)')
+			image.plot_poses(dist_poses[:2], dist_poses[2:], title='Pattern matching (mean)')
+
+def go_up_hierarchy_vl(embedding, validation_data, encoder, decoder, h, q=4):
+	import image
+	for _ in range(q):
+		n = np.random.randint(len(validation_data))
+		pose = np.reshape(np.repeat(validation_data[n], h, axis=0), (h, h, -1))
+		for i in range(h):
+			pose[i,i+1:] = 0
+		enc = encoder.predict(pose)
+		p_poses = decoder.predict(enc)
+		image.plot_poses(pose[-1:], p_poses, title='')
+		
+		for cut in range(h-1):
+			z_ref = enc[cut]
+			zs_sim = [z_ref, enc[-1]]
+			zs_dist= [z_ref, enc[-1]]
+			for i in range(1,h,2):
+				e = embedding[i]
+				weights = [np.linalg.norm(e[j]-z_ref) for j in range(len(e))]
+				zs_sim.append(e[np.argmin(weights)])
+
+				w_i = np.argsort(weights)[:30]
+				new_e = np.sum([e[d]/weights[d] for d in w_i], axis=0)/np.sum([1.0/weights[d] for d in w_i])
+				zs_dist.append(new_e)
+
+			sim_poses = decoder.predict(np.array(zs_sim))
+			dist_poses = decoder.predict(np.array(zs_dist))
+
+			image.plot_poses(sim_poses[:2], sim_poses[2:], title='Pattern matching (closest)')
+			image.plot_poses(dist_poses[:2], dist_poses[2:], title='Pattern matching (mean)')
 
 
-def go_up_hierarchy_sim(embedding, validation_data, encoder, decoder, h, cut=1):
+def go_up_hierarchy_sim(embedding, random_data, encoder, decoder, h, cut=1):
 	import image
 	n = np.random.randint(len(validation_data))
 	enc = encoder.predict(validation_data[n:n+1])

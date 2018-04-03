@@ -87,7 +87,7 @@ def get_parse(model_name):
 	ap.add_argument('-bs', '--batch_size', required=False, help='Batch size', default='16', type=int)
 	ap.add_argument('-lp', '--load_path', required=False, help='Model path', default=get_model_load_name(model_name))
 	ap.add_argument('-t', '--timesteps', required=False, help='Timestep size', default='5', type=int)
-	ap.add_argument('-p', '--periods', required=False, help='Number of iterations of the data', default='10', type=int)
+	ap.add_argument('-p', '--periods', required=False, help='Number of iterations of the data', default='5', type=int)
 	ap.add_argument('-ld', '--latent_dim', required=False, help='Embedding size', default='100', type=int)
 	ap.add_argument('-o', '--option_dim', required=False, help='Number of options', default='2', type=int)
 	ap.add_argument('-l', '--log_path', required=False, help='Log file for loss history', default=get_log_name(model_name))
@@ -96,7 +96,7 @@ def get_parse(model_name):
 	# ap.add_argument('-lr', '--learning_rate', required=False, help='Learning rate', default='5000', choices=list_of_modes)
 
 	args = vars(ap.parse_args())
-	train_data = data_generator(args['input_data'], args['output_data'], args['timesteps'], 50000)
+	train_data = data_generator(args['input_data'], args['output_data'], args['timesteps'], 10000)
 	validation_data = []
 	if args['validation_input_data']:
 		vd = data_generator(args['validation_input_data'], args['validation_input_data'], args['timesteps'], 10000000)

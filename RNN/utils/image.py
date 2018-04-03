@@ -235,6 +235,6 @@ def plot_poses(batch, batch2=[], title='Poses', args=''):
 
 	f.subplots_adjust(hspace=0.1)
 	plt.suptitle(title)
-	# plt.show()
-	f.savefig('../out/' + title.lower().replace(' ', '_')+args+ strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png') 
-	plt.close(f)
+	plt.show()
+	# f.savefig('../out/' + title.lower().replace(' ', '_')+args+ strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png') 
+	# plt.close(f)

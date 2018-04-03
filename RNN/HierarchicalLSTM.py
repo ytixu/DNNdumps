@@ -4,10 +4,10 @@ from sklearn import cross_validation
 from keras.layers import Input, RepeatVector, Lambda, concatenate
 from keras.models import Model
 
-from utils import parser, image, embedding_plotter, recorder, evaluate
+from utils import parser, image, embedding_plotter, recorder, metrics
 
 NAME = 'H_LSTM'
-USE_GRU = True
+USE_GRU = False
 if USE_GRU:
 	from keras.layers import GRU
 else:
@@ -112,8 +112,8 @@ class H_LSTM:
 			self.history.record(self.log_path, model_vars)
 			data_iterator = iter2
 		embedding_plotter.see_hierarchical_embedding(self.encoder, self.decoder, data_iterator, valid_data, model_vars)
-		iter1, iter2 = tee(data_iterator)
-		# evaluate.random_baseline(iter1)
+		# iter1, iter2 = tee(data_iterator)
+		# metrics.validate(valid_data, self.encoder, self.decoder, self.timesteps, metrics.H_LSTM)
 		# evaluate.eval_pattern_reconstruction(self.encoder, self.decoder, iter2)
 
 if __name__ == '__main__':

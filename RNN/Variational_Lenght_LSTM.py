@@ -6,14 +6,14 @@ from keras.models import Model
 
 from utils import parser, image, embedding_plotter, recorder
 
-NAME = 'H_LSTM'
-USE_GRU = True
+NAME = 'VL_LSTM'
+USE_GRU = False
 if USE_GRU:
 	from keras.layers import GRU
 else:
 	from keras.layers import LSTM
 
-class H_LSTM:
+class VL_LSTM:
 	def __init__(self, args):
 		self.autoencoder = None
 		self.encoder = None
@@ -88,7 +88,7 @@ class H_LSTM:
 			if len(new_data[0]) > 0:
 				yield (new_data[j] for j in range(4))
 
-	def run(self, data_iterator): 
+	def run(self, data_iterator, validation_data): 
 		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
 		if not self.load():
 			# from keras.utils import plot_model
@@ -116,9 +116,9 @@ class H_LSTM:
 
 			self.history.record(self.log_path, model_vars)
 
-		# embedding_plotter.see_variational_length_embedding(self.encoder, self.decoder, data_iterator, self.timesteps, model_vars)
+		embedding_plotter.see_variational_length_embedding(self.encoder, self.decoder, data_iterator, validation_data, self.timesteps, model_vars)
 
 if __name__ == '__main__':
-	data_iterator, _, config = parser.get_parse(NAME)
-	ae = H_LSTM(config)
-	ae.run(data_iterator)
+	data_iterator, validation_data, config = parser.get_parse(NAME)
+	ae = VL_LSTM(config)
+	ae.run(data_iterator, validation_data)
