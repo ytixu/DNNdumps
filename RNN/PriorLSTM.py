@@ -78,19 +78,19 @@ class Prior_LSTM:
 							shuffle=True,
 							epochs=self.epochs,
 							batch_size=self.batch_size,
-							validation_data=([x_test, y_test[:,0]], y_test),
-							callbacks=[self.history])
+							validation_data=([x_test, y_test[:,0]], y_test))
+							# callbacks=[self.history])
 
 				y_test_decoded = self.autoencoder.predict([x_test[:1],y_test[:1,0]])
 				image.plot_batch_1D(y_test[:1], y_test_decoded)
-					# self.autoencoder.save_weights(self.load_path, overwrite=True)
+				self.autoencoder.save_weights(self.load_path, overwrite=True)
 				iter1, iter2 = tee(iter2)
 			
 			data_iterator = iter2
 
 		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
 		embedding_plotter.see_embedding(self.encoder, data_iterator, model_vars)
-		self.history.record(self.log_path, model_vars)
+		# self.history.record(self.log_path, model_vars)
 
 if __name__ == '__main__':
 	data_iterator, config = parser.get_parse(NAME)

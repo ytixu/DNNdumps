@@ -6,6 +6,7 @@ import json
 
 H_LSTM = 0
 ML_LSTM = 1
+Prior_LSTM = 2
 
 CLOSEST = 0
 MEAN = 1
@@ -43,6 +44,9 @@ def __get_weights(embedding, z_ref):
 	w_i = np.argsort(weights)
 	return weights, w_i
 
+
+# Pattern matching methods
+
 def __closest(embedding, z_ref, weights=[]):
 	if not any(weights):
 		weights = __get_dist(embedding, z_ref)
@@ -67,13 +71,9 @@ def __random(embedding, z_ref, n=-1, weights=[], w_i=[]):
 
 	return __mean(embedding, z_ref, weights=weights, w_i=w_i)
 
+
 def __get_latent_reps(encoder, pose, model_name, n=-1):
-	if model_name == H_LSTM:
-		enc = encoder.predict(pose)
-		if n > 0:
-			return enc[:,n]
-		return enc
-	else:
+	if model_name == ML_LSTM:
 		b, h, d = pose.shape
 		x = None
 		if n > 0:
@@ -86,6 +86,24 @@ def __get_latent_reps(encoder, pose, model_name, n=-1):
 				for j in range(h):
 					x[i*h+j,:j+1] = pose[i,:j+1]
 			return np.reshape(encoder.predict(x), (b, h, -1))
+	else:
+		enc = encoder.predict(pose)
+		if n > 0:
+			return enc[:,n]
+		return enc
+
+def __get_decoded_reps(decoder, encoding, model_name, pose=[], cut=0):
+	if model_name == Prior_LSTM:
+		if pose.shape[0] == 1:
+			poses = [None]*encoding.shape[0]
+			for i in range(encoding.shape[0]):
+				poses[i] = decoder.predict([encoding[i:i+1], pose])[0]
+				pose = poses[i][cut:cut+1]
+			return np.array(poses)
+
+		return decoder.predict([encoding, pose])
+	else:
+		return decoder.predict(encoding)
 
 def __get_subspace(embedding, n, model_name):
 	if model_name == H_LSTM:
@@ -114,6 +132,21 @@ def __latent_error(z_ref, z_pred):
 def __pose_error(pose_ref, pose_pred):
 	return np.mean([np.linalg.norm(pose_ref[t]-pose_pred[t]) for t in range(len(pose_pred))])
 
+# Pattern matching baseline
+
+def __random_z(embedding, z_ref):
+	return embedding[np.random.choice(embedding.shape[0])]
+
+def __zeros_velocity_error(pose_ref, cut, n=1):
+	avg_pose = np.mean(pose_ref[cut-n:cut])
+	return np.mean([__pose_error(pose_ref[cut+i], avg_pose) for i in range(pose_ref.shape[0]-cut)])
+
+def __average_2_error(pose_ref, cut):
+	return __zeros_velocity_error(pose_ref, cut, 2)
+
+def __average_4_error(pose_ref, cut):
+	return __zeros_velocity_error(pose_ref, cut, 4)
+
 def random_baseline(validation_data):
 	n = 100
 	x_ref = validation_data[np.random.choice(len(validation_data), n)]
@@ -138,9 +171,10 @@ def validate(validation_data, encoder, decoder, h, model_name):
 	sample_n = validation_data.shape[0]
 	poses = np.zeros(validation_data.shape)
 	enc = __get_latent_reps(encoder, validation_data, model_name)
+	print enc.shape
 	for i in range(h):
 		poses[:,:i+1] = validation_data[:,:i+1]
-		p_poses = decoder.predict(enc[:,i])
+		p_poses = __get_decoded_reps(decoder, enc[:,i], model_name, pose=validation_data[:,0])
 		err = [__pose_error(poses[j], p_poses[j]) for j in range(sample_n)]
 		mean[i] = np.mean(err)
 		std[i] = np.std(err)
@@ -155,11 +189,30 @@ def validate(validation_data, encoder, decoder, h, model_name):
 	print __r(mean)
 	print __r(std)
 	print __r(np.mean(mean))
-	print __r(np.sqrt(np.sum([s**2 for s in std])/sample_n))
+	print __r(np.sqrt(np.mean([s**2 for s in std])))
 	print __r(mean_sub)
 	print __r(std_sub)
 	print __r(np.mean(mean_sub))
-	print __r(np.sqrt(np.sum([s**2 for s in std_sub])/sample_n))
+	print __r(np.sqrt(np.mean([s**2 for s in std_sub])))
+
+def distance_stats(embedding, encoder, decoder, h, model_name):
+	mean = np.zeros(h)
+	std = np.zeros(h)
+	n = np.zeros(h)
+	for cut in range(h):
+		ls = __get_subspace(embedding, cut, model_name)
+		skip = cut+1
+		dist = [__latent_error(ls[j], ls[j-skip]) for j in range(skip, ls.shape[0], skip)]
+		n[cut] = len(dist)
+		mean[cut] = np.mean(dist)
+		std[cut] = np.std(dist)
+
+	n_total = np.sum(n)
+	print n, n_total
+	print mean
+	print std
+	print np.sum([mean[i]*n[i] for i in range(h)])/n_total
+	print np.sqrt(np.sum([std[i]**2*n[i] for i in range(h)])/n_total)
 
 def __pca_reduce(embedding):
 	from sklearn.decomposition import PCA as sklearnPCA
@@ -319,24 +372,108 @@ def go_up_hierarchy(embedding, validation_data, encoder, decoder, h, model_name,
 		p_poses = decoder.predict(np.array(zs))
 		image.plot_poses([pose, validation_data[n]], p_poses, title='Pattern matching (best) (prediction in bold)')
 
-def gen_long_sequence(embedding, validation_data, encoder, decoder, h, model_name, l_n=25, numb=10, nn=-1):
+
+# for long sequence prediction
+
+def __get_next_half(embedding, pose, encoder, decoder, h, model_name, n=1):
+	cut = h/2
+	half_pose = np.copy([pose])
+	half_pose[0,cut:] = half_pose[0,cut:]
+	new_e = [None]*n 
+	z_half = __get_latent_reps(encoder, half_pose, model_name, cut-1)
+	z_ref = __closest(__get_subspace(embedding, h-1, model_name), z_half[0])
+	poses = decoder.predict(np.array([z_ref]))
+	return poses[0][cut:]
+
+def __get_consecutive(pose, encoder, decoder, h, model_name, n=1):
+	cut = h/2
+	half_poses = np.copy([pose,pose])
+	print half_poses.shape, pose.shape
+	half_poses[0,cut:] = 0
+	half_poses[1,:cut] = half_poses[1,cut:]
+	half_poses[1,cut:] = 0
+	new_e = [None]*n 
+	poses = []
+	z_refs = __get_latent_reps(encoder, half_poses, model_name, cut-1)
+	z_ref = __get_latent_reps(encoder, np.array([pose]), model_name, h-1)
+	new_e[0] = z_ref[0] + z_refs[1] - z_refs[0]
+	for i in range(n-1):
+		new_e[i+1] = new_e[i] + z_refs[1] - z_refs[0]
+	# z_ref[0] = __closest(embedding, z_ref[0])
+	poses = __get_decoded_reps(decoder, np.array(new_e), model_name, pose=pose[cut:cut+1], cut=cut)
+	if n > 1:
+		if n%2 == 0:
+			return np.concatenate(poses[1::2], axis=0)
+		else:
+			return np.concatenate(poses[::2], axis=0)[cut:]
+	else:
+		return poses[0][cut:]
+
+# def __get_consecutive(embedding, pose, encoder, decoder, cut, h, model_name):
+# 	half_poses = np.copy([pose,pose])
+# 	half_poses[0,cut:] = 0
+# 	half_poses[1,:cut] = half_poses[1,cut:]
+# 	half_poses[1,cut:] = 0
+# 	z_refs = __get_latent_reps(encoder, half_poses, model_name, cut-1)
+# 	z_ref = __get_latent_reps(encoder, np.array([pose]), model_name, h-1)
+# 	z_ref[0] = z_ref[0] + z_refs[1] - z_refs[0]
+# 	# z_ref[0] = __closest(embedding, z_ref[0])
+# 	return decoder.predict(z_ref)[0]
+
+def __get_next_overlap(embedding, pose, encoder, decoder, cut, h, model_name):
+	half_poses = np.copy([pose,pose])
+	half_poses[0,cut:] = 0
+	half_poses[1,:cut] = half_poses[1,1:cut+1]
+	half_poses[1,cut:] = 0
+	z_refs = __get_latent_reps(encoder, half_poses, model_name, cut-1)
+	z_ref = __get_latent_reps(encoder, np.array([pose]), model_name, h-1)
+	z_ref[0] = z_ref[0] + z_refs[1] - z_refs[0]
+	z_ref[0] = __random(embedding, z_ref[0], 1000)
+	return decoder.predict(z_ref)[0]
+
+# def __get_embedding_path(pose, encoder, decoder, h, model_name):
+# 	pose = np.reshape(pose, (-1, h, pose.shape[-1]))
+# 	z_refs = __get_latent_reps(encoder, pose, model_name, h-1)
+
+# def gen_long_sequence(embedding, validation_data, encoder, decoder, h, model_name, l_n=25, numb=10):
+# 	import image
+# 	cut = h-2
+# 	idxs = np.random.randint(0, len(validation_data)-l_n, numb)
+# 	ls = __get_subspace(embedding, h-1, model_name)
+# 	err = np.zeros(numb)
+# 	for i, n in enumerate(tqdm(idxs)):
+# 		true_pose = np.reshape(validation_data[n:n+l_n,0], (1, l_n, -1))
+# 		poses = np.zeros((l_n-h+2, l_n, true_pose.shape[-1]))
+# 		current_pose = validation_data[n]
+# 		poses[0, :h] = current_pose
+# 		for j in range(l_n-h):
+# 			current_pose = __get_next_overlap(ls, current_pose, encoder, decoder, cut, h, model_name)
+# 			poses[j+1,j+1:j+1+h] = np.copy(current_pose)
+# 			# poses[j,j+1:j+1+h] = current_pose[0]
+
+# 		for j in range(l_n):
+# 			poses[-1,j] = np.mean(poses[max(0, j-h+1):min(l_n-h+1, j+1),j], axis=0)
+		
+# 		err[i] = __pose_error(true_pose[0], poses[-1])
+# 		image.plot_poses(true_pose, poses, title='Pattern matching (long) (prediction in bold)')
+
+# 	print np.mean(err), np.std(err)
+
+
+def gen_long_sequence(embedding, validation_data, encoder, decoder, h, model_name, l_n=25, numb=10):
 	import image
+	cut = h/2
 	idxs = np.random.randint(0, len(validation_data)-l_n, numb)
 	ls = __get_subspace(embedding, h-1, model_name)
 	err = np.zeros(numb)
 	for i, n in enumerate(tqdm(idxs)):
 		true_pose = np.reshape(validation_data[n:n+l_n,0], (1, l_n, -1))
-		# true_pose = validation_data[n:n+l_n]
-		poses = np.zeros((l_n/(h/2), l_n, true_pose.shape[-1]))
-		poses[0, :h] = validation_data[n]
-		current_pose = validation_data[n:n+1]
-		for j in range(l_n/(h/2)-2):
-			pose = np.zeros(current_pose.shape)
-			pose[0,:h/2] = current_pose[0,h/2:]
-			z_ref = __get_latent_reps(encoder, pose, model_name, h/2-1)
-			new_e = __random(ls, z_ref, nn)
-			current_pose = decoder.predict(np.array([new_e]))
-			poses[j+1,(j+1)*(h/2):(j+3)*(h/2)] = np.copy(current_pose[0,])
+		poses = np.zeros((l_n/cut, l_n, true_pose.shape[-1]))
+		current_pose = validation_data[n]
+		poses[0, :h] = current_pose
+		for j in range(l_n/cut-2):
+			current_pose = __get_consecutive(ls, current_pose, encoder, decoder, cut, h, model_name)
+			poses[j+1,(j+1)*cut:(j+3)*cut] = np.copy(current_pose)
 			# poses[j,j+1:j+1+h] = current_pose[0]
 
 		poses[-1] = np.sum(poses, axis=0)
@@ -345,3 +482,32 @@ def gen_long_sequence(embedding, validation_data, encoder, decoder, h, model_nam
 		image.plot_poses(true_pose, poses, title='Pattern matching (long) (prediction in bold)')
 
 	print np.mean(err), np.std(err)
+
+
+
+# def gen_long_sequence(embedding, validation_data, encoder, decoder, h, model_name, l_n=25, numb=10, nn=-1):
+# 	import image
+# 	idxs = np.random.randint(0, len(validation_data)-l_n, numb)
+# 	ls = __get_subspace(embedding, h-1, model_name)
+# 	err = np.zeros(numb)
+# 	for i, n in enumerate(tqdm(idxs)):
+# 		true_pose = np.reshape(validation_data[n:n+l_n,0], (1, l_n, -1))
+# 		# true_pose = validation_data[n:n+l_n]
+# 		poses = np.zeros((l_n/(h/2), l_n, true_pose.shape[-1]))
+# 		poses[0, :h] = validation_data[n]
+# 		current_pose = validation_data[n:n+1]
+# 		for j in range(l_n/(h/2)-2):
+# 			pose = np.zeros(current_pose.shape)
+# 			pose[0,:h/2] = current_pose[0,h/2:]
+# 			z_ref = __get_latent_reps(encoder, pose, model_name, h/2-1)
+# 			new_e = __random(ls, z_ref, nn)
+# 			current_pose = decoder.predict(np.array([new_e]))
+# 			poses[j+1,(j+1)*(h/2):(j+3)*(h/2)] = np.copy(current_pose[0,])
+# 			# poses[j,j+1:j+1+h] = current_pose[0]
+
+# 		poses[-1] = np.sum(poses, axis=0)
+# 		poses[-1, h/2:l_n-h/2] = poses[-1, h/2:l_n-h/2]/2
+# 		err[i] = __pose_error(true_pose[0], poses[-1])
+# 		image.plot_poses(true_pose, poses, title='Pattern matching (long) (prediction in bold)')
+
+# 	print np.mean(err), np.std(err)

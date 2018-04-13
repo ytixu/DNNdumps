@@ -7,7 +7,7 @@ from keras.models import Model
 from utils import parser, image, embedding_plotter, recorder
 
 NAME = 'VL_LSTM'
-USE_GRU = False
+USE_GRU = True
 if USE_GRU:
 	from keras.layers import GRU
 else:

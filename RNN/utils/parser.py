@@ -27,7 +27,12 @@ def data_dimensions(input_dir, output_dir):
 		output_data = np.load(output_dir+name_id)
 		return input_data.shape[1], output_data.shape[1]
 
-def data_generator(input_dir, output_dir, timesteps, batch_size):
+def get_one_hot_labels(files):
+	labels = set(map(lambda x: os.path.basename(x).split('_')[0], files))
+	return {l:i for i,l in enumerate(labels)}, len(labels)
+
+
+def data_generator(input_dir, output_dir, timesteps, batch_size, label=False, ls=[], ld=0):
 	# files must be in different directories, 
 	# input and output filename must match for corresponding data
 	# each file is one sequence
@@ -36,12 +41,17 @@ def data_generator(input_dir, output_dir, timesteps, batch_size):
 	norm = 1
 	if '_robot' in output_dir:
 		norm = np.pi*2
-
-	x, y = [], []
+	
+	x, y, l = [], [], []
+	name_label = ''
 	batch_count = 0
 	for input_file in glob.glob(input_dir+'*'):
 		name_id = os.path.basename(input_file)
-
+		if label:
+			name_label = name_id.split('_')[0]
+			new_l = np.zeros(ld)
+			new_l[ls[name_label]] = 1
+			
 		# 2D arrays
 		input_data = np.load(input_file)
 		output_data = np.load(output_dir+name_id)
@@ -52,8 +62,14 @@ def data_generator(input_dir, output_dir, timesteps, batch_size):
 			count = len(temp_x)
 			if count < timesteps:
 				continue
-			new_x = np.array([[temp_x[j+k] for j in range(timesteps)] for k in range(count-timesteps+1)])
-			new_y = np.array([[output_data[i+j+k] for j in range(timesteps)] for k in range(count-timesteps+1)])
+			
+			if label:
+				new_x = np.array([[np.concatenate([temp_x[j+k], new_l], axis=0) for j in range(timesteps)] for k in range(count-timesteps+1)])
+				new_y = np.array([[np.concatenate([output_data[i+j+k], new_l], axis=0) for j in range(timesteps)] for k in range(count-timesteps+1)])
+			else:
+				new_x = np.array([[temp_x[j+k] for j in range(timesteps)] for k in range(count-timesteps+1)])
+				new_y = np.array([[output_data[i+j+k] for j in range(timesteps)] for k in range(count-timesteps+1)])
+
 			if len(x) == 0:
 				x = new_x
 				y = new_y
@@ -69,13 +85,14 @@ def data_generator(input_dir, output_dir, timesteps, batch_size):
 	if len(x) != 0:
 		yield x, y/norm
 
+
 def get_model_load_name(model_name):
 	return '../models/%s_%d.hdf5'%(model_name, time.time())
 
 def get_log_name(model_name):
 	return '../models/%s_%d.log'%(model_name, time.time())
 
-def get_parse(model_name):
+def get_parse(model_name, labels=False):
 	ap = argparse.ArgumentParser()
 	list_of_modes = ['train', 'sample']
 	ap.add_argument('-id', '--input_data', required=True, help='Input data directory')
@@ -95,11 +112,25 @@ def get_parse(model_name):
 
 	# ap.add_argument('-lr', '--learning_rate', required=False, help='Learning rate', default='5000', choices=list_of_modes)
 
+		
 	args = vars(ap.parse_args())
-	train_data = data_generator(args['input_data'], args['output_data'], args['timesteps'], 10000)
+	if labels:
+		ls, ld = get_one_hot_labels(glob.glob(args['input_data']+'*'))
+		args['labels'] = ls
+		args['label_dim'] = ld
+	train_data = None
+	if labels:
+		train_data = data_generator(args['input_data'], args['output_data'], args['timesteps'], 10000, True, ls, ld)
+	else:
+		train_data = data_generator(args['input_data'], args['output_data'], args['timesteps'], 10000)
+	
 	validation_data = []
 	if args['validation_input_data']:
-		vd = data_generator(args['validation_input_data'], args['validation_input_data'], args['timesteps'], 10000000)
+		vd = None
+		if labels:
+			vd = data_generator(args['validation_input_data'], args['validation_input_data'], args['timesteps'], 10000000, True, ls, ld)
+		else:
+			vd = data_generator(args['validation_input_data'], args['validation_input_data'], args['timesteps'], 10000000)
 		for v, _ in vd:
 			validation_data = v
 			break
