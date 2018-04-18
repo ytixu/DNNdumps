@@ -7,6 +7,7 @@ import json
 H_LSTM = 0
 ML_LSTM = 1
 Prior_LSTM = 2
+HL_LSTM = 3
 
 CLOSEST = 0
 MEAN = 1
@@ -93,8 +94,8 @@ def __get_latent_reps(encoder, pose, model_name, n=-1):
 		return enc
 
 def __get_decoded_reps(decoder, encoding, model_name, pose=[], cut=0):
-	if model_name == Prior_LSTM:
-		if pose.shape[0] == 1:
+	if model_name in [Prior_LSTM, HL_LSTM]:
+		if pose.shape[0] != encoding.shape[0]:
 			poses = [None]*encoding.shape[0]
 			for i in range(encoding.shape[0]):
 				poses[i] = decoder.predict([encoding[i:i+1], pose])[0]
@@ -129,23 +130,36 @@ def __common_params(n):
 def __latent_error(z_ref, z_pred):
 	return np.linalg.norm(z_ref - z_pred)
 
-def __pose_error(pose_ref, pose_pred):
-	return np.mean([np.linalg.norm(pose_ref[t]-pose_pred[t]) for t in range(len(pose_pred))])
+def __pose_error(pose_ref, pose_pred, reshaped=False):
+	if reshaped:
+		return np.mean([np.linalg.norm(pose_ref[x]-pose_pred[x]) for x in range(pose_pred.shape[0])])
+	pose_x = np.reshape(pose_ref, (-1, 3))
+	pose_y = np.reshape(pose_pred, (-1, 3))
+	return np.mean([np.linalg.norm(pose_x[x]-pose_y[x]) for x in range(pose_x.shape[0])])
+
+def __pose_seq_error(pose_ref, pose_pred, fixed=False):
+	ts = pose_ref.shape[0]
+	pose_x = np.reshape(pose_ref, (ts,-1, 3))
+	if fixed:
+		pose_y = np.reshape(pose_pred, (-1, 3))
+		return np.mean([__pose_error(pose_x[t], pose_y, True) for t in range(ts)])
+	pose_y = np.reshape(pose_pred, (ts,-1, 3))
+	return np.mean([__pose_error(pose_x[t], pose_y[t], True) for t in range(ts)])
 
 # Pattern matching baseline
 
 def __random_z(embedding, z_ref):
 	return embedding[np.random.choice(embedding.shape[0])]
 
-def __zeros_velocity_error(pose_ref, cut, n=1):
-	avg_pose = np.mean(pose_ref[cut-n:cut])
-	return np.mean([__pose_error(pose_ref[cut+i], avg_pose) for i in range(pose_ref.shape[0]-cut)])
+def __zeros_velocity_error(pose_ref, pose_next, n=1):
+	avg_pose = np.mean(pose_ref[-n:], axis=0)
+	return np.array([__pose_seq_error(pose_next[:i+1], avg_pose, True) for i in range(pose_next.shape[0])])
 
-def __average_2_error(pose_ref, cut):
-	return __zeros_velocity_error(pose_ref, cut, 2)
+def __average_2_error(pose_ref, pose_next):
+	return __zeros_velocity_error(pose_ref, pose_next, 2)
 
-def __average_4_error(pose_ref, cut):
-	return __zeros_velocity_error(pose_ref, cut, 4)
+def __average_4_error(pose_ref, pose_next):
+	return __zeros_velocity_error(pose_ref, pose_next, 4)
 
 def random_baseline(validation_data):
 	n = 100
@@ -163,7 +177,26 @@ def random_baseline(validation_data):
 	print mean
 	print var
 
-def validate(validation_data, encoder, decoder, h, model_name):
+def get_embedding(model, data_iterator, subspace=-1):
+	embedding = []
+	for x, y in data_iterator:
+		e = model.encoder.predict(x)
+		if len(embedding) == 0:
+			if subspace > 0:
+				embedding = e[:, subspace]
+			else:
+				embedding = e[:, model.hierarchies]
+		else:
+			if subspace > 0:
+				embedding = np.concatenate((embedding, e[:,subspace]), axis=0)
+			else:
+				embedding = np.concatenate((embedding, e[:,model.hierarchies]), axis=0)
+		# break
+	print embedding.shape
+	return embedding
+
+def validate(validation_data, encoder, decoder, h, model_name, label_dim=0):
+	# import image
 	mean = np.zeros(h)
 	std = np.zeros(h)
 	mean_sub = np.zeros(h)
@@ -172,15 +205,19 @@ def validate(validation_data, encoder, decoder, h, model_name):
 	poses = np.zeros(validation_data.shape)
 	enc = __get_latent_reps(encoder, validation_data, model_name)
 	print enc.shape
-	for i in range(h):
+	for i in tqdm(range(h)):
 		poses[:,:i+1] = validation_data[:,:i+1]
 		p_poses = __get_decoded_reps(decoder, enc[:,i], model_name, pose=validation_data[:,0])
-		err = [__pose_error(poses[j], p_poses[j]) for j in range(sample_n)]
+		err = [__pose_error(poses[j,:], p_poses[j,:]) for j in range(sample_n)]
 		mean[i] = np.mean(err)
 		std[i] = np.std(err)
-		err = [__pose_error(poses[j,:i+1], p_poses[j,:i+1]) for j in range(sample_n)]
+		if label_dim > 0:
+			err = [__pose_error(poses[j,:i+1,:-label_dim], p_poses[j,:i+1,:-label_dim]) for j in range(sample_n)]
+		else:
+			err = [__pose_error(poses[j,:i+1], p_poses[j,:i+1]) for j in range(sample_n)]
 		mean_sub[i] = np.mean(err)
 		std_sub[i] = np.std(err)
+		# image.plot_poses([validation_data[0,:,:-label_dim]] , [p_poses[0,:,:-label_dim]])
 
 	def __r(a):
 		return np.around(a*100, 3).tolist()
@@ -195,17 +232,18 @@ def validate(validation_data, encoder, decoder, h, model_name):
 	print __r(np.mean(mean_sub))
 	print __r(np.sqrt(np.mean([s**2 for s in std_sub])))
 
-def distance_stats(embedding, encoder, decoder, h, model_name):
+def distance_stats(embedding, model):
+	h = len(model.hierarchies)
 	mean = np.zeros(h)
 	std = np.zeros(h)
 	n = np.zeros(h)
-	for cut in range(h):
-		ls = __get_subspace(embedding, cut, model_name)
+	for i, cut in enumerate(model.hierarchies):
+		ls = __get_subspace(embedding, i, model.MODEL_CODE)
 		skip = cut+1
 		dist = [__latent_error(ls[j], ls[j-skip]) for j in range(skip, ls.shape[0], skip)]
-		n[cut] = len(dist)
-		mean[cut] = np.mean(dist)
-		std[cut] = np.std(dist)
+		n[i] = len(dist)
+		mean[i] = np.mean(dist)
+		std[i] = np.std(dist)
 
 	n_total = np.sum(n)
 	print n, n_total
@@ -385,40 +423,62 @@ def __get_next_half(embedding, pose, encoder, decoder, h, model_name, n=1):
 	poses = decoder.predict(np.array([z_ref]))
 	return poses[0][cut:]
 
-def __get_consecutive(pose, encoder, decoder, h, model_name, n=1):
-	cut = h/2
-	half_poses = np.copy([pose,pose])
-	print half_poses.shape, pose.shape
-	half_poses[0,cut:] = 0
-	half_poses[1,:cut] = half_poses[1,cut:]
-	half_poses[1,cut:] = 0
-	new_e = [None]*n 
-	poses = []
-	z_refs = __get_latent_reps(encoder, half_poses, model_name, cut-1)
-	z_ref = __get_latent_reps(encoder, np.array([pose]), model_name, h-1)
-	new_e[0] = z_ref[0] + z_refs[1] - z_refs[0]
-	for i in range(n-1):
-		new_e[i+1] = new_e[i] + z_refs[1] - z_refs[0]
-	# z_ref[0] = __closest(embedding, z_ref[0])
-	poses = __get_decoded_reps(decoder, np.array(new_e), model_name, pose=pose[cut:cut+1], cut=cut)
-	if n > 1:
-		if n%2 == 0:
-			return np.concatenate(poses[1::2], axis=0)
-		else:
-			return np.concatenate(poses[::2], axis=0)[cut:]
-	else:
-		return poses[0][cut:]
+# def __get_consecutive(pose, model, n=1):
+# 	h = model.timesteps
+# 	cut = h/2
+# 	half_poses = np.copy([pose,pose])
+# 	print half_poses.shape, pose.shape
+# 	half_poses[0,cut:] = 0
+# 	half_poses[1,:cut] = half_poses[1,cut:]
+# 	half_poses[1,cut:] = 0
+# 	new_e = [None]*n 
+# 	poses = []
+# 	z_refs = __get_latent_reps(model.encoder, half_poses, model.MODEL_CODE, cut-1)
+# 	z_ref = __get_latent_reps(model.encoder, np.array([pose]), model.MODEL_CODE, h-1)
+# 	new_e[0] = z_ref[0] + z_refs[1] - z_refs[0]
+# 	for i in range(n-1):
+# 		new_e[i+1] = new_e[i] + z_refs[1] - z_refs[0]
+# 	# z_ref[0] = __closest(embedding, z_ref[0])
+# 	poses = __get_decoded_reps(model.decoder, np.array(new_e), model.MODEL_CODE, pose=pose[cut:cut+1], cut=cut)
+# 	if model.MODEL_CODE in [HL_LSTM, Prior_LSTM]:
+# 		poses = poses[:,:,:-model.label_dim]
+# 	if n > 1:
+# 		if n%2 == 0:
+# 			return np.concatenate(poses[1::2], axis=0)
+# 		else:
+# 			return np.concatenate(poses[::2], axis=0)[cut:]
+# 	else:
+# 		return poses[0][cut:]
 
-# def __get_consecutive(embedding, pose, encoder, decoder, cut, h, model_name):
+def __get_consecutive(embedding, pose, model):
+	cut = model.timesteps / 2
+	half_poses = np.copy([pose])
+	half_poses[0,:cut] = half_poses[0,cut:]
+	half_poses[0,cut:] = 0
+	z_ref = __get_latent_reps(model.encoder, half_poses, model.MODEL_CODE)[0,cut-1]
+	weights, w_i = __get_weights(embedding, z_ref)
+
+	z_refs = np.array([__closest(embedding, z_ref, weights), 
+					__random(embedding, z_ref, -1, weights, w_i),
+					__random(embedding, z_ref, 5000, weights, w_i),
+					__random(embedding, z_ref, 10000, weights, w_i)])
+	
+	if model.MODEL_CODE in [HL_LSTM, Prior_LSTM]:
+		return __get_decoded_reps(model.decoder, z_refs, model.MODEL_CODE, pose=pose[cut:cut+1])[:,cut:]
+	return __get_decoded_reps(model.decoder, z_refs, model.MODEL_CODE)[:,cut:]
+
+# def __get_consecutive(pose, model, cut):
 # 	half_poses = np.copy([pose,pose])
 # 	half_poses[0,cut:] = 0
 # 	half_poses[1,:cut] = half_poses[1,cut:]
 # 	half_poses[1,cut:] = 0
-# 	z_refs = __get_latent_reps(encoder, half_poses, model_name, cut-1)
-# 	z_ref = __get_latent_reps(encoder, np.array([pose]), model_name, h-1)
+# 	z_refs = __get_latent_reps(model.encoder, half_poses, model.MODEL_CODE, cut-1)
+# 	z_ref = __get_latent_reps(model.encoder, np.array([pose]), model.MODEL_CODE, model.timesteps-1)
 # 	z_ref[0] = z_ref[0] + z_refs[1] - z_refs[0]
 # 	# z_ref[0] = __closest(embedding, z_ref[0])
-# 	return decoder.predict(z_ref)[0]
+# 	if model.MODEL_CODE in [HL_LSTM, Prior_LSTM]:
+# 		return __get_decoded_reps(model.decoder, z_ref, model.MODEL_CODE, pose=pose[cut:cut+1])[0]
+# 	return __get_decoded_reps(model.decoder, z_ref, model.MODEL_CODE)[0]
 
 def __get_next_overlap(embedding, pose, encoder, decoder, cut, h, model_name):
 	half_poses = np.copy([pose,pose])
@@ -460,11 +520,12 @@ def __get_next_overlap(embedding, pose, encoder, decoder, cut, h, model_name):
 # 	print np.mean(err), np.std(err)
 
 
-def gen_long_sequence(embedding, validation_data, encoder, decoder, h, model_name, l_n=25, numb=10):
+def gen_long_sequence(embedding, validation_data, model, l_n=60, numb=10):
 	import image
+	h = model.timesteps
 	cut = h/2
 	idxs = np.random.randint(0, len(validation_data)-l_n, numb)
-	ls = __get_subspace(embedding, h-1, model_name)
+	ls = __get_subspace(embedding, h-1, model.MODEL_CODE)
 	err = np.zeros(numb)
 	for i, n in enumerate(tqdm(idxs)):
 		true_pose = np.reshape(validation_data[n:n+l_n,0], (1, l_n, -1))
@@ -472,14 +533,17 @@ def gen_long_sequence(embedding, validation_data, encoder, decoder, h, model_nam
 		current_pose = validation_data[n]
 		poses[0, :h] = current_pose
 		for j in range(l_n/cut-2):
-			current_pose = __get_consecutive(ls, current_pose, encoder, decoder, cut, h, model_name)
+			current_pose = __get_consecutive(ls, current_pose, model, cut)
 			poses[j+1,(j+1)*cut:(j+3)*cut] = np.copy(current_pose)
 			# poses[j,j+1:j+1+h] = current_pose[0]
 
 		poses[-1] = np.sum(poses, axis=0)
 		poses[-1, h/2:l_n-h/2] = poses[-1, h/2:l_n-h/2]/2
 		err[i] = __pose_error(true_pose[0], poses[-1])
-		image.plot_poses(true_pose, poses, title='Pattern matching (long) (prediction in bold)')
+		if model.MODEL_CODE in [HL_LSTM, Prior_LSTM]:
+			image.plot_poses(true_pose[:,:,:-model.label_dim], poses[:,:,:-model.label_dim], title='Pattern matching (long) (prediction in bold)')
+		else:
+			image.plot_poses(true_pose, poses, title='Pattern matching (long) (prediction in bold)')
 
 	print np.mean(err), np.std(err)
 

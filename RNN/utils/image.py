@@ -212,7 +212,7 @@ def plot_options_hierarchies(batch_true, batch_predict, title='Reference is the 
 		plt.close(f)
 
 
-def plot_poses(batch, batch2=[], title='Poses', args=''):
+def plot_poses(batch, batch2=[], title='Poses', args='', image_dir=None):
 	timesteps = len(batch[0])
 	n = len(batch) 
 	n_total = len(batch) + len(batch2)
@@ -224,17 +224,19 @@ def plot_poses(batch, batch2=[], title='Poses', args=''):
 		new_x = np.reshape(batch[i], (timesteps, -1, 3))
 		for j in range(skip_n):
 			for c, l in M_POSE_LINES.iteritems():
-				add_line(axarr[i, j], (new_x[j*skip_t])[l], c, 2)
+				add_line(axarr[i, j], (new_x[j*skip_t])[l], c, 1)
 
 	for i in range(len(batch2)):
 		new_x = np.reshape(batch2[i], (timesteps, -1, 3))
 		for j in range(skip_n):
 			for c, l in M_POSE_LINES.iteritems():
-				add_line(axarr[i+n, j], (new_x[j*skip_t])[l], c, 3)
+				add_line(axarr[i+n, j], (new_x[j*skip_t])[l], c, 2)
 			
 
 	f.subplots_adjust(hspace=0.1)
 	plt.suptitle(title)
-	plt.show()
-	# f.savefig('../out/' + title.lower().replace(' ', '_')+args+ strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png') 
-	# plt.close(f)
+	# plt.show()
+	if image_dir == None:
+		image_dir = '../out/'
+	f.savefig(image_dir + title.lower().replace(' ', '_')+args+ strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png', dpi=192) 
+	plt.close(f)

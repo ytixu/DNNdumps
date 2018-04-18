@@ -4,7 +4,7 @@ from sklearn import cross_validation
 from keras.layers import Input, RepeatVector, Lambda, concatenate
 from keras.models import Model
 
-from utils import parser, image, embedding_plotter, recorder, metrics
+from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines
 
 NAME = 'HL_LSTM'
 USE_GRU = True
@@ -27,6 +27,7 @@ class HL_LSTM:
 
 		self.timesteps = args['timesteps'] if 'timesteps' in args else 5
 		self.label_dim = args['label_dim']
+		self.labels = args['labels']
 		self.input_dim = args['input_dim'] + self.label_dim
 		self.output_dim = args['output_dim'] + self.label_dim
 		# self.hierarchies = args['hierarchies'] if 'hierarchies' in args else 4
@@ -35,6 +36,7 @@ class HL_LSTM:
 		self.load_path = args['load_path']
 		self.log_path = args['log_path']
 
+		self.MODEL_CODE = metrics.HL_LSTM
 		# self.history = recorder.LossHistory()
 
 	def make_model(self):
@@ -85,7 +87,7 @@ class HL_LSTM:
 		y = np.repeat(y, self.timesteps, axis=0)
 		y = np.reshape(y, (-1, self.timesteps, self.timesteps, y.shape[-1]))
 		for i in range(self.timesteps-1):
-			y[:,i,i+1:,:] = 0.0
+			y[:,i,i+1:,:-self.label_dim] = 0.0
 		return np.reshape(y, (-1, self.timesteps**2, y.shape[-1]))
 
 	def __alter_label(self, x, y):
@@ -107,6 +109,7 @@ class HL_LSTM:
 					y_train = self.__alter_y(y_train)
 					y_test_orig = np.copy(y_test[:1])
 					y_test = self.__alter_y(y_test)
+					# print np.sum(y_train[:,0,-self.label_dim:], axis=0)
 					history = self.autoencoder.fit([x_train, x_train[:,0]], y_train,
 								shuffle=True,
 								epochs=self.epochs,
@@ -115,13 +118,18 @@ class HL_LSTM:
 								# callbacks=[self.history])
 
 					y_test_decoded = self.autoencoder.predict([x_test[:1], x_test[:1,0]])
+					print np.linalg.norm(y_test_decoded[0,0,-self.label_dim:] - y_test_orig[0,0,-self.label_dim:])
 					image.plot_hierarchies(y_test_orig[:,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
 					self.autoencoder.save_weights(self.load_path, overwrite=True)
 				iter1, iter2 = tee(iter2)
 			
 			# self.history.record(self.log_path, model_vars)
 			data_iterator = iter2
-		embedding_plotter.see_hierarchical_embedding(self.encoder, self.decoder, data_iterator, valid_data, model_vars)
+		
+		# metric_baselines.compare(self)
+		metrics.gen_long_sequence(valid_data, self)
+
+		# embedding_plotter.see_hierarchical_embedding(self.encoder, self.decoder, data_iterator, valid_data, model_vars, self.label_dim)
 		# iter1, iter2 = tee(data_iterator)
 		# metrics.validate(valid_data, self.encoder, self.decoder, self.timesteps, metrics.HL_LSTM)
 		# evaluate.eval_pattern_reconstruction(self.encoder, self.decoder, iter2)

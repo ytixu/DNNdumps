@@ -56,55 +56,55 @@ def see_variational_length_embedding(encoder, decoder, data_iterator, validation
 	# go_up_hierarchy_convexhall_vl(embedding, ch, validation_data, encoder, decoder, t/2-1)
 	# go_up_hierarchy_dist(embedding, validation_data, encoder, decoder, t)
 
-def see_hierarchical_embedding(encoder, decoder, data_iterator, validation_data, args):
+def see_hierarchical_embedding(model, data_iterator, validation_data, args, label_dim=0):
 	import metrics, metric_baselines
-	metric_baselines.compare(encoder, decoder, 20, metrics.Prior_LSTM)
-	# metrics.validate(validation_data, encoder, decoder, 20, metrics.Prior_LSTM)
-	# # get_hierarchical_distances(encoder, data_iterator)
-	# # # plot_centers(decoder)
-	# # plot_communities(decoder)
-	# # go_up_hierarchy_enc(encoder, decoder, data_iterator, 6)
-	# embedding = []
-	# h = 0
-	# for x, y in data_iterator:
-	# 	e = encoder.predict(x)
-	# 	if len(embedding) == 0:
-	# 		embedding = e
-	# 		h = e.shape[1]
-	# 	else:
-	# 		embedding = np.concatenate((embedding, e), axis=0)
-	# 	# break
-	# l = embedding.shape[0]
-	# e_list = np.concatenate(embedding, axis=0)
-	# print embedding.shape, e_list.shape
-	# # print'saving.....'
-	# # np.save('../data.embedding_%s.npy'%strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()), embedding)
+	# metric_baselines.compare(encoder, decoder, 10, metrics.Prior_LSTM)
+	# metrics.validate(validation_data, encoder, decoder, 30, metrics.H_LSTM)
+	# get_hierarchical_distances(encoder, data_iterator)
+	# # plot_centers(decoder)
+	# plot_communities(decoder)
+	# go_up_hierarchy_enc(encoder, decoder, data_iterator, 6)
+	embedding = []
+	h = 0
+	for x, y in data_iterator:
+		e = model.encoder.predict(x)
+		if len(embedding) == 0:
+			embedding = e[:, model.hierarchies]
+			h = e.shape[1]
+		else:
+			embedding = np.concatenate((embedding, e[:,model.hierarchies]), axis=0)
+		# break
+	l = embedding.shape[0]
+	e_list = np.concatenate(embedding, axis=0)
+	print embedding.shape, e_list.shape
+	# print'saving.....'
+	# np.save('../data.embedding_%s.npy'%strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()), embedding)
 
-	# # check_min_max(e_list, decoder, h, args)
-	# # subembedding(embedding[:,h-1], args)
-	# # embedding_stats(embedding, args)
-	# # plot_fa(e_list)
-	# # interpolate(embedding[:,h-1], encoder, decoder)
-	# # interpolate(embedding[:,h/2-1], encoder, decoder)
-	# # plot_convex_halls(e_list, l, h, args)
-	# import metrics
-	# # metrics.plot_convex_hall(embedding, h, metrics.H_LSTM)
-	# # metrics.go_up_hierarchy_sim(embedding, validation_data, encoder, decoder, h, metrics.H_LSTM, cut=h/2-1)
-	# # metrics.gen_long_sequence(embedding, validation_data, encoder, decoder, h, metrics.H_LSTM)
-	# # metrics.gen_long_sequence(embedding, validation_data, encoder, decoder, h, metrics.H_LSTM)
-	# metrics.distance_stats(embedding, encoder, decoder, h, metrics.H_LSTM)
-	# # idx = np.random.choice(len(validation_data), 100, replace=False)
-	# # eval_go_up_hierarchy(embedding, validation_data[idx], encoder, decoder, h/2-1)
-	# # go_up_hierarchy(embedding, validation_data, encoder, decoder, h)
-	# # ch = get_convex_hall(embedding[:-1])
-	# # ch = embedding[:5, -1]
-	# # go_up_hierarchy_convexhall(embedding, ch, validation_data, encoder, decoder, h/2-1)
-	# # go_up_hierarchy_random(embedding, validation_data, encoder, decoder, h)
-	# # go_up_hierarchy_random_test_bound(embedding, validation_data, encoder, decoder, h)
-	# # go_up_hierarchy_sim(embedding, validation_data, encoder, decoder, h)
-	# # go_up_hierarchy_dist(embedding, validation_data, encoder, decoder, h)
-	# # check_concept_space(embedding, h)
-	# # k_mean_clusters(e_list, decoder)
+	# check_min_max(e_list, decoder, h, args)
+	# subembedding(embedding[:,h-1], args)
+	# embedding_stats(embedding, args)
+	# plot_fa(e_list)
+	# interpolate(embedding[:,h-1], encoder, decoder)
+	# interpolate(embedding[:,h/2-1], encoder, decoder)
+	# plot_convex_halls(e_list, l, h, args)
+	import metrics
+	# metrics.plot_convex_hall(embedding, h, metrics.H_LSTM)
+	# metrics.go_up_hierarchy_sim(embedding, validation_data, encoder, decoder, h, metrics.H_LSTM, cut=h/2-1)
+	# metrics.gen_long_sequence(embedding, validation_data, model)
+	# metrics.gen_long_sequence(embedding, validation_data, encoder, decoder, h, metrics.H_LSTM)
+	metrics.distance_stats(embedding, model)
+	# idx = np.random.choice(len(validation_data), 100, replace=False)
+	# eval_go_up_hierarchy(embedding, validation_data[idx], encoder, decoder, h/2-1)
+	# go_up_hierarchy(embedding, validation_data, encoder, decoder, h)
+	# ch = get_convex_hall(embedding[:-1])
+	# ch = embedding[:5, -1]
+	# go_up_hierarchy_convexhall(embedding, ch, validation_data, encoder, decoder, h/2-1)
+	# go_up_hierarchy_random(embedding, validation_data, encoder, decoder, h)
+	# go_up_hierarchy_random_test_bound(embedding, validation_data, encoder, decoder, h)
+	# go_up_hierarchy_sim(embedding, validation_data, encoder, decoder, h)
+	# go_up_hierarchy_dist(embedding, validation_data, encoder, decoder, h)
+	# check_concept_space(embedding, h)
+	# k_mean_clusters(e_list, decoder)
 
 def get_hierarchical_distances(encoder, data_iterator):
 	i = 0
