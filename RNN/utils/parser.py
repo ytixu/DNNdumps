@@ -48,9 +48,11 @@ def data_generator_random(input_dir, output_dir, timesteps, batch_size, n, label
 		total_i = i
 
 	def get_k(x):
-		k = np.random.choice(data[x].shape[0]-timesteps, replace=False)
 		if label:
-			return np.concatenate((data[x][0][k:k+timesteps], data[x][1]), axis=0)
+			k = np.random.choice(data[x][0].shape[0]-timesteps, replace=False)
+			return np.array([np.concatenate((data[x][0][k+t], data[x][1])) for t in range(timesteps)])
+
+		k = np.random.choice(data[x].shape[0]-timesteps, replace=False)
 		return data[x][k:k+timesteps]
 
 	for i in range(n):
@@ -127,9 +129,10 @@ def get_parse(model_name, labels=False):
 	ap.add_argument('-vid', '--validation_input_data', required=False, help='Validation input data directory')
 	ap.add_argument('-vod', '--validation_output_data', required=False, help='Validation output data directory')
 	ap.add_argument('-m', '--mode', required=False, help='Choose between training mode or sampling mode.', default='train', choices=list_of_modes)
-	ap.add_argument('-ep', '--epochs', required=False, help='Number of epochs', default='2', type=int)
+	ap.add_argument('-ep', '--epochs', required=False, help='Number of epochs', default='1', type=int)
 	ap.add_argument('-bs', '--batch_size', required=False, help='Batch size', default='16', type=int)
 	ap.add_argument('-lp', '--load_path', required=False, help='Model path', default=get_model_load_name(model_name))
+	ap.add_argument('-sp', '--save_path', required=False, help='Model save path', default=get_model_load_name(model_name))
 	ap.add_argument('-t', '--timesteps', required=False, help='Timestep size', default='5', type=int)
 	ap.add_argument('-p', '--periods', required=False, help='Number of iterations of the data', default='1', type=int)
 	ap.add_argument('-ld', '--latent_dim', required=False, help='Embedding size', default='100', type=int)
@@ -147,11 +150,11 @@ def get_parse(model_name, labels=False):
 		args['label_dim'] = ld
 	train_data = None
 	if labels:
-		# train_data = data_generator_random(args['input_data'], args['output_data'], args['timesteps'], 80000, 1000, True, ls, ld)
-		train_data = data_generator(args['input_data'], args['output_data'], args['timesteps'], 100, True, ls, ld)
+		train_data = data_generator_random(args['input_data'], args['output_data'], args['timesteps'], 40000, 400, True, ls, ld)
+		# train_data = data_generator(args['input_data'], args['output_data'], args['timesteps'], 1000, True, ls, ld)
 	else:
-		# train_data = data_generator_random(args['input_data'], args['output_data'], args['timesteps'], 80000, 1000)
-		train_data = data_generator(args['input_data'], args['output_data'], args['timesteps'], 100)
+		train_data = data_generator_random(args['input_data'], args['output_data'], args['timesteps'], 40000, 400)
+		# train_data = data_generator(args['input_data'], args['output_data'], args['timesteps'], 1000)
 	
 	validation_data = []
 	if args['validation_input_data']:

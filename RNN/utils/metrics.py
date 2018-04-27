@@ -48,19 +48,25 @@ def __get_weights(embedding, z_ref):
 
 # Pattern matching methods
 
-def __closest(embedding, z_ref, weights=[]):
+def __closest(embedding, z_ref, weights=[], return_weight=False):
 	if not any(weights):
 		weights = __get_dist(embedding, z_ref)
-	return embedding[np.argmin(weights)]
+	idx = np.argmin(weights)
+	if return_weight:
+		return embedding[idx], weights[idx]
+	return embedding[idx]
 
-def __mean(embedding, z_ref, n=30, weights=[], w_i=[]):
+def __normalized_distance_mean(embedding, weights, w_i):
+	if weights[w_i[0]] < 1e-16 or weights[w_i[0]] == float('-inf'):
+		return embedding[w_i[0]]
+	return np.sum([embedding[d]/weights[d] for d in w_i], axis=0)/np.sum([1.0/weights[d] for d in w_i])
+
+def __mean(embedding, z_ref, n=45, weights=[], w_i=[]):
 	if not any(weights):
 		weights, w_i = __get_weights(embedding, z_ref)
 	if n > 0:
 		w_i = w_i[:n]
-	if weights[w_i[0]] < 1e-16 or weights[w_i[0]] == float('-inf'):
-		return embedding[w_i[0]]
-	return np.sum([embedding[d]/weights[d] for d in w_i], axis=0)/np.sum([1.0/weights[d] for d in w_i])
+	return __normalized_distance_mean(embedding, weights, w_i)
 
 def __random(embedding, z_ref, n=-1, weights=[], w_i=[]):
 	if n > 0:
@@ -72,12 +78,22 @@ def __random(embedding, z_ref, n=-1, weights=[], w_i=[]):
 
 	return __mean(embedding, z_ref, weights=weights, w_i=w_i)
 
+def __multi_match(embedding, z_refs, weights={}):
+	z_matches = np.zeros(z_refs.shape)
+	n = z_refs.shape[0]
+	w_i = np.zeros(n)
+	for i, z in enumerate(z_refs):
+		if i in weights:
+			z_matches[n-i-1,:], w_i[i] = __closest(embedding, z, weights[i], return_weight=True)
+		else:
+			z_matches[n-i-1,:], w_i[i] = __closest(embedding, z, return_weight=True)
+	return __normalized_distance_mean(z_matches, w_i, range(n))
 
 def __get_latent_reps(encoder, pose, model_name, n=-1):
 	if model_name == ML_LSTM:
 		b, h, d = pose.shape
 		x = None
-		if n > 0:
+		if n > -1:
 			x = np.zeros((b,h,d))
 			x[:,:n+1] = pose[:,:n+1]
 			return encoder.predict(x)
@@ -89,22 +105,28 @@ def __get_latent_reps(encoder, pose, model_name, n=-1):
 			return np.reshape(encoder.predict(x), (b, h, -1))
 	else:
 		enc = encoder.predict(pose)
-		if n > 0:
+		if n > -1:
 			return enc[:,n]
 		return enc
 
-def __get_decoded_reps(decoder, encoding, model_name, pose=[], cut=0):
+def __get_decoded_reps(decoder, encoding, model_name, pose=[]):
 	if model_name in [Prior_LSTM, HL_LSTM]:
 		if pose.shape[0] != encoding.shape[0]:
 			poses = [None]*encoding.shape[0]
 			for i in range(encoding.shape[0]):
 				poses[i] = decoder.predict([encoding[i:i+1], pose])[0]
-				pose = poses[i][cut:cut+1]
+				# if cut > 0:
+				# 	poses[i] = poses[i][cut:cut+1]
 			return np.array(poses)
 
 		return decoder.predict([encoding, pose])
 	else:
 		return decoder.predict(encoding)
+
+def __autoencode(autoencoder, poses, model_name):
+	if model_name in [Prior_LSTM, HL_LSTM]:
+		return autoencoder.predict([poses, poses[:,0]])
+	return autoencoder.predict(poses)
 
 def __get_subspace(embedding, n, model_name):
 	if model_name == H_LSTM:
@@ -411,6 +433,17 @@ def go_up_hierarchy(embedding, validation_data, encoder, decoder, h, model_name,
 		image.plot_poses([pose, validation_data[n]], p_poses, title='Pattern matching (best) (prediction in bold)')
 
 
+# for interpolation
+
+def interpolate(model, z_a, z_b, l=8):
+	import image
+	dist = (z_b - z_a)/l
+	zs = np.array([z_a+i*dist for i in range(l+1)])
+	interpolation =  __get_decoded_reps(model.decoder, zs, model.MODEL_CODE)
+	# image.plot_poses([interpolation[0, :l]], [interpolation[1:,l-1]])
+	return interpolation
+
+
 # for long sequence prediction
 
 def __get_next_half(embedding, pose, encoder, decoder, h, model_name, n=1):
@@ -423,11 +456,39 @@ def __get_next_half(embedding, pose, encoder, decoder, h, model_name, n=1):
 	poses = decoder.predict(np.array([z_ref]))
 	return poses[0][cut:]
 
-# def __get_consecutive(pose, model, n=1):
+def __get_partial(pose, cut):
+	partial = np.copy([pose])
+	partial[0,:cut] = partial[0,pose.shape[0]-cut:]
+	partial[0,cut:] = 0
+	return partial
+
+def __get_consecutive_add(embedding, pose, model, cut):
+	h = model.timesteps
+	half_poses = np.copy([pose,pose])
+	half_poses[1,:cut] = half_poses[0,pose.shape[0]-cut:]
+	half_poses[0,cut:] = 0
+	half_poses[1,cut:] = 0
+	new_e = [None]*5
+	poses = []
+	z_refs = __get_latent_reps(model.encoder, half_poses, model.MODEL_CODE, cut-1)
+	z_ref = __get_latent_reps(model.encoder, np.array([pose]), model.MODEL_CODE, h-1)
+	new_e[0] = z_ref[0] + z_refs[1] - z_refs[0]
+	weights, w_i = __get_weights(embedding, new_e[0])
+	new_e[1] = __closest(embedding, new_e[0], weights)
+	new_e[2] = __mean(embedding, new_e[0], 30, weights, w_i)
+	new_e[3] = __mean(embedding, new_e[0], 45, weights, w_i)
+	new_e[4] = __mean(embedding, new_e[0], 75, weights, w_i)
+
+	pose_ref = np.tile(pose[pose.shape[0]-cut],(len(new_e),1))
+	poses = __get_decoded_reps(model.decoder, np.array(new_e), model.MODEL_CODE, pose=pose_ref)
+	if model.MODEL_CODE == HL_LSTM:
+		poses = poses[:,:,:-model.label_dim]
+	return poses[:,cut:]
+
+# def __get_consecutive_add(pose, model, n=1):
 # 	h = model.timesteps
 # 	cut = h/2
 # 	half_poses = np.copy([pose,pose])
-# 	print half_poses.shape, pose.shape
 # 	half_poses[0,cut:] = 0
 # 	half_poses[1,:cut] = half_poses[1,cut:]
 # 	half_poses[1,cut:] = 0
@@ -440,7 +501,7 @@ def __get_next_half(embedding, pose, encoder, decoder, h, model_name, n=1):
 # 		new_e[i+1] = new_e[i] + z_refs[1] - z_refs[0]
 # 	# z_ref[0] = __closest(embedding, z_ref[0])
 # 	poses = __get_decoded_reps(model.decoder, np.array(new_e), model.MODEL_CODE, pose=pose[cut:cut+1], cut=cut)
-# 	if model.MODEL_CODE in [HL_LSTM, Prior_LSTM]:
+# 	if model.MODEL_CODE == HL_LSTM:
 # 		poses = poses[:,:,:-model.label_dim]
 # 	if n > 1:
 # 		if n%2 == 0:
@@ -450,23 +511,57 @@ def __get_next_half(embedding, pose, encoder, decoder, h, model_name, n=1):
 # 	else:
 # 		return poses[0][cut:]
 
-def __get_consecutive(embedding, pose, model):
-	cut = model.timesteps / 2
-	half_poses = np.copy([pose])
-	half_poses[0,:cut] = half_poses[0,cut:]
-	half_poses[0,cut:] = 0
+def __get_consecutive(embedding, pose, model, cut, k):
+	half_poses =  __get_partial(pose, cut)
 	z_ref = __get_latent_reps(model.encoder, half_poses, model.MODEL_CODE)[0,cut-1]
 	weights, w_i = __get_weights(embedding, z_ref)
 
-	z_refs = np.array([__closest(embedding, z_ref, weights), 
-					__random(embedding, z_ref, -1, weights, w_i),
+	z_refs = np.array([__closest(embedding, z_ref, weights),
+					__mean(embedding, z_ref, 30, weights, w_i),
+					__mean(embedding, z_ref, 45, weights, w_i),
 					__random(embedding, z_ref, 5000, weights, w_i),
 					__random(embedding, z_ref, 10000, weights, w_i)])
 	
+	new_pose = None
 	if model.MODEL_CODE in [HL_LSTM, Prior_LSTM]:
-		return __get_decoded_reps(model.decoder, z_refs, model.MODEL_CODE, pose=pose[cut:cut+1])[:,cut:]
-	return __get_decoded_reps(model.decoder, z_refs, model.MODEL_CODE)[:,cut:]
+		new_pose = __get_decoded_reps(model.decoder, z_refs, model.MODEL_CODE, pose=half_poses[0,:1])[:,cut:]
+	else:	
+		new_pose = __get_decoded_reps(model.decoder, z_refs, model.MODEL_CODE)[:,cut:]
 
+	# n,_,d = new_pose.shape
+	# pose_ref = np.zeros((n+1,model.timesteps,d))
+	# pose_ref[0,0,:] = pose[-1,:]
+	# for i in range(n):
+	# 	pose_ref[i+1,0,:] = new_pose[i,k,:]
+	# z_refs = __get_latent_reps(model.encoder, pose_ref, model.MODEL_CODE, 0)
+	# for i in range(n):
+	# 	new_pose[i,:k,:] = interpolate(model, z_refs[0], z_refs[i+1], k)[1:,0,:]
+	# # pose_ref = __get_decoded_reps(model.decoder, np.array([z_ref]), model.MODEL_CODE)[:,:cut]
+	# # new_pose = np.concatenate([pose_ref, new_pose], axis=0)
+
+	return new_pose
+
+def __get_consecutive_multi(embedding, pose, model, cut, h):
+	half_poses =  __get_partial(pose, cut)
+	z_refs = __get_latent_reps(model.encoder, half_poses, model.MODEL_CODE)[0,[i for i in model.hierarchies if i < cut]]
+	weights, w_i = __get_weights(embedding, z_refs[-1])
+
+	z_refs = np.array([__closest(embedding, z_refs[-1], weights),
+					__mean(embedding, z_refs[-1], 45, weights, w_i),
+					__mean(embedding, z_refs[-1], 75, weights, w_i),
+					__mean(embedding, z_refs[-1], 100, weights, w_i),
+					__random(embedding, z_refs[-1], 5000, weights, w_i),
+					__random(embedding, z_refs[-1], 10000, weights, w_i),
+					__multi_match(embedding, z_refs, {h: weights})])
+	
+	new_pose = None
+	if model.MODEL_CODE in [HL_LSTM, Prior_LSTM]:
+		new_pose = __get_decoded_reps(model.decoder, z_refs, model.MODEL_CODE, pose=half_poses[0,:1])[:,cut:]
+	else:	
+		new_pose = __get_decoded_reps(model.decoder, z_refs, model.MODEL_CODE)[:,cut:]
+
+
+	return new_pose
 # def __get_consecutive(pose, model, cut):
 # 	half_poses = np.copy([pose,pose])
 # 	half_poses[0,cut:] = 0
@@ -540,7 +635,7 @@ def gen_long_sequence(embedding, validation_data, model, l_n=60, numb=10):
 		poses[-1] = np.sum(poses, axis=0)
 		poses[-1, h/2:l_n-h/2] = poses[-1, h/2:l_n-h/2]/2
 		err[i] = __pose_error(true_pose[0], poses[-1])
-		if model.MODEL_CODE in [HL_LSTM, Prior_LSTM]:
+		if model.MODEL_CODE == HL_LSTM:
 			image.plot_poses(true_pose[:,:,:-model.label_dim], poses[:,:,:-model.label_dim], title='Pattern matching (long) (prediction in bold)')
 		else:
 			image.plot_poses(true_pose, poses, title='Pattern matching (long) (prediction in bold)')

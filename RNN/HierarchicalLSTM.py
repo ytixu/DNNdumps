@@ -3,6 +3,8 @@ from itertools import tee
 from sklearn import cross_validation
 from keras.layers import Input, RepeatVector, Lambda, concatenate
 from keras.models import Model
+from keras.callbacks import TensorBoard
+from keras.optimizers import RMSprop
 
 from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines, fk_animate
 
@@ -24,14 +26,15 @@ class H_LSTM:
 		self.periods = args['periods'] if 'periods' in args else 10
 		self.cv_splits = args['cv_splits'] if 'cv_splits' in args else 0.2
 
-		self.timesteps = args['timesteps'] if 'timesteps' in args else 5
-		# self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [self.timesteps/2-1, self.timesteps-1]
-		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
+		self.timesteps = args['timesteps'] if 'timesteps' in args else 10
+		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [0,9,14,19,29]
+		# self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
 		self.input_dim = args['input_dim']
 		self.output_dim = args['output_dim']
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
 		self.load_path = args['load_path']
+		self.save_path = args['save_path']
 		self.log_path = args['log_path']
 
 		self.MODEL_CODE = metrics.H_LSTM
@@ -67,7 +70,8 @@ class H_LSTM:
 		self.encoder = Model(inputs, encoded)
 		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
-		self.autoencoder.compile(optimizer='RMSprop', loss='mean_squared_error')
+		opt = RMSprop(lr=0.00001)
+		self.autoencoder.compile(optimizer=opt, loss='mean_squared_error')
 
 		self.autoencoder.summary()
 		self.encoder.summary()
@@ -77,6 +81,7 @@ class H_LSTM:
 		self.make_model()
 		if self.trained:
 			self.autoencoder.load_weights(self.load_path)
+			print 'LOADED------'
 			return True
 		return False
 
@@ -86,11 +91,11 @@ class H_LSTM:
 		for i, h in enumerate(self.hierarchies):
 			y[:,i,h+1:,:] = 0.0
 		return np.reshape(y, (-1, self.timesteps*len(self.hierarchies), y.shape[-1]))
-		
 
 	def run(self, data_iterator, valid_data): 
 		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
-		if not self.load():
+		# tbCallBack = TensorBoard(log_dir='../tb_graphs', histogram_freq=0, write_graph=True, write_images=True)
+		if self.load():
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			loss = 10000
@@ -106,11 +111,11 @@ class H_LSTM:
 								epochs=self.epochs,
 								batch_size=self.batch_size,
 								validation_data=(x_test, y_test))
-								# callbacks=[self.history])
+								# callbacks=[tbCallBack])
 
 					new_loss = np.mean(history.history['loss'])
 					if new_loss < loss:
-						self.autoencoder.save_weights(self.load_path, overwrite=True)
+						self.autoencoder.save_weights(self.save_path, overwrite=True)
 						loss = new_loss
 						print 'Saved model - ', loss
 
@@ -124,9 +129,10 @@ class H_LSTM:
 			
 			# self.history.record(self.log_path, model_vars)
 			data_iterator = iter2
-		metric_baselines.compare(self, data_iterator)
+		# metric_baselines.compare(self, data_iterator)
 		# metrics.gen_long_sequence(valid_data, self)
 		# fk_animate.animate_random(self, valid_data[50])
+		metrics.validate(valid_data, self.encoder, self.decoder, self.timesteps, metrics.H_LSTM)
 		# embedding_plotter.see_hierarchical_embedding(self, data_iterator, valid_data, model_vars)
 		# iter1, iter2 = tee(data_iterator)
 		# metrics.validate(valid_data, self.encoder, self.decoder, self.timesteps, metrics.H_LSTM)

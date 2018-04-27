@@ -30,7 +30,8 @@ class HL_LSTM:
 		self.labels = args['labels']
 		self.input_dim = args['input_dim'] + self.label_dim
 		self.output_dim = args['output_dim'] + self.label_dim
-		# self.hierarchies = args['hierarchies'] if 'hierarchies' in args else 4
+		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [int(self.timesteps*i/4.0-1) for i in range(1,5)]
+		print self.hierarchies
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
 		self.load_path = args['load_path']
@@ -57,9 +58,9 @@ class HL_LSTM:
 		else:
 			decode_2 = LSTM(self.output_dim, return_sequences=True)
 
-		decoded = [None]*self.timesteps
-		for i in range(self.timesteps):
-			e = Lambda(lambda x: x[:,i], output_shape=(self.latent_dim,))(encoded)
+		decoded = [None]*len(self.hierarchies)
+		for i, h in enumerate(self.hierarchies):
+			e = Lambda(lambda x: x[:,h], output_shape=(self.latent_dim,))(encoded)
 			decoded[i] = decode_1(concatenate([e, inputs_2], axis=1))
 			decoded[i] = decode_2(decoded[i])
 		decoded = concatenate(decoded, axis=1)
@@ -83,12 +84,13 @@ class HL_LSTM:
 			return True
 		return False
 
+		
 	def __alter_y(self, y):
-		y = np.repeat(y, self.timesteps, axis=0)
-		y = np.reshape(y, (-1, self.timesteps, self.timesteps, y.shape[-1]))
-		for i in range(self.timesteps-1):
-			y[:,i,i+1:,:-self.label_dim] = 0.0
-		return np.reshape(y, (-1, self.timesteps**2, y.shape[-1]))
+		y = np.repeat(y, len(self.hierarchies), axis=0)
+		y = np.reshape(y, (-1, len(self.hierarchies), self.timesteps, y.shape[-1]))
+		for i, h in enumerate(self.hierarchies):
+			y[:,i,h+1:,:-self.label_dim] = 0.0
+		return np.reshape(y, (-1, self.timesteps*len(self.hierarchies), y.shape[-1]))
 
 	def __alter_label(self, x, y):
 		idx = np.random.choice(x.shape[0], x.shape[0]/2)
@@ -101,6 +103,7 @@ class HL_LSTM:
 		if not self.load():
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
+			loss = 10000
 			iter1, iter2 = tee(data_iterator)
 			for i in range(self.periods):
 				for x, y in iter1:
@@ -117,21 +120,27 @@ class HL_LSTM:
 								validation_data=([x_test, x_test[:,0]], y_test))
 								# callbacks=[self.history])
 
-					y_test_decoded = self.autoencoder.predict([x_test[:1], x_test[:1,0]])
-					print np.linalg.norm(y_test_decoded[0,0,-self.label_dim:] - y_test_orig[0,0,-self.label_dim:])
-					image.plot_hierarchies(y_test_orig[:,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
-					self.autoencoder.save_weights(self.load_path, overwrite=True)
+					new_loss = np.mean(history.history['loss'])
+					if new_loss < loss:
+						print 'Saved model - ', loss
+						loss = new_loss
+						y_test_decoded = self.autoencoder.predict([x_test[:1], x_test[:1,0]])
+						print np.linalg.norm(y_test_decoded[0,0,-self.label_dim:] - y_test_orig[0,0,-self.label_dim:])
+						image.plot_poses(y_test_orig[:,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
+						# image.plot_hierarchies(y_test_orig[:,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
+						self.autoencoder.save_weights(self.load_path, overwrite=True)
+
 				iter1, iter2 = tee(iter2)
 			
 			# self.history.record(self.log_path, model_vars)
 			data_iterator = iter2
 		
 		# metric_baselines.compare(self)
-		metrics.gen_long_sequence(valid_data, self)
+		# metrics.gen_long_sequence(valid_data, self)
 
 		# embedding_plotter.see_hierarchical_embedding(self.encoder, self.decoder, data_iterator, valid_data, model_vars, self.label_dim)
 		# iter1, iter2 = tee(data_iterator)
-		# metrics.validate(valid_data, self.encoder, self.decoder, self.timesteps, metrics.HL_LSTM)
+		metrics.validate(valid_data, self.encoder, self.decoder, self.timesteps, metrics.HL_LSTM)
 		# evaluate.eval_pattern_reconstruction(self.encoder, self.decoder, iter2)
 
 if __name__ == '__main__':
