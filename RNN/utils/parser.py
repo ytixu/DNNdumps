@@ -150,11 +150,15 @@ def get_parse(model_name, labels=False):
 		args['label_dim'] = ld
 	train_data = None
 	if labels:
-		train_data = data_generator_random(args['input_data'], args['output_data'], args['timesteps'], 40000, 400, True, ls, ld)
-		# train_data = data_generator(args['input_data'], args['output_data'], args['timesteps'], 1000, True, ls, ld)
+		if args['mode'] == 'train':
+			train_data = data_generator_random(args['input_data'], args['output_data'], args['timesteps'], 40000, 400, True, ls, ld)
+		else:
+			train_data = data_generator(args['input_data'], args['output_data'], args['timesteps'], 1000, True, ls, ld)
 	else:
-		train_data = data_generator_random(args['input_data'], args['output_data'], args['timesteps'], 40000, 400)
-		# train_data = data_generator(args['input_data'], args['output_data'], args['timesteps'], 1000)
+		if args['mode'] == 'train':
+			train_data = data_generator_random(args['input_data'], args['output_data'], args['timesteps'], 40000, 400)
+		else:
+			train_data = data_generator(args['input_data'], args['output_data'], args['timesteps'], 1000)
 	
 	validation_data = []
 	if args['validation_input_data']:

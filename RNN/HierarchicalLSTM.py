@@ -6,7 +6,7 @@ from keras.models import Model
 from keras.callbacks import TensorBoard
 from keras.optimizers import RMSprop
 
-from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines, fk_animate
+from utils import parser, image, embedding_plotter, metrics, metric_baselines, fk_animate, association_evaluation
 
 NAME = 'H_LSTM'
 USE_GRU = True
@@ -95,7 +95,7 @@ class H_LSTM:
 	def run(self, data_iterator, valid_data): 
 		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
 		# tbCallBack = TensorBoard(log_dir='../tb_graphs', histogram_freq=0, write_graph=True, write_images=True)
-		if self.load():
+		if not self.load():
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			loss = 10000
@@ -132,7 +132,8 @@ class H_LSTM:
 		# metric_baselines.compare(self, data_iterator)
 		# metrics.gen_long_sequence(valid_data, self)
 		# fk_animate.animate_random(self, valid_data[50])
-		metrics.validate(valid_data, self.encoder, self.decoder, self.timesteps, metrics.H_LSTM)
+		# metrics.validate(valid_data, self.encoder, self.decoder, self.timesteps, metrics.H_LSTM)
+		association_evaluation.eval_distance(self, valid_data)
 		# embedding_plotter.see_hierarchical_embedding(self, data_iterator, valid_data, model_vars)
 		# iter1, iter2 = tee(data_iterator)
 		# metrics.validate(valid_data, self.encoder, self.decoder, self.timesteps, metrics.H_LSTM)

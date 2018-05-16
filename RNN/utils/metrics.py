@@ -8,6 +8,7 @@ H_LSTM = 0
 ML_LSTM = 1
 Prior_LSTM = 2
 HL_LSTM = 3
+L_LSTM = 4
 
 CLOSEST = 0
 MEAN = 1
@@ -135,12 +136,13 @@ def __get_subspace(embedding, n, model_name):
 		return embedding[n]
 
 def __cuts():
-	return np.array([0,2,4,7,9])
+	# return np.array([0,2,4,7,9])
+	return np.array([0,2])
 	# return [4]
 
 def __rn():
-	# return [100, 200, -1, -2]
-	return [100, 500, 1000, 5000, 10000, 50000, 55000 -1, -2]
+	# return [100, 200, -1, -2, -3]
+	return [100, 500, 1000, 5000, 10000, 50000, 55000 -1, -2, -3]
 
 def __common_params(n):
 	cuts = __cuts()
@@ -199,6 +201,26 @@ def random_baseline(validation_data):
 	print mean
 	print var
 
+def get_label_embedding(model, data_iterator, also_without_label=False, subspaces=-1):
+	embedding = []
+	for x, y in data_iterator:
+		e_l = __get_latent_reps(model.encoder, x, model.MODEL_CODE)[:,subspaces]
+		if also_without_label:
+			x[:,:,-model.label_dim:] = 0
+			e = __get_latent_reps(model.encoder, x, model.MODEL_CODE)[:,subspaces]
+			if len(embedding) == 0:
+				embedding = [e_l, e]
+			else:
+				embedding[0] = np.concatenate((embedding[0], e_l), axis=0)
+				embedding[1] = np.concatenate((embedding[1], e), axis=0)
+		else:
+			if len(embedding) == 0:
+				embedding = e_l
+			else:
+				embedding = np.concatenate((embedding, e_l), axis=0)
+		# break
+	return np.array(embedding)
+
 def get_embedding(model, data_iterator, subspace=-1):
 	embedding = []
 	for x, y in data_iterator:
@@ -217,42 +239,55 @@ def get_embedding(model, data_iterator, subspace=-1):
 	print embedding.shape
 	return embedding
 
-def validate(validation_data, encoder, decoder, h, model_name, label_dim=0):
+def validate(validation_data, model):
 	# import image
+	h = len(model.hierarchies)
 	mean = np.zeros(h)
 	std = np.zeros(h)
 	mean_sub = np.zeros(h)
 	std_sub = np.zeros(h)
+	mean_l = np.zeros(h)
+	std_l = np.zeros(h)
 	sample_n = validation_data.shape[0]
 	poses = np.zeros(validation_data.shape)
-	enc = __get_latent_reps(encoder, validation_data, model_name)
+	enc = __get_latent_reps(model.encoder, validation_data, model.MODEL_CODE)
 	print enc.shape
-	for i in tqdm(range(h)):
+	for index, i in enumerate(tqdm(model.hierarchies)):
 		poses[:,:i+1] = validation_data[:,:i+1]
-		p_poses = __get_decoded_reps(decoder, enc[:,i], model_name, pose=validation_data[:,0])
-		err = [__pose_error(poses[j,:], p_poses[j,:]) for j in range(sample_n)]
-		mean[i] = np.mean(err)
-		std[i] = np.std(err)
-		if label_dim > 0:
-			err = [__pose_error(poses[j,:i+1,:-label_dim], p_poses[j,:i+1,:-label_dim]) for j in range(sample_n)]
+		p_poses = __get_decoded_reps(model.decoder, enc[:,i], model.MODEL_CODE, pose=validation_data[:,0])
+		if model.MODEL_CODE in [HL_LSTM, L_LSTM]:
+			poses[:,:,-model.label_dim:] = validation_data[:,:,-model.label_dim:]
+			err = [__pose_error(poses[j,:,:-model.label_dim], p_poses[j,:,:-model.label_dim]) for j in range(sample_n)]
+			err_sub = [__pose_error(poses[j,:i+1,:-model.label_dim], p_poses[j,:i+1,:-model.label_dim]) for j in range(sample_n)]
+			err_label = [[np.linalg.norm(poses[j,k,-model.label_dim:] - p_poses[j,k,-model.label_dim:]) for k in range(model.timesteps)] for j in range(model.timesteps)]
+			mean_l[index] = np.mean(err_label)
+			std_l[index] = np.std(err_label)
 		else:
-			err = [__pose_error(poses[j,:i+1], p_poses[j,:i+1]) for j in range(sample_n)]
-		mean_sub[i] = np.mean(err)
-		std_sub[i] = np.std(err)
+			err = [__pose_error(poses[j,:], p_poses[j,:]) for j in range(sample_n)]
+			err_sub = [__pose_error(poses[j,:i+1], p_poses[j,:i+1]) for j in range(sample_n)]
+		mean[index] = np.mean(err)
+		std[index] = np.std(err)
+		mean_sub[index] = np.mean(err_sub)
+		std_sub[index] = np.std(err_sub)
 		# image.plot_poses([validation_data[0,:,:-label_dim]] , [p_poses[0,:,:-label_dim]])
 
-	def __r(a):
-		return np.around(a*100, 3).tolist()
+		def __r(a):
+			return np.around(a*100, 3).tolist()
 
-	print sample_n
-	print __r(mean)
-	print __r(std)
-	print __r(np.mean(mean))
-	print __r(np.sqrt(np.mean([s**2 for s in std])))
-	print __r(mean_sub)
-	print __r(std_sub)
-	print __r(np.mean(mean_sub))
-	print __r(np.sqrt(np.mean([s**2 for s in std_sub])))
+		print sample_n
+		print __r(mean)
+		print __r(std)
+		print __r(np.mean(mean))
+		print __r(np.sqrt(np.mean([s**2 for s in std])))
+		print __r(mean_sub)
+		print __r(std_sub)
+		print __r(np.mean(mean_sub))
+		print __r(np.sqrt(np.mean([s**2 for s in std_sub])))
+		if model.MODEL_CODE in [HL_LSTM, L_LSTM]:
+			print __r(mean_l)
+			print __r(std_l)
+			print __r(np.mean(mean_l))
+			print __r(np.sqrt(np.mean([s**2 for s in std_l])))
 
 def distance_stats(embedding, model):
 	h = len(model.hierarchies)
@@ -304,57 +339,57 @@ def plot_convex_hall(embedding, h, model_name):
 	plt.close()
 	# plt.show()
 
-def plot_metrics(embedding, validation_data, encoder, decoder, h, model_name, n_valid = 100):
-	cuts, rn, scores = __common_params(n_valid)
-	given_n = h/2-1
-	new_e = None
+# def plot_metrics(embedding, validation_data, encoder, decoder, h, model_name, n_valid = 100):
+# 	cuts, rn, scores = __common_params(n_valid)
+# 	given_n = h/2-1
+# 	new_e = None
 
-	idxs = np.random.choice(len(validation_data), n_valid)
-	enc = __get_latent_reps(encoder, validation_data[idxs], model_name)
-	for k, idx in enumerate(tqdm(idxs)):
-		pose = np.copy(validation_data[idx])
-		z_ref = enc[k,given_n]
-		for cut in cuts:
-			ls = __get_subspace(embedding, cut, model_name)
-			weights, w_i = __get_weights(ls, z_ref)
-			zs = np.zeros((len(rn), z_ref.shape[-1]))
-			for i,n in enumerate(rn):
-				if n > -2:
-					new_e = __random(ls, z_ref, n, weights, w_i)
-				else:
-					new_e = __closest(ls, z_ref, weights)
+# 	idxs = np.random.choice(len(validation_data), n_valid)
+# 	enc = __get_latent_reps(encoder, validation_data[idxs], model_name)
+# 	for k, idx in enumerate(tqdm(idxs)):
+# 		pose = np.copy(validation_data[idx])
+# 		z_ref = enc[k,given_n]
+# 		for cut in cuts:
+# 			ls = __get_subspace(embedding, cut, model_name)
+# 			weights, w_i = __get_weights(ls, z_ref)
+# 			zs = np.zeros((len(rn), z_ref.shape[-1]))
+# 			for i,n in enumerate(rn):
+# 				if n > -2:
+# 					new_e = __random(ls, z_ref, n, weights, w_i)
+# 				else:
+# 					new_e = __closest(ls, z_ref, weights)
 
-				scores['e_score'][n][cut][k] = __latent_error(enc[k,cut], new_e)
-				zs[i] = new_e
-			p_poses = decoder.predict(np.array(zs))
-			t_pose = np.zeros(pose.shape)
-			t_pose[:cut+1] = pose[:cut+1]
-			for i, n in enumerate(rn):
-				scores['score'][n][cut][k] = np.mean([np.linalg.norm(t_pose[t]-p_poses[i,t]) for t in range(h)])
+# 				scores['e_score'][n][cut][k] = __latent_error(enc[k,cut], new_e)
+# 				zs[i] = new_e
+# 			p_poses = decoder.predict(np.array(zs))
+# 			t_pose = np.zeros(pose.shape)
+# 			t_pose[:cut+1] = pose[:cut+1]
+# 			for i, n in enumerate(rn):
+# 				scores['score'][n][cut][k] = np.mean([np.linalg.norm(t_pose[t]-p_poses[i,t]) for t in range(h)])
 
-	x = np.arange(len(rn))
-	ys = np.array([[np.mean(scores['score'][n][cut]) for n in rn] for cut in cuts])
-	errs = np.array([[np.std(scores['score'][n][cut]) for n in rn] for cut in cuts])
-	labels = map(str, cuts+1)
-	x_ticks = map(str, rn[:-2])+['all', 'all (CLOSEST)']
-	x_label = 'Number of random latent representation'
-	y_label = 'Error'
-	title = 'Pose error'
-	__plot(x, ys, errs, labels, x_label, y_label, x_ticks, title, model_name)
+# 	x = np.arange(len(rn))
+# 	ys = np.array([[np.mean(scores['score'][n][cut]) for n in rn] for cut in cuts])
+# 	errs = np.array([[np.std(scores['score'][n][cut]) for n in rn] for cut in cuts])
+# 	labels = map(str, cuts+1)
+# 	x_ticks = map(str, rn[:-2])+['all', 'all (CLOSEST)']
+# 	x_label = 'Number of random latent representation'
+# 	y_label = 'Error'
+# 	title = 'Pose error'
+# 	__plot(x, ys, errs, labels, x_label, y_label, x_ticks, title, model_name)
 	
-	ys_e = np.array([[np.mean(scores['e_score'][n][cut]) for n in rn] for cut in cuts])
-	errs_e = np.array([[np.std(scores['e_score'][n][cut]) for n in rn] for cut in cuts])
-	title = 'Latent error'
-	__plot(x, ys_e, errs_e, labels, x_label, y_label, x_ticks, title, model_name)
+# 	ys_e = np.array([[np.mean(scores['e_score'][n][cut]) for n in rn] for cut in cuts])
+# 	errs_e = np.array([[np.std(scores['e_score'][n][cut]) for n in rn] for cut in cuts])
+# 	title = 'Latent error'
+# 	__plot(x, ys_e, errs_e, labels, x_label, y_label, x_ticks, title, model_name)
 
-	with open(OUT_DIR+'plot_metrics_%d'%(model_name)+__get_timestamp()+'.json', 'w') as jsonfile:
-		json.dump({
-			'x':x.tolist(), 
-			'score':ys.tolist(), 
-			'score_std':errs.tolist(),
-			'e_score':ys_e.tolist(),
-			'e_score_std':errs_e.tolist()
-			}, jsonfile)
+# 	with open(OUT_DIR+'plot_metrics_%d'%(model_name)+__get_timestamp()+'.json', 'w') as jsonfile:
+# 		json.dump({
+# 			'x':x.tolist(), 
+# 			'score':ys.tolist(), 
+# 			'score_std':errs.tolist(),
+# 			'e_score':ys_e.tolist(),
+# 			'e_score_std':errs_e.tolist()
+# 			}, jsonfile)
 
 # def load_and_plot_metrics():
 # 	labels = map(str, __cuts()+1)
@@ -670,3 +705,169 @@ def gen_long_sequence(embedding, validation_data, model, l_n=60, numb=10):
 # 		image.plot_poses(true_pose, poses, title='Pattern matching (long) (prediction in bold)')
 
 # 	print np.mean(err), np.std(err)
+
+# def softmax(x):
+#     """Compute softmax values for each sets of scores in x."""
+#     e_x = np.exp(x - np.max(x))
+#     return e_x / e_x.sum(axis=0) # only difference
+
+
+def plot_metrics(model, data_iterator, validation_data, n_valid = 100):
+	cuts, rn, scores = __common_params(n_valid)
+	given_n = model.hierarchies[1]
+	new_e = None
+	embedding = get_label_embedding(model, data_iterator, subspaces=model.hierarchies)
+	diff_mean = {}
+	for cut in cuts:
+		diff = embedding[:,cut] - embedding[:,1]
+		diff_mean[cut] = np.mean(diff, axis=0)
+		std_diff = np.std(diff, axis=0)
+		idx = np.argsort(diff_mean[cut])
+		mean_diff_sorted = diff_mean[cut][idx]
+		std_diff_sorted = std_diff[idx]
+		x = range(1,201)
+		plt.plot(x, mean_diff_sorted, label='diff 20-%d'%(model.hierarchies[cut]+1))
+		plt.fill_between(x, mean_diff_sorted-std_diff_sorted, mean_diff_sorted+std_diff_sorted, alpha=0.5)
+		
+		rand_idx = np.random.choice(embedding.shape[0], 1000, replace=False)
+		for k in cuts:
+			diff = [embedding[rand_idx[a],k] - embedding[rand_idx[b],k] for a in range(1000) for b in range(a)]
+			rand_mean = np.mean(diff, axis=0)[idx]
+			std_diff = np.std(diff, axis=0)[idx]
+			plt.plot(x, rand_mean, label='diff %d-%d'%(model.hierarchies[k]+1, model.hierarchies[k]+1))
+			plt.fill_between(x, rand_mean-std_diff, rand_mean+std_diff, alpha=0.2)
+		plt.legend()
+		plt.savefig(OUT_DIR+'sdasdasdasd' + __get_timestamp() + '.png') 
+		plt.close()
+		# plt.show()
+
+
+	# idxs = np.random.choice(len(validation_data), n_valid)
+	# enc = __get_latent_reps(model.encoder, validation_data[idxs], model.MODEL_CODE)
+	# for k, idx in enumerate(tqdm(idxs)):
+	# 	pose = np.copy(validation_data[idx])
+	# 	z_ref = enc[k,given_n]
+	# 	for cut in cuts:
+	# 		ls = embedding[:,cut]
+	# 		weights, w_i = __get_weights(ls, z_ref)
+	# 		zs = np.zeros((len(rn), z_ref.shape[-1]))
+	# 		for i,n in enumerate(rn):
+	# 			if rn == -3:
+	# 				new_e = z_ref + diff_mean[cut]
+	# 			elif n > -2:
+	# 				new_e = __random(ls, z_ref, n, weights, w_i)
+	# 			else:
+	# 				new_e = __closest(ls, z_ref, weights)
+
+	# 			scores['e_score'][n][cut][k] = __latent_error(enc[k,model.hierarchies[cut]], new_e)
+	# 			zs[i] = new_e
+	# 		p_poses = model.decoder.predict(np.array(zs))
+	# 		t_pose = np.zeros(pose.shape)
+	# 		t_pose[:model.hierarchies[cut]+1] = pose[:model.hierarchies[cut]+1]
+	# 		for i, n in enumerate(rn):
+	# 			scores['score'][n][cut][k] = np.mean([np.linalg.norm(t_pose[t,:-model.label_dim]-p_poses[i,t,:-model.label_dim]) for t in range(model.timesteps)])
+
+	# x = np.arange(len(rn))
+	# ys = np.array([[np.mean(scores['score'][n][cut]) for n in rn] for cut in cuts])
+	# errs = np.array([[np.std(scores['score'][n][cut]) for n in rn] for cut in cuts])
+	# labels = [str(model.hierarchies[c] + 1) for c in cuts]
+	# x_ticks = map(str, rn[:-3])+['all', 'all (CLOSEST)', 'ADD']
+	# x_label = 'Number of random latent representation'
+	# y_label = 'Error'
+	# title = 'Pose error'
+	# __plot(x, ys, errs, labels, x_label, y_label, x_ticks, title, model.MODEL_CODE)
+	
+	# ys_e = np.array([[np.mean(scores['e_score'][n][cut]) for n in rn] for cut in cuts])
+	# errs_e = np.array([[np.std(scores['e_score'][n][cut]) for n in rn] for cut in cuts])
+	# title = 'Latent error'
+	# __plot(x, ys_e, errs_e, labels, x_label, y_label, x_ticks, title, model.MODEL_CODE)
+
+	# with open(OUT_DIR+'plot_metrics_%d'%(model.MODEL_CODE)+__get_timestamp()+'.json', 'w') as jsonfile:
+	# 	json.dump({
+	# 		'x':x.tolist(), 
+	# 		'score':ys.tolist(), 
+	# 		'score_std':errs.tolist(),
+	# 		'e_score':ys_e.tolist(),
+	# 		'e_score_std':errs_e.tolist()
+	# 		}, jsonfile)
+
+
+def plot_metrics_labels(model, data_iterator, validation_data, n=1000):
+	_rn = __rn()
+	labels = ['frame', 'sequence', 'l2_z']
+	scores = {l:{i:[0]*n for i in _rn} for l in labels}
+	emb = get_label_embedding(model, data_iterator, True)
+
+	# plot diff in z for label/without label
+	diff = emb[0] - emb[1]
+	mean_diff = np.mean(diff, axis=0)
+	# std_diff = np.std(diff, axis=0)
+	# idx = np.argsort(mean_diff)
+	# mean_diff_sorted = mean_diff[idx]
+	# std_diff_sorted = std_diff[idx]
+	# x = range(1,201)
+	# plt.plot(x, mean_diff_sorted, label='diff')
+	# plt.fill_between(x, mean_diff_sorted-std_diff_sorted, mean_diff_sorted+std_diff_sorted, alpha=0.5)
+	
+	# rand_idx = np.random.choice(emb.shape[1], 1000, replace=False)
+	# for k in range(2):
+	# 	diff = [emb[k,rand_idx[a]] - emb[k,rand_idx[b]] for a in range(1000) for b in range(a)]
+	# 	rand_mean = np.mean(diff, axis=0)[idx]
+	# 	std_diff = np.std(diff, axis=0)[idx]
+	# 	plt.plot(x, rand_mean, label='labeled' if k == 0 else 'unlabeled')
+	# 	plt.fill_between(x, rand_mean-std_diff, rand_mean+std_diff, alpha=0.2)
+	# plt.legend()
+	# plt.savefig(OUT_DIR+'sdasdasdasd' + __get_timestamp() + '.png') 
+	# plt.close()
+	# # plt.show()
+
+	emb = emb[0]
+
+	idx = np.random.choice(validation_data.shape[0], n, replace=False)
+	ground_truth = np.copy(validation_data[idx])
+	validation_data[:,:,-model.label_dim:] = 0
+	z_refs = __get_latent_reps(model.encoder, validation_data[idx], model.MODEL_CODE)[:,-1]
+	z_true = __get_latent_reps(model.encoder, ground_truth, model.MODEL_CODE)[:,-1]
+
+	for add in [False, True]:
+		if add:
+			_rn.append(-3)
+		for i in tqdm(range(n)):
+			z_ref = z_refs[i]
+			if add:
+				z_ref = z_ref + mean_diff
+				scores = {l:{i:[0]*n for i in _rn} for l in labels}
+			weights, w_i = __get_weights(emb, z_ref)
+			new_z = None
+			for rn in _rn:
+				if rn == -3:
+					new_z = z_ref
+				elif rn > -2:
+					new_z = __random(emb, z_ref, rn, weights, w_i)
+				else:
+					new_z = __closest(emb, z_ref, weights)
+
+				pred_x = __get_decoded_reps(model.decoder, np.array([new_z]), model.MODEL_CODE)#, ground_truth[i:i+1,0])
+				pred_labels = pred_x[:,:,-model.label_dim:]
+				true_labels = ground_truth[i:i+1,:,-model.label_dim:]
+				# scores['l2'][rn][i] = np.linalg.norm(softmax(pred_labels) - true_labels)
+				scores['l2_z'][rn][i] = np.linalg.norm(z_true[i] - new_z)
+				wrongs = np.count_nonzero(np.argmax(pred_labels, axis=1) - np.argmax(true_labels, axis=1))
+				scores['frame'][rn][i] = wrongs*1.0/pred_x.shape[1]
+				scores['sequence'][rn][i] = 0 if wrongs < pred_x.shape[1]/2 else 1
+
+		x = np.arange(len(_rn))
+		ys = np.array([[np.mean(scores[l][rn]) for rn in _rn] for l in labels])
+		print x
+		print ys
+		errs = np.array([[np.std(scores[l][rn]) for rn in _rn] for l in labels])
+		x_ticks = map(str, _rn[:-2])+['all', 'all (CLOSEST)']
+		if add:
+			x_ticks = map(str, _rn[:-3])+['all', 'all (CLOSEST)', 'raw']
+
+		x_label = 'Number of random latent representation'
+		y_label = 'Error'
+		title = 'Label error'
+		if add:
+			title = 'Label error (ADD)'
+		__plot(x, ys, errs, labels, x_label, y_label, x_ticks, title, model.MODEL_CODE)
