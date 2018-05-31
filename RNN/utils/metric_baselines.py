@@ -13,7 +13,7 @@ import fk_animate
 
 LOAD_PATH = '../data/src/h3.6/results/'
 _N = 1
-_N_PRED = 50
+_N_PRED = 100
 DATA_ITER_SIZE = 10000
 RANDOM_N = 1000
 
