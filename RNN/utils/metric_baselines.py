@@ -9,13 +9,14 @@ import matplotlib.pyplot as plt
 import fk_animate
 
 LOAD_PATH = '../data/src/h3.6/results/'
-_N = 8
+_N = 1
 DATA_ITER_SIZE = 10000
-RANDOM_N = 400
+RANDOM_N = 1000
 
 def iter_actions(from_path=''):
 	for filename in glob.glob(from_path+LOAD_PATH + '*_0-0.npy'):
 		yield os.path.basename(filename).split('_')[0]
+		break
 
 def get_baselines(from_path=''):
 	# import image
@@ -59,24 +60,24 @@ def compare_raw_closest(from_path, data_iterator):
 		gtp = load__(2, 25)
 		pd = load__(1, 25)
 		n_input = 49
-		n_output = n_input+25
 
 		for xs, _ in data_iterator:
 			idx = np.random.choice(xs.shape[0], RANDOM_N, replace=False)
 			for x in tqdm(xs[idx]):
 				for basename in iter_actions(from_path):
-					for i in tqdm(range(_N)):
+					for i in range(_N):
 						score = metrics.__pose_seq_error(x[:n_input], gt[basename][i])
-						if score < error[basename][i]:
-							error[basename][i] = score
-							del error_x[basename][i]
-							error_x[basename][i] = np.copy(x[n_input:n_output])
+						if score < error_score[basename][i]:
+							error_score[basename][i] = score
+							error_x[basename][i] = np.copy(x[n_input:])
+							#print error_x[basename][i].shape, pd[basename][i].shape, gtp[basename][i].shape
+
 			del xs
 			# iter1, iter2 = tee(iter2)
 
 			# np.save(from_path + LOAD_PATH + basename + '_nn_raw-%d.npy'%i, best_x)
 
-		for basename in iter_actions(from_path)
+		for basename in iter_actions(from_path):
 			error = [None]*_N
 			error_ = [None]*_N
 			for i in range(_N):
