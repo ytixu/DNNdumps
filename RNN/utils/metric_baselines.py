@@ -65,8 +65,12 @@ def compare_raw_closest(from_path, data_iterator):
 							best_x = x[n:]
 
 				iter1, iter2 = tee(iter2)
+
+				np.save(from_path + LOAD_PATH + basename + '_nn_raw-%d.npy'%i, best_x)
+
 				error[i] = metrics.__pose_seq_error(best_x, gtp, cumulative=True)
 				error_[i] = metrics.__pose_seq_error(pd, gtp, cumulative=True)
+
 
 			_err = np.mean(error, axis=0)
 			print 'nearest neighbor'
