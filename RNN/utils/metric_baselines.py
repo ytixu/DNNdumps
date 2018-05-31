@@ -42,39 +42,49 @@ def get_baselines(from_path=''):
 
 def compare_raw_closest(from_path, data_iterator):
 	import csv
+	def load__(i, cut=0):
+		if cut > 0:
+			return {basename: [np.load(from_path + LOAD_PATH + basename + '_%d-%d.npy'%(i, j))[:cut] for j in range(_N)]
+					for basename in iter_actions(from_path)}
+		else:
+			return {basename: [np.load(from_path + LOAD_PATH + basename + '_%d-%d.npy'%(i, j)) for j in range(_N)]
+					for basename in iter_actions(from_path)}
+
 	with open('../../results/nn_results.csv', 'wb') as csvfile:
 		spamwriter = csv.writer(csvfile)
-		iter1, iter2 = tee(data_iterator)
-		for basename in iter_actions(from_path):
-			print basename
+		# iter1, iter2 = tee(data_iterator)
+		error_score = {basename:[10000]*_N for basename in iter_actions(from_path)}
+		error_x = {basename:[None]*_N for basename in iter_actions(from_path)}
+		gt = load__(0)
+		gtp = load__(2, 25)
+		pd = load__(1, 25)
+		n_input = 49
+		n_output = n_input+25
+
+		for xs, _ in data_iterator:
+			idx = np.random.choice(xs.shape[0], RANDOM_N, replace=False)
+			for x in tqdm(xs[idx]):
+				for basename in iter_actions(from_path):
+					for i in tqdm(range(_N)):
+						score = metrics.__pose_seq_error(x[:n_input], gt[basename][i])
+						if score < error[basename][i]:
+							error[basename][i] = score
+							del error_x[basename][i]
+							error_x[basename][i] = np.copy(x[n_input:n_output])
+			del xs
+			# iter1, iter2 = tee(iter2)
+
+			# np.save(from_path + LOAD_PATH + basename + '_nn_raw-%d.npy'%i, best_x)
+
+		for basename in iter_actions(from_path)
 			error = [None]*_N
 			error_ = [None]*_N
-			for i in tqdm(range(_N)):
-				gt = np.load(from_path + LOAD_PATH + basename + '_0-%d.npy'%i)
-				gtp = np.load(from_path + LOAD_PATH + basename + '_2-%d.npy'%i)
-				pd = np.load(from_path + LOAD_PATH + basename + '_1-%d.npy'%i)
-
-				best_score = 10000
-				best_x = None
-				n = gt.shape[0]
-				for xs, _ in iter1:
-					idx = np.random.choice(xs.shape[0], RANDOM_N, replace=False)
-					for x in tqdm(xs[idx]):
-						score = metrics.__pose_seq_error(x[:n], gt)
-						if score < best_score:
-							best_score = score
-							del best_x
-							best_x = np.copy(x[n:])
-					del xs
-
-				iter1, iter2 = tee(iter2)
-
-				# np.save(from_path + LOAD_PATH + basename + '_nn_raw-%d.npy'%i, best_x)
-
-				error[i] = metrics.__pose_seq_error(best_x, gtp, cumulative=True)
-				error_[i] = metrics.__pose_seq_error(pd, gtp, cumulative=True)
+			for i in range(_N):
+				error[i] = metrics.__pose_seq_error(error_x[basename][i], gtp[basename][i], cumulative=True)
+				error_[i] = metrics.__pose_seq_error(pd[basename][i], gtp[basename][i], cumulative=True)
 
 
+			print basename
 			_err = np.mean(error, axis=0)
 			print 'nearest neighbor'
 			print _err
@@ -240,6 +250,6 @@ def compare(model, data_iterator):
 if __name__ == '__main__':
 	#get_baselines('../')
 	import parser
-	data_iterator = parser.data_generator('../../data/h3.6/train/', '../../data/h3.6/train/', 149, DATA_ITER_SIZE)
+	data_iterator = parser.data_generator('../../data/h3.6/train/', '../../data/h3.6/train/', 74, DATA_ITER_SIZE)
 	print data_iterator
 	compare_raw_closest('../', data_iterator)
