@@ -89,7 +89,7 @@ def compare_raw_closest(from_path, data_iterator):
 			for i in range(_N):
 				error[i] = metrics.__pose_seq_error(error_x[basename][i], gtp[basename][i], cumulative=True)
 				error_[i] = metrics.__pose_seq_error(pd[basename][i], gtp[basename][i], cumulative=True)
-				np.save(from_path + LOAD_PATH + basename + '_nn_raw-%d.npy'%i, best_x)
+				np.save(from_path + LOAD_PATH + basename + '_nn_raw-%d.npy'%i, error_x[basename][i])
 				fk_animate.animate_compare(gtp[basename][i], error_x[basename][i], pd[basename][i])
 
 			print basename

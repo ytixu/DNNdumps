@@ -58,4 +58,4 @@ class Ax3DPose(object):
     self.ax.set_aspect('equal')
 
   def get_lines(self):
-    return [self.plots[i] for i in range(len(M_POSE_LINES))
+    return [self.plots[i][0] for i in range(len(M_POSE_LINES))]

@@ -43,8 +43,7 @@ def animate_compare(true_seq, pred_seq, baseline_seq):
 	ob_pred = viz.Ax3DPose(ax_pred)
 
 	def init():
-		return [ob_true.get_lines() + ob_pred.get_lines() + ob_pred.get_lines()]
-
+		return ob_true.get_lines() + ob_pred.get_lines() + ob_pred.get_lines()
 
 	def animate(t):
 		ob_true.update(true_seq[t])
