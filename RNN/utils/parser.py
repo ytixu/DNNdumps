@@ -5,7 +5,7 @@ import os.path
 import numpy as np
 
 def random_data_generator(timesteps, batch_size):
-	# two gaussians 
+	# two gaussians
 	for i in range(10000):
 		data = np.random.random_sample((batch_size, timesteps, 2))*0.2-0.1
 		a_ind = np.random.randint(0,batch_size,np.random.randint(batch_size/3))
@@ -15,7 +15,7 @@ def random_data_generator(timesteps, batch_size):
 		for j in range(1,timesteps):
 			data[a_ind,j,1] = data[a_ind,j-1,1]-0.5/timesteps
 			data[b_ind,j,1] = data[b_ind,j-1,1]+0.5/timesteps
-		
+
 		yield data[:,:,:1], data[:,:,1:]
 
 
@@ -62,7 +62,7 @@ def data_generator_random(input_dir, output_dir, timesteps, batch_size, n, label
 		yield x, x
 
 def data_generator(input_dir, output_dir, timesteps, batch_size, label=False, ls=[], ld=0):
-	# files must be in different directories, 
+	# files must be in different directories,
 	# input and output filename must match for corresponding data
 	# each file is one sequence
 
@@ -70,7 +70,7 @@ def data_generator(input_dir, output_dir, timesteps, batch_size, label=False, ls
 	norm = 1
 	if '_robot' in output_dir:
 		norm = np.pi*2
-	
+
 	x, y, l = [], [], []
 	name_label = ''
 	batch_count = 0
@@ -80,7 +80,7 @@ def data_generator(input_dir, output_dir, timesteps, batch_size, label=False, ls
 			name_label = name_id.split('_')[0]
 			new_l = np.zeros(ld)
 			new_l[ls[name_label]] = 1
-			
+
 		# 2D arrays
 		input_data = np.load(input_file)
 		output_data = np.load(output_dir+name_id)
@@ -91,7 +91,7 @@ def data_generator(input_dir, output_dir, timesteps, batch_size, label=False, ls
 			count = len(temp_x)
 			if count < timesteps:
 				continue
-			
+
 			if label:
 				new_x = np.array([[np.concatenate([temp_x[j+k], new_l], axis=0) for j in range(timesteps)] for k in range(count-timesteps+1)])
 				new_y = np.array([[np.concatenate([output_data[i+j+k], new_l], axis=0) for j in range(timesteps)] for k in range(count-timesteps+1)])
@@ -138,11 +138,11 @@ def get_parse(model_name, labels=False):
 	ap.add_argument('-ld', '--latent_dim', required=False, help='Embedding size', default='100', type=int)
 	ap.add_argument('-o', '--option_dim', required=False, help='Number of options', default='2', type=int)
 	ap.add_argument('-l', '--log_path', required=False, help='Log file for loss history', default=get_log_name(model_name))
-	
+
 
 	# ap.add_argument('-lr', '--learning_rate', required=False, help='Learning rate', default='5000', choices=list_of_modes)
 
-		
+
 	args = vars(ap.parse_args())
 	if labels:
 		ls, ld = get_one_hot_labels(glob.glob(args['input_data']+'*'))
@@ -159,7 +159,7 @@ def get_parse(model_name, labels=False):
 			train_data = data_generator_random(args['input_data'], args['output_data'], args['timesteps'], 30000, 400)
 		else:
 			train_data = data_generator(args['input_data'], args['output_data'], args['timesteps'], 1000)
-	
+
 	validation_data = []
 	if args['validation_input_data']:
 		vd = None

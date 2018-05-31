@@ -49,12 +49,12 @@ class L_LSTM:
 		encoded = None
 		if USE_GRU:
 			encoded = GRU(self.latent_dim, return_sequences=True)(inputs)
-		else:		
+		else:
 			encoded = LSTM(self.latent_dim, return_sequences=True)(inputs)
 
 		z = Input(shape=(self.latent_dim,))
 		decode_1 = RepeatVector(self.timesteps)
-		decode_2 = None 
+		decode_2 = None
 		if USE_GRU:
 			decode_2 = GRU(self.output_dim, return_sequences=True)
 		else:
@@ -69,7 +69,7 @@ class L_LSTM:
 
 		decoded_ = decode_1(z)
 		decoded_ = decode_2(decoded_)
-		
+
 		self.encoder = Model(inputs, encoded)
 		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
@@ -87,7 +87,7 @@ class L_LSTM:
 			return True
 		return False
 
-		
+
 	def __alter_y(self, y):
 		y = np.repeat(y, len(self.hierarchies), axis=0)
 		y = np.reshape(y, (-1, len(self.hierarchies), self.timesteps, y.shape[-1]))
@@ -99,9 +99,9 @@ class L_LSTM:
 		idx = np.random.choice(x.shape[0], x.shape[0]/2)
 		x[idx,:,-self.label_dim:] = 0
 		y[idx,:,-self.label_dim:] = 0
-		return x, y 
+		return x, y
 
-	def run(self, data_iterator, valid_data): 
+	def run(self, data_iterator, valid_data):
 		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
 		if self.load():
 			# from keras.utils import plot_model
@@ -133,7 +133,7 @@ class L_LSTM:
 						self.autoencoder.save_weights(self.save_path, overwrite=True)
 
 				iter1, iter2 = tee(iter2)
-			
+
 			# self.history.record(self.log_path, model_vars)
 			data_iterator = iter2
 

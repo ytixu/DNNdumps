@@ -6,7 +6,9 @@ import glob
 import metrics
 import matplotlib.pyplot as plt
 
-LOAD_PATH = '../../data/src/h3.6/results/'
+import fk_animate
+
+LOAD_PATH = '../data/src/h3.6/results/'
 _N = 8
 DATA_ITER_SIZE = 10000
 
@@ -29,6 +31,7 @@ def get_baselines(from_path=''):
 				errors[i, j] = metrics.__pose_error(gtp[j], pd[j])
 			# print basename
 			# image.plot_poses([gt[-10:], gtp[:10]])
+			fk_animate.animate_compare(gtp, pd)
 		mean_err = np.mean(errors, axis=0)
 		print basename, mean_err[[1,3,7,9,-1]]
 		x = np.arange(pd.shape[0])
@@ -37,19 +40,19 @@ def get_baselines(from_path=''):
 	plt.legend()
 	plt.show()
 
-def compare_raw_closest(data_iterator):
+def compare_raw_closest(from_path, data_iterator):
 	import csv
 	with open('../../results/nn_results.csv', 'wb') as csvfile:
 		spamwriter = csv.writer(csvfile)
 		iter1, iter2 = tee(data_iterator)
-		for basename in iter_actions():
+		for basename in iter_actions(from_path):
 			print basename
 			error = [None]*_N
 			error_ = [None]*_N
 			for i in tqdm(range(_N)):
-				gt = np.load(LOAD_PATH + basename + '_0-%d.npy'%i)
-				pd = np.load(LOAD_PATH + basename + '_1-%d.npy'%i)
-				gtp = np.load(LOAD_PATH + basename + '_2-%d.npy'%i)
+				gt = np.load(from_path + LOAD_PATH + basename + '_0-%d.npy'%i)
+				gtp = np.load(from_path + LOAD_PATH + basename + '_2-%d.npy'%i)
+				pd = np.load(from_path + LOAD_PATH + basename + '_1-%d.npy'%i)
 
 				best_score = 10000
 				best_x = None
@@ -228,8 +231,8 @@ def compare(model, data_iterator):
 
 
 if __name__ == '__main__':
-	# get_baselines('../')
-	import parser
-	data_iterator = parser.data_generator('../../data/h3.6/train/', '../../data/h3.6/train/', 149, DATA_ITER_SIZE)
-	print data_iterator
-	compare_raw_closest(data_iterator)
+	get_baselines('../')
+	# import parser
+	# data_iterator = parser.data_generator('../../data/h3.6/train/', '../../data/h3.6/train/', 149, DATA_ITER_SIZE)
+	# print data_iterator
+	# compare_raw_closest('../', data_iterator)
