@@ -58,7 +58,8 @@ def compare_raw_closest(from_path, data_iterator):
 				best_x = None
 				n = gt.shape[0]
 				for xs, _ in iter1:
-					for x in tqdm(xs):
+					idx = np.random.choice(xs.shape[0], 100, replace=False)
+					for x in tqdm(xs[idx]):
 						score = metrics.__pose_seq_error(x[:n], gt)
 						if score < best_score:
 							best_score = score
@@ -66,7 +67,7 @@ def compare_raw_closest(from_path, data_iterator):
 
 				iter1, iter2 = tee(iter2)
 
-				np.save(from_path + LOAD_PATH + basename + '_nn_raw-%d.npy'%i, best_x)
+				# np.save(from_path + LOAD_PATH + basename + '_nn_raw-%d.npy'%i, best_x)
 
 				error[i] = metrics.__pose_seq_error(best_x, gtp, cumulative=True)
 				error_[i] = metrics.__pose_seq_error(pd, gtp, cumulative=True)
@@ -75,11 +76,11 @@ def compare_raw_closest(from_path, data_iterator):
 			_err = np.mean(error, axis=0)
 			print 'nearest neighbor'
 			print _err
-			spamwriter.writerow([basename, 'nn'] + _err.tolist())
+			# spamwriter.writerow([basename, 'nn'] + _err.tolist())
 			_err = np.mean(error_, axis=0)
 			print 'baseline error'
 			print np.mean(error_, axis=0)
-			spamwriter.writerow([basename, 'nn'] + _err.tolist())
+			# spamwriter.writerow([basename, 'nn'] + _err.tolist())
 
 
 def compare_label_embedding(model, data_iterator):
