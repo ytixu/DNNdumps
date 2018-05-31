@@ -42,15 +42,18 @@ def animate_compare(true_seq, pred_seq, baseline_seq):
 	ob_baseline = viz.Ax3DPose(ax_baseline)
 	ob_pred = viz.Ax3DPose(ax_pred)
 
+	def init():
+		return [ob_true.get_lines() + ob_pred.get_lines() + ob_pred.get_lines()]
+
+
 	def animate(t):
 		ob_true.update(true_seq[t])
 		ob_baseline.update(baseline_seq[t])
 		ob_pred.update(pred_seq[t])
-		plt.show(block=False)
-		fig.canvas.draw()
-		plt.pause(0.01)
+		return init()
 
-	anim = animation.FuncAnimation(fig, animate, frames=true_seq.shape[0], interval=20, blit=True)
+
+	anim = animation.FuncAnimation(fig, animate, init_func=init, frames=true_seq.shape[0], interval=20, blit=True)
 	anim.save('animation.gif', writer='imagemagick', fps=60)
 
 
