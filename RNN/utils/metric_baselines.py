@@ -32,7 +32,7 @@ def get_baselines(from_path=''):
 				errors[i, j] = metrics.__pose_error(gtp[j], pd[j])
 			# print basename
 			# image.plot_poses([gt[-10:], gtp[:10]])
-			fk_animate.animate_compare(gtp, pd)
+			# fk_animate.animate_compare(gtp, pd)
 		mean_err = np.mean(errors, axis=0)
 		print basename, mean_err[[1,3,7,9,-1]]
 		x = np.arange(pd.shape[0])
@@ -60,6 +60,7 @@ def compare_raw_closest(from_path, data_iterator):
 		gtp = load__(2, 25)
 		pd = load__(1, 25)
 		n_input = 49
+		iterations = 0
 
 		for xs, _ in data_iterator:
 			idx = np.random.choice(xs.shape[0], RANDOM_N, replace=False)
@@ -73,6 +74,8 @@ def compare_raw_closest(from_path, data_iterator):
 							#print error_x[basename][i].shape, pd[basename][i].shape, gtp[basename][i].shape
 
 			del xs
+			iterations += 1
+			print iterations
 			# iter1, iter2 = tee(iter2)
 
 			# np.save(from_path + LOAD_PATH + basename + '_nn_raw-%d.npy'%i, best_x)
@@ -83,7 +86,7 @@ def compare_raw_closest(from_path, data_iterator):
 			for i in range(_N):
 				error[i] = metrics.__pose_seq_error(error_x[basename][i], gtp[basename][i], cumulative=True)
 				error_[i] = metrics.__pose_seq_error(pd[basename][i], gtp[basename][i], cumulative=True)
-
+				fk_animate.animate_compare(gtp[basename][i], error_x[basename][i], pd[basename][i])
 
 			print basename
 			_err = np.mean(error, axis=0)

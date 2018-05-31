@@ -32,16 +32,20 @@ def animate_random(model, start_seq, embedding, mean=0.38919052, std=0.1443201):
 		# poses = metrics.__get_decoded_reps(model.decoder, enc, model.MODEL_CODE)
 
 
-def animate_compare(true_seq, pred_seq):
+def animate_compare(true_seq, pred_seq, baseline_seq):
 	fig = plt.figure()
-	ax_pred = fig.add_subplot(2, 1, projection='3d')
-	ax_true = fig.add_subplot(2, 2, projection='3d')
-	ob_pred = viz.Ax3DPose(ax_pred)
+	ax_true = fig.add_subplot(3, 1, projection='3d')
+	ax_baseline = fig.add_subplot(3, 2, projection='3d')
+	ax_pred = fig.add_subplot(3, 3, projection='3d')
+
 	ob_true = viz.Ax3DPose(ax_true)
+	ob_baseline = viz.Ax3DPose(ax_baseline)
+	ob_pred = viz.Ax3DPose(ax_pred)
 
 	def animate(t):
-		ob_pred.update(pred_seq[t])
 		ob_true.update(true_seq[t])
+		ob_baseline.update(baseline_seq[t])
+		ob_pred.update(pred_seq[t])
 		plt.show(block=False)
 		fig.canvas.draw()
 		plt.pause(0.01)
