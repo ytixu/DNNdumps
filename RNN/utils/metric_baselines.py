@@ -78,7 +78,6 @@ def compare_raw_closest(from_path, data_iterator):
 			print iterations
 			# iter1, iter2 = tee(iter2)
 
-			# np.save(from_path + LOAD_PATH + basename + '_nn_raw-%d.npy'%i, best_x)
 
 		for basename in iter_actions(from_path):
 			error = [None]*_N
@@ -86,17 +85,18 @@ def compare_raw_closest(from_path, data_iterator):
 			for i in range(_N):
 				error[i] = metrics.__pose_seq_error(error_x[basename][i], gtp[basename][i], cumulative=True)
 				error_[i] = metrics.__pose_seq_error(pd[basename][i], gtp[basename][i], cumulative=True)
+				np.save(from_path + LOAD_PATH + basename + '_nn_raw-%d.npy'%i, best_x)
 				fk_animate.animate_compare(gtp[basename][i], error_x[basename][i], pd[basename][i])
 
 			print basename
 			_err = np.mean(error, axis=0)
 			print 'nearest neighbor'
 			print _err
-			# spamwriter.writerow([basename, 'nn'] + _err.tolist())
+			spamwriter.writerow([basename, 'nn'] + _err.tolist())
 			_err = np.mean(error_, axis=0)
 			print 'baseline error'
 			print np.mean(error_, axis=0)
-			# spamwriter.writerow([basename, 'nn'] + _err.tolist())
+			spamwriter.writerow([basename, 'nn'] + _err.tolist())
 
 
 def compare_label_embedding(model, data_iterator):
