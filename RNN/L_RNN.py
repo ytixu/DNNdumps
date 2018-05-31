@@ -7,6 +7,7 @@ from keras.optimizers import RMSprop
 
 from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines, association_evaluation
 
+LEARNING_RATE = 0.000001
 NAME = 'L_LSTM'
 USE_GRU = True
 if USE_GRU:
@@ -23,6 +24,7 @@ class L_LSTM:
 
 		self.epochs = args['epochs']
 		self.batch_size = args['batch_size']
+		print 'batch size -------------- %d' % (self.batch_size)
 		self.periods = args['periods'] if 'periods' in args else 10
 		self.cv_splits = args['cv_splits'] if 'cv_splits' in args else 0.2
 
@@ -31,7 +33,7 @@ class L_LSTM:
 		self.labels = args['labels']
 		self.input_dim = args['input_dim'] + self.label_dim
 		self.output_dim = args['output_dim'] + self.label_dim
-		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [14,19,29]
+		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [49,69]
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
 		self.load_path = args['load_path']
@@ -71,7 +73,7 @@ class L_LSTM:
 		self.encoder = Model(inputs, encoded)
 		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
-		opt = RMSprop(lr=0.0005)
+		opt = RMSprop(lr=LEARNING_RATE)
 		self.autoencoder.compile(optimizer=opt, loss='mean_squared_error')
 
 		self.autoencoder.summary()
@@ -101,7 +103,7 @@ class L_LSTM:
 
 	def run(self, data_iterator, valid_data): 
 		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
-		if not self.load():
+		if self.load():
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			loss = 10000
@@ -141,7 +143,7 @@ class L_LSTM:
 		# embedding_plotter.see_hierarchical_embedding(self.encoder, self.decoder, data_iterator, valid_data, model_vars, self.label_dim)
 		# iter1, iter2 = tee(data_iterator)
 		# metrics.validate(valid_data, self)
-		metrics.plot_metrics(self, data_iterator, valid_data)
+		# metrics.plot_metrics(self, data_iterator, valid_data)
 		# metrics.plot_metrics_labels(self, data_iterator, valid_data)
 		# metric_baselines.compare(self, data_iterator)
 		# association_evaluation.eval_distance(self, valid_data)

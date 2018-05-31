@@ -150,13 +150,13 @@ def get_parse(model_name, labels=False):
 		args['label_dim'] = ld
 	train_data = None
 	if labels:
-		if args['mode'] == 'train':
-			train_data = data_generator_random(args['input_data'], args['output_data'], args['timesteps'], 40000, 400, True, ls, ld)
+		if args['mode'] == 'sample':
+			train_data = data_generator_random(args['input_data'], args['output_data'], args['timesteps'], 30000, 400, True, ls, ld)
 		else:
 			train_data = data_generator(args['input_data'], args['output_data'], args['timesteps'], 1000, True, ls, ld)
 	else:
-		if args['mode'] == 'train':
-			train_data = data_generator_random(args['input_data'], args['output_data'], args['timesteps'], 40000, 400)
+		if args['mode'] == 'sample':
+			train_data = data_generator_random(args['input_data'], args['output_data'], args['timesteps'], 30000, 400)
 		else:
 			train_data = data_generator(args['input_data'], args['output_data'], args['timesteps'], 1000)
 	

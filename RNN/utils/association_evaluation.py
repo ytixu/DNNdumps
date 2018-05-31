@@ -3,6 +3,10 @@ from tqdm import tqdm
 import metrics
 import matplotlib.pyplot as plt
 
+def e_dist(ea, eb):
+	# return np.linalg.norm(ea - eb)
+	return np.sum(np.abs(ea - eb))
+
 def eval_sim_bw_levels(model, validation_data):
 	h = model.timesteps
 	# mean, var = np.zeros(len(model.hierarchies)), np.zeros(len(model.hierarchies))
@@ -17,13 +21,13 @@ def eval_sim_bw_levels(model, validation_data):
 		
 		# decodings_cut = metrics.__get_decoded_reps(model.decoder, encodings[:, cut], model.MODEL_CODE)
 		for i in range(model.timesteps):
-			diff = [np.linalg.norm(encodings[j, cut] - encodings[j,i]) for j in range(n)]
+			diff = [e_dist(encodings[j, cut], encodings[j,i]) for j in range(n)]
 			mean_z[i] = np.mean(diff)
 			var_z[i] = np.std(diff)
 
 			a = np.random.choice(n, 1000, replace=False)
 			b = np.random.choice(n, 1000, replace=False)
-			diff = [np.linalg.norm(encodings[j,cut] - encodings[k,i]) for j in a for k in b]
+			diff = [e_dist(encodings[j,cut], encodings[k,i]) for j in a for k in b]
 			mean[i] = np.mean(diff)
 			var[i] = np.std(diff)
 

@@ -33,6 +33,69 @@ def get_baselines(from_path=''):
 	plt.legend()
 	plt.show()
 
+def compare_label_embedding(model, data_iterator):
+	import image
+	embedding = metrics.get_label_embedding(model, data_iterator, without_label_only=True, subspaces=model.hierarchies[-2:])
+	mean_diff, diff = get_embedding_diffs(embedding[1], embedding[0])
+	# std_diff = np.std(diff, axis=0)
+	cut = model.hierarchies[-2]+1
+	pred_n = model.timesteps-cut
+	for basename in iter_actions():
+		print basename
+		n = 8
+		pose_ref = np.zeros((n, model.timesteps, model.input_dim))
+		pose_pred_bl = np.zeros((n, model.timesteps-cut, model.input_dim-model.label_dim))
+		pose_gt = np.zeros((n, model.timesteps-cut, model.input_dim-model.label_dim))
+
+		for i in tqdm(range(n)):
+			gt = np.load(LOAD_PATH + basename + '_0-%d.npy'%i)
+			pd = np.load(LOAD_PATH + basename + '_1-%d.npy'%i)
+			gtp = np.load(LOAD_PATH + basename + '_2-%d.npy'%i)
+
+			pose_ref[n,:cut,:-model.label_dim] = gt[-cut:]
+			pose_pred_bl[n] = pd[:pred_n]
+			pose_gt = gtp[:pred_n]
+
+		new_enc = model.encoder.predict(pose_ref)[:,cut-1] + mean_diff
+		pose_pred = model.decoder.predict(new_enc)[:,:,:-model.label_dim]
+		error_bl = [__pose_seq_error(pose_gt[i], pose_pred_bl[i]) for i in range(n)]
+		error = [__pose_seq_error(pose_gt[i], pose_pred[i]) for i in range(n)]
+		print np.mean(error), np.mean(error_bl)
+		image.plot_poses(pose_pred)
+
+def compare_embedding(model, data_iterator):
+	import image
+	embedding = metrics.get_embedding(model, data_iterator, subspace=model.hierarchies[-2:])
+	mean_diff, diff = metrics.get_embedding_diffs(embedding[1], embedding[0])
+	std_diff = np.std(diff, axis=0)
+	cut = model.hierarchies[-2]+1
+	pred_n = model.timesteps-cut
+	for basename in iter_actions():
+		print basename
+		n = 8
+		pose_ref = np.zeros((n, model.timesteps, model.input_dim))
+		pose_pred_bl = np.zeros((n, model.timesteps-cut, model.input_dim))
+		pose_gt = np.zeros((n, model.timesteps-cut, model.input_dim))
+
+		for i in tqdm(range(n)):
+			gt = np.load(LOAD_PATH + basename + '_0-%d.npy'%i)
+			pd = np.load(LOAD_PATH + basename + '_1-%d.npy'%i)
+			gtp = np.load(LOAD_PATH + basename + '_2-%d.npy'%i)
+
+			pose_ref[i,:cut] = gt[-cut:]
+			pose_pred_bl[i] = pd[:pred_n]
+			pose_gt[i] = gtp[:pred_n]
+
+		new_enc = model.encoder.predict(pose_ref)[:,cut-1] + mean_diff
+		pose_pred = model.decoder.predict(new_enc)[:,:pred_n]
+		error_bl = [metrics.__pose_seq_error(pose_gt[i], pose_pred_bl[i]) for i in range(n)]
+		error = [metrics.__pose_seq_error(pose_gt[i], pose_pred[i]) for i in range(n)]
+		print np.mean(error), np.mean(error_bl)
+		image.plot_poses(pose_pred, title='rnn')
+		image.plot_poses(pose_pred_bl, title='baseline')
+		image.plot_poses(pose_gt, title='gt')
+
+
 def compare(model, data_iterator):
 	import image
 	h = model.timesteps

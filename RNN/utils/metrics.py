@@ -201,9 +201,11 @@ def random_baseline(validation_data):
 	print mean
 	print var
 
-def get_label_embedding(model, data_iterator, also_without_label=False, subspaces=-1):
+def get_label_embedding(model, data_iterator, also_without_label=False, without_label_only=False, subspaces=-1):
 	embedding = []
 	for x, y in data_iterator:
+		if without_label_only:
+			x = x[:,:,-model.label_dim:] = 0
 		e_l = __get_latent_reps(model.encoder, x, model.MODEL_CODE)[:,subspaces]
 		if also_without_label:
 			x[:,:,-model.label_dim:] = 0
@@ -235,9 +237,14 @@ def get_embedding(model, data_iterator, subspace=-1):
 				embedding = np.concatenate((embedding, e[:,subspace]), axis=0)
 			else:
 				embedding = np.concatenate((embedding, e[:,model.hierarchies]), axis=0)
-		# break
+		break
 	print embedding.shape
 	return embedding
+
+def get_embedding_diffs(e_sup, e_sub):
+	diff = e_sup - e_sub
+	mean_diff = np.mean(diff, axis=0)
+	return mean_diff, diff
 
 def validate(validation_data, model):
 	# import image
@@ -742,54 +749,54 @@ def plot_metrics(model, data_iterator, validation_data, n_valid = 100):
 		# plt.show()
 
 
-	# idxs = np.random.choice(len(validation_data), n_valid)
-	# enc = __get_latent_reps(model.encoder, validation_data[idxs], model.MODEL_CODE)
-	# for k, idx in enumerate(tqdm(idxs)):
-	# 	pose = np.copy(validation_data[idx])
-	# 	z_ref = enc[k,given_n]
-	# 	for cut in cuts:
-	# 		ls = embedding[:,cut]
-	# 		weights, w_i = __get_weights(ls, z_ref)
-	# 		zs = np.zeros((len(rn), z_ref.shape[-1]))
-	# 		for i,n in enumerate(rn):
-	# 			if rn == -3:
-	# 				new_e = z_ref + diff_mean[cut]
-	# 			elif n > -2:
-	# 				new_e = __random(ls, z_ref, n, weights, w_i)
-	# 			else:
-	# 				new_e = __closest(ls, z_ref, weights)
+	idxs = np.random.choice(len(validation_data), n_valid)
+	enc = __get_latent_reps(model.encoder, validation_data[idxs], model.MODEL_CODE)
+	for k, idx in enumerate(tqdm(idxs)):
+		pose = np.copy(validation_data[idx])
+		z_ref = enc[k,given_n]
+		for cut in cuts:
+			ls = embedding[:,cut]
+			weights, w_i = __get_weights(ls, z_ref)
+			zs = np.zeros((len(rn), z_ref.shape[-1]))
+			for i,n in enumerate(rn):
+				if rn == -3:
+					new_e = z_ref + diff_mean[cut]
+				elif n > -2:
+					new_e = __random(ls, z_ref, n, weights, w_i)
+				else:
+					new_e = __closest(ls, z_ref, weights)
 
-	# 			scores['e_score'][n][cut][k] = __latent_error(enc[k,model.hierarchies[cut]], new_e)
-	# 			zs[i] = new_e
-	# 		p_poses = model.decoder.predict(np.array(zs))
-	# 		t_pose = np.zeros(pose.shape)
-	# 		t_pose[:model.hierarchies[cut]+1] = pose[:model.hierarchies[cut]+1]
-	# 		for i, n in enumerate(rn):
-	# 			scores['score'][n][cut][k] = np.mean([np.linalg.norm(t_pose[t,:-model.label_dim]-p_poses[i,t,:-model.label_dim]) for t in range(model.timesteps)])
+				scores['e_score'][n][cut][k] = __latent_error(enc[k,model.hierarchies[cut]], new_e)
+				zs[i] = new_e
+			p_poses = model.decoder.predict(np.array(zs))
+			t_pose = np.zeros(pose.shape)
+			t_pose[:model.hierarchies[cut]+1] = pose[:model.hierarchies[cut]+1]
+			for i, n in enumerate(rn):
+				scores['score'][n][cut][k] = np.mean([np.linalg.norm(t_pose[t,:-model.label_dim]-p_poses[i,t,:-model.label_dim]) for t in range(model.timesteps)])
 
-	# x = np.arange(len(rn))
-	# ys = np.array([[np.mean(scores['score'][n][cut]) for n in rn] for cut in cuts])
-	# errs = np.array([[np.std(scores['score'][n][cut]) for n in rn] for cut in cuts])
-	# labels = [str(model.hierarchies[c] + 1) for c in cuts]
-	# x_ticks = map(str, rn[:-3])+['all', 'all (CLOSEST)', 'ADD']
-	# x_label = 'Number of random latent representation'
-	# y_label = 'Error'
-	# title = 'Pose error'
-	# __plot(x, ys, errs, labels, x_label, y_label, x_ticks, title, model.MODEL_CODE)
+	x = np.arange(len(rn))
+	ys = np.array([[np.mean(scores['score'][n][cut]) for n in rn] for cut in cuts])
+	errs = np.array([[np.std(scores['score'][n][cut]) for n in rn] for cut in cuts])
+	labels = [str(model.hierarchies[c] + 1) for c in cuts]
+	x_ticks = map(str, rn[:-3])+['all', 'all (CLOSEST)', 'ADD']
+	x_label = 'Number of random latent representation'
+	y_label = 'Error'
+	title = 'Pose error'
+	__plot(x, ys, errs, labels, x_label, y_label, x_ticks, title, model.MODEL_CODE)
 	
-	# ys_e = np.array([[np.mean(scores['e_score'][n][cut]) for n in rn] for cut in cuts])
-	# errs_e = np.array([[np.std(scores['e_score'][n][cut]) for n in rn] for cut in cuts])
-	# title = 'Latent error'
-	# __plot(x, ys_e, errs_e, labels, x_label, y_label, x_ticks, title, model.MODEL_CODE)
+	ys_e = np.array([[np.mean(scores['e_score'][n][cut]) for n in rn] for cut in cuts])
+	errs_e = np.array([[np.std(scores['e_score'][n][cut]) for n in rn] for cut in cuts])
+	title = 'Latent error'
+	__plot(x, ys_e, errs_e, labels, x_label, y_label, x_ticks, title, model.MODEL_CODE)
 
-	# with open(OUT_DIR+'plot_metrics_%d'%(model.MODEL_CODE)+__get_timestamp()+'.json', 'w') as jsonfile:
-	# 	json.dump({
-	# 		'x':x.tolist(), 
-	# 		'score':ys.tolist(), 
-	# 		'score_std':errs.tolist(),
-	# 		'e_score':ys_e.tolist(),
-	# 		'e_score_std':errs_e.tolist()
-	# 		}, jsonfile)
+	with open(OUT_DIR+'plot_metrics_%d'%(model.MODEL_CODE)+__get_timestamp()+'.json', 'w') as jsonfile:
+		json.dump({
+			'x':x.tolist(), 
+			'score':ys.tolist(), 
+			'score_std':errs.tolist(),
+			'e_score':ys_e.tolist(),
+			'e_score_std':errs_e.tolist()
+			}, jsonfile)
 
 
 def plot_metrics_labels(model, data_iterator, validation_data, n=1000):
@@ -799,8 +806,7 @@ def plot_metrics_labels(model, data_iterator, validation_data, n=1000):
 	emb = get_label_embedding(model, data_iterator, True)
 
 	# plot diff in z for label/without label
-	diff = emb[0] - emb[1]
-	mean_diff = np.mean(diff, axis=0)
+	mean_diff, diff = get_embedding_diffs(emb[0], emb[1])
 	# std_diff = np.std(diff, axis=0)
 	# idx = np.argsort(mean_diff)
 	# mean_diff_sorted = mean_diff[idx]
