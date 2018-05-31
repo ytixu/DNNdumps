@@ -10,6 +10,5 @@ data/src/model_anal/*/*
 data/src/MPI-INF-3DHP/out
 data/seq_human
 data/pose_data
-data/src/h3.6/results/*
 results/*
 tb_graphs/*

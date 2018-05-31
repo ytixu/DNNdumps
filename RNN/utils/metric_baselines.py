@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 LOAD_PATH = '../../data/src/h3.6/results/'
 _N = 8
-DATA_ITER_SIZE = 100
+DATA_ITER_SIZE = 10000
 
 
 def iter_actions(from_path=''):
@@ -60,7 +60,7 @@ def compare_raw_closest(data_iterator):
 						if score < best_score:
 							best_score = score
 							best_x = x[n:]
-					break
+
 				iter1, iter2 = tee(iter2)
 				error[i] = metrics.__pose_seq_error(best_x, gtp, cumulative=True)
 				error_[i] = metrics.__pose_seq_error(pd, gtp, cumulative=True)
