@@ -34,9 +34,9 @@ def animate_random(model, start_seq, embedding, mean=0.38919052, std=0.1443201):
 
 def animate_compare(true_seq, pred_seq, baseline_seq):
 	fig = plt.figure()
-	ax_true = fig.add_subplot(3, 1, projection='3d')
-	ax_baseline = fig.add_subplot(3, 2, projection='3d')
-	ax_pred = fig.add_subplot(3, 3, projection='3d')
+	ax_true = fig.add_subplot(1, 3, 1, projection='3d')
+	ax_baseline = fig.add_subplot(1, 3, 2, projection='3d')
+	ax_pred = fig.add_subplot(1, 3, 3, projection='3d')
 
 	ob_true = viz.Ax3DPose(ax_true)
 	ob_baseline = viz.Ax3DPose(ax_baseline)

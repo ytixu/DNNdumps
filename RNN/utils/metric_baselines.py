@@ -1,3 +1,6 @@
+import matplotlib
+matplotlib.use('Agg')
+
 from itertools import tee
 import numpy as np
 from tqdm import tqdm
@@ -76,6 +79,7 @@ def compare_raw_closest(from_path, data_iterator):
 			del xs
 			iterations += 1
 			print iterations
+			break
 			# iter1, iter2 = tee(iter2)
 
 			# np.save(from_path + LOAD_PATH + basename + '_nn_raw-%d.npy'%i, best_x)
