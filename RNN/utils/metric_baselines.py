@@ -10,8 +10,8 @@ import fk_animate
 
 LOAD_PATH = '../data/src/h3.6/results/'
 _N = 8
-DATA_ITER_SIZE = 1000
-
+DATA_ITER_SIZE = 10000
+RANDOM_N = 400
 
 def iter_actions(from_path=''):
 	for filename in glob.glob(from_path+LOAD_PATH + '*_0-0.npy'):
@@ -58,7 +58,7 @@ def compare_raw_closest(from_path, data_iterator):
 				best_x = None
 				n = gt.shape[0]
 				for xs, _ in iter1:
-					idx = np.random.choice(xs.shape[0], 100, replace=False)
+					idx = np.random.choice(xs.shape[0], RANDOM_N, replace=False)
 					for x in tqdm(xs[idx]):
 						score = metrics.__pose_seq_error(x[:n], gt)
 						if score < best_score:
