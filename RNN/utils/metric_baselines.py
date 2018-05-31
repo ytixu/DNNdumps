@@ -38,6 +38,8 @@ def get_baselines(from_path=''):
 	plt.show()
 
 def compare_raw_closest(data_iterator):
+	import csv
+
 	iter1, iter2 = tee(data_iterator)
 	for basename in iter_actions():
 		print basename
@@ -62,8 +64,10 @@ def compare_raw_closest(data_iterator):
 			error[i] = metrics.__pose_seq_error(best_x, gtp, cumulative=True)
 			error_[i] = metrics.__pose_seq_error(pd, gtp, cumulative=True)
 
-		print error
-		print error_
+		print 'nearest neighbor'
+		print np.mean(error, axis=0)
+		print 'baseline error'
+		print np.mean(error_, axis=0)
 
 
 def compare_label_embedding(model, data_iterator):
