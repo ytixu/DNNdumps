@@ -90,7 +90,9 @@ def compare_raw_closest(from_path, data_iterator):
 				error[i] = metrics.__pose_seq_error(error_x[basename][i], gtp[basename][i], cumulative=True)
 				error_[i] = metrics.__pose_seq_error(pd[basename][i], gtp[basename][i], cumulative=True)
 				np.save(from_path + LOAD_PATH + basename + '_nn_raw-%d.npy'%i, error_x[basename][i])
-				fk_animate.animate_compare(gtp[basename][i], error_x[basename][i], pd[basename][i])
+				fk_animate.animate_compare(gtp[basename][i],
+					error_x[basename][i], 'Nearest Neighbor (1/%d)'%(DATA_ITER_SIZE/RANDOM_N),
+					pd[basename][i], 'Residual sup. (MA)', from_path+LOAD_PATH+'images/')
 
 			print basename
 			_err = np.mean(error, axis=0)
