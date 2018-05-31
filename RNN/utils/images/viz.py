@@ -31,7 +31,7 @@ class Ax3DPose(object):
     self.ax.set_zlim3d([-1, 1])
     self.ax.set_ylim3d([-1, 1])
 
-  def update(self, channels, lcolor="#3498db", rcolor="#e74c3c"):
+  def update(self, channels, forced_color=None):
     """
     Update the plotted 3d pose.
 
@@ -53,7 +53,10 @@ class Ax3DPose(object):
       self.plots[i][0].set_xdata(x)
       self.plots[i][0].set_ydata(y)
       self.plots[i][0].set_3d_properties(z)
-      self.plots[i][0].set_color(color)
+      if forced_color is not None:
+        self.plots[i][0].set_color(forced_color)
+      else:
+        self.plots[i][0].set_color(color)
 
     self.ax.set_aspect('equal')
 

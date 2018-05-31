@@ -57,9 +57,9 @@ def animate_compare(start_seq, true_seq, pred_seq, pred_name, baseline_seq, base
 			ob_baseline.update(baseline_seq[t-n_start])
 			ob_pred.update(pred_seq[t-n_start])
 		else:
-			ob_true.update(start_seq[t], lcolor='#000000')
-			ob_baseline.update(start_seq[t], lcolor='#000000')
-			ob_pred.update(start_seq[t], lcolor='#000000')
+			ob_true.update(start_seq[t], '#000000')
+			ob_baseline.update(start_seq[t], '#000000')
+			ob_pred.update(start_seq[t], '#000000')
 		return init()
 
 

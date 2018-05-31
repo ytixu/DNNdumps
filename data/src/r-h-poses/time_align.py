@@ -68,14 +68,15 @@ for filename in glob.glob('raw_data/*'):
 # print r_poses
 print len(r_poses)
 n = 6
-f, axarr = plt.subplots(n, 1, sharex=True, sharey=True)
+f, axarr = plt.subplots(n*2, 1, sharex=True, sharey=True)
 for name,ps in r_poses.iteritems():
 	print name
 	for _,p in ps.iteritems():
 		x = [t for t,_ in p]
 		y = np.array([j for _,j in p])
 		for i in range(n):
-			axarr[i].plot(x, y[:,i])
+			axarr[i*2].plot(x, np.sin(y[:,i]))
+			axarr[i*2+1].plot(x, np.cos(y[:,i]))
 
 plt.show()
 plt.close(f)
