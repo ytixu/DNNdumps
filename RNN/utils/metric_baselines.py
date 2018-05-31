@@ -1,3 +1,4 @@
+from itertools import tee
 import numpy as np
 from tqdm import tqdm
 import os.path
@@ -6,6 +7,7 @@ import metrics
 import matplotlib.pyplot as plt
 
 LOAD_PATH = '../data/src/h3.6/results/'
+_N = 8
 
 def iter_actions(from_path=''):
 	for filename in glob.glob(from_path+LOAD_PATH + '*_0-0.npy'):
@@ -33,6 +35,34 @@ def get_baselines(from_path=''):
 	plt.legend()
 	plt.show()
 
+def compare_raw_closest(data_iterator):
+	iter1, iter2 = tee(data_iterator)
+	for basename in iter_actions():
+		print basename
+		error = [None]*_N
+		error_ = [None]*_N
+		for i in tqdm(range(_N)):
+			gt = np.load(LOAD_PATH + basename + '_0-%d.npy'%i)
+			pd = np.load(LOAD_PATH + basename + '_1-%d.npy'%i)
+			gtp = np.load(LOAD_PATH + basename + '_2-%d.npy'%i)
+
+			best_score = 10000
+			best_x = None
+			n = gt.shape[0]
+			for xs, _ in data_iterator:
+				for x in xs:
+					score = __pose_seq_error(x[:n], gt)
+					if score < best_score:
+						best_score = score
+						best_x = x[n:]
+
+			error[i] = __pose_seq_error(best_x, gtp, cumulative=True)
+			error_[i] = __pose_seq_error(pd, gtp, cumulative=True)
+
+		print error
+		print error_
+
+
 def compare_label_embedding(model, data_iterator):
 	import image
 	embedding = metrics.get_label_embedding(model, data_iterator, without_label_only=True, subspaces=model.hierarchies[-2:])
@@ -42,24 +72,24 @@ def compare_label_embedding(model, data_iterator):
 	pred_n = model.timesteps-cut
 	for basename in iter_actions():
 		print basename
-		n = 8
-		pose_ref = np.zeros((n, model.timesteps, model.input_dim))
-		pose_pred_bl = np.zeros((n, model.timesteps-cut, model.input_dim-model.label_dim))
-		pose_gt = np.zeros((n, model.timesteps-cut, model.input_dim-model.label_dim))
+		pose_ref = np.zeros((_N, model.timesteps, model.input_dim))
+		pose_pred_bl = np.zeros((_N, model.timesteps-cut, model.input_dim-model.label_dim))
+		pose_gt = np.zeros((_N, model.timesteps-cut, model.input_dim-model.label_dim))
 
-		for i in tqdm(range(n)):
+		for i in tqdm(range(_N)):
 			gt = np.load(LOAD_PATH + basename + '_0-%d.npy'%i)
 			pd = np.load(LOAD_PATH + basename + '_1-%d.npy'%i)
 			gtp = np.load(LOAD_PATH + basename + '_2-%d.npy'%i)
 
-			pose_ref[n,:cut,:-model.label_dim] = gt[-cut:]
-			pose_pred_bl[n] = pd[:pred_n]
+			pose_ref[_N,:cut,:-model.label_dim] = gt[-cut:]
+			pose_pred_bl[_N] = pd[:pred_n]
 			pose_gt = gtp[:pred_n]
 
 		new_enc = model.encoder.predict(pose_ref)[:,cut-1] + mean_diff
 		pose_pred = model.decoder.predict(new_enc)[:,:,:-model.label_dim]
-		error_bl = [__pose_seq_error(pose_gt[i], pose_pred_bl[i]) for i in range(n)]
-		error = [__pose_seq_error(pose_gt[i], pose_pred[i]) for i in range(n)]
+		error_bl = [__pose_seq_error(pose_gt[i], pose_pred_bl[i]) for i in range(_N)]
+		error = [__pose_seq_error(pose_gt[i], pose_pred[i]) for i in range(_N)]
+		# error_0_vel =
 		print np.mean(error), np.mean(error_bl)
 		image.plot_poses(pose_pred)
 
@@ -137,7 +167,7 @@ def compare(model, data_iterator):
 					for k, p in enumerate(poses):
 						errors[basename][i, k, j] = metrics.__pose_seq_error(gtp[:j+1], p[:j+1])
 					errors_[basename][i, 3, j] = metrics.__pose_seq_error(gtp[:j+1], pd[:j+1])
-				
+
 				errors_[basename][i,0,:] = metrics.__zeros_velocity_error(gt[-n:], gtp[:n])[:]
 				errors_[basename][i,1,:] = metrics.__average_2_error(gt[-n:], gtp[:n])[:]
 				errors_[basename][i,2,:] = metrics.__average_4_error(gt[-n:], gtp[:n])[:]
@@ -149,7 +179,7 @@ def compare(model, data_iterator):
 				if best_error > errors_[basename][i,-1,-1]:
 					image_dir = '../results/t30-l200/high_error/refined-add/'
 
-				image.plot_poses([gt[-n:], gtp[:n], ground_truth[:n]], np.concatenate([poses, [pd[:n]]], axis=0), 
+				image.plot_poses([gt[-n:], gtp[:n], ground_truth[:n]], np.concatenate([poses, [pd[:n]]], axis=0),
 					title='%6.3f-%6.3f (%s - C, M, R-5000-10000, B) %d-%d'%(b_error, best_error/b_error, basename, cut, k), image_dir=image_dir)
 			# print basename, mean_err[[1,3,7,9,-1]]
 			# if basename in ['walking', 'eating', 'smoking', 'discussion']:
@@ -164,7 +194,7 @@ def compare(model, data_iterator):
 			plt.legend()
 			plt.title('%s-%d'%(basename, cut))
 			# plt.show()
-			plt.savefig('../results/t30-l200/graphs/refined-add/%s-%d-%d.png'%(basename, cut, k)) 
+			plt.savefig('../results/t30-l200/graphs/refined-add/%s-%d-%d.png'%(basename, cut, k))
 			plt.close()
 
 
@@ -180,10 +210,13 @@ def compare(model, data_iterator):
 		plt.legend()
 		plt.title('Total-%d'%(cut))
 		# plt.show()
-		plt.savefig('../results/t30-l200/graphs/refined-add/total-%d-%d.png'%(cut, k)) 
+		plt.savefig('../results/t30-l200/graphs/refined-add/total-%d-%d.png'%(cut, k))
 		plt.close()
 
 
 
 if __name__ == '__main__':
-	get_baselines('../')
+	# get_baselines('../')
+	import parser
+	data_iterator = parser.data_generator('../../data/h3.6/train', '../../data/h3.6/train', 75, 3000)
+	compare_raw_closest(data_iterator)

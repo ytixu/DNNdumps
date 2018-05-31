@@ -35,7 +35,7 @@ def __plot(x, ys, errs, labels, x_label, y_label, x_ticks, title, model_name, ba
 	plt.ylabel(y_label)
 	plt.title(title)
 	# plt.show()
-	plt.savefig(OUT_DIR+'%s_%s'%(title, model_name) + __get_timestamp() + '.png') 
+	plt.savefig(OUT_DIR+'%s_%s'%(title, model_name) + __get_timestamp() + '.png')
 	plt.close()
 
 def __get_dist(embedding, z_ref):
@@ -89,6 +89,11 @@ def __multi_match(embedding, z_refs, weights={}):
 		else:
 			z_matches[n-i-1,:], w_i[i] = __closest(embedding, z, return_weight=True)
 	return __normalized_distance_mean(z_matches, w_i, range(n))
+
+def __closest_partial_index(embedding_partial, z_ref, weights={}):
+	if not any(weights):
+		weights = __get_dist(embedding_partial, z_ref)
+	return np.argmin(weights)
 
 def __get_latent_reps(encoder, pose, model_name, n=-1):
 	if model_name == ML_LSTM:
@@ -147,7 +152,7 @@ def __rn():
 def __common_params(n):
 	cuts = __cuts()
 	rn =__rn()
-	scores = {'score':{r:{c:[0]*n for c in cuts} for r in rn}, 
+	scores = {'score':{r:{c:[0]*n for c in cuts} for r in rn},
 			'e_score':{r:{c:[0]*n for c in cuts} for r in rn}}
 	return cuts, rn, scores
 
@@ -161,14 +166,18 @@ def __pose_error(pose_ref, pose_pred, reshaped=False):
 	pose_y = np.reshape(pose_pred, (-1, 3))
 	return np.mean([np.linalg.norm(pose_x[x]-pose_y[x]) for x in range(pose_x.shape[0])])
 
-def __pose_seq_error(pose_ref, pose_pred, fixed=False):
+def __pose_seq_error(pose_ref, pose_pred, fixed=False, cumulative=False):
 	ts = pose_ref.shape[0]
 	pose_x = np.reshape(pose_ref, (ts,-1, 3))
 	if fixed:
 		pose_y = np.reshape(pose_pred, (-1, 3))
 		return np.mean([__pose_error(pose_x[t], pose_y, True) for t in range(ts)])
 	pose_y = np.reshape(pose_pred, (ts,-1, 3))
-	return np.mean([__pose_error(pose_x[t], pose_y[t], True) for t in range(ts)])
+	error = [__pose_error(pose_x[t], pose_y[t], True) for t in range(ts)]
+	if cumulative:
+		return [np.mean([error[:i]]) for i in range(ts)]
+	else:
+		return np.mean(error)
 
 # Pattern matching baseline
 
@@ -200,6 +209,8 @@ def random_baseline(validation_data):
 
 	print mean
 	print var
+
+# getting embeddings
 
 def get_label_embedding(model, data_iterator, also_without_label=False, without_label_only=False, subspaces=-1):
 	embedding = []
@@ -321,7 +332,7 @@ def __pca_reduce(embedding):
 	pca = sklearnPCA(n_components=2) #2-dimensional PCA
 	X_norm = (embedding - embedding.min())/(embedding.max() - embedding.min())
 	transformed = pca.fit_transform(X_norm)
-	return transformed	
+	return transformed
 
 def plot_convex_hall(embedding, h, model_name):
 	from scipy.spatial import ConvexHull
@@ -334,7 +345,7 @@ def plot_convex_hall(embedding, h, model_name):
 		for simplex in hull.simplices:
 			plt.plot(choices[simplex, 0], choices[simplex, 1], c='#'+('%s'%('{0:01X}'.format(i+2)))*6)
 		# plt.scatter(choices[:,0], choices[:,1], c='#'+('%s'%('{0:01X}'.format(i+2)))*6)
-	
+
 	for c in ['red', 'green', 'blue']:
 		n = np.random.randint(0, sample_n-50)
 		for i, s in enumerate(['x', '+', 'd']):
@@ -342,7 +353,7 @@ def plot_convex_hall(embedding, h, model_name):
 			plt.scatter(random_sequence[:,0], random_sequence[:,1], c=c, marker=s)
 
 	# plt.legend(loc=3)
-	plt.savefig(OUT_DIR+'plot_convex_halls_%s'%(model_name) + strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png') 
+	plt.savefig(OUT_DIR+'plot_convex_halls_%s'%(model_name) + strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png')
 	plt.close()
 	# plt.show()
 
@@ -383,7 +394,7 @@ def plot_convex_hall(embedding, h, model_name):
 # 	y_label = 'Error'
 # 	title = 'Pose error'
 # 	__plot(x, ys, errs, labels, x_label, y_label, x_ticks, title, model_name)
-	
+
 # 	ys_e = np.array([[np.mean(scores['e_score'][n][cut]) for n in rn] for cut in cuts])
 # 	errs_e = np.array([[np.std(scores['e_score'][n][cut]) for n in rn] for cut in cuts])
 # 	title = 'Latent error'
@@ -391,8 +402,8 @@ def plot_convex_hall(embedding, h, model_name):
 
 # 	with open(OUT_DIR+'plot_metrics_%d'%(model_name)+__get_timestamp()+'.json', 'w') as jsonfile:
 # 		json.dump({
-# 			'x':x.tolist(), 
-# 			'score':ys.tolist(), 
+# 			'x':x.tolist(),
+# 			'score':ys.tolist(),
 # 			'score_std':errs.tolist(),
 # 			'e_score':ys_e.tolist(),
 # 			'e_score_std':errs_e.tolist()
@@ -492,7 +503,7 @@ def __get_next_half(embedding, pose, encoder, decoder, h, model_name, n=1):
 	cut = h/2
 	half_pose = np.copy([pose])
 	half_pose[0,cut:] = half_pose[0,cut:]
-	new_e = [None]*n 
+	new_e = [None]*n
 	z_half = __get_latent_reps(encoder, half_pose, model_name, cut-1)
 	z_ref = __closest(__get_subspace(embedding, h-1, model_name), z_half[0])
 	poses = decoder.predict(np.array([z_ref]))
@@ -534,7 +545,7 @@ def __get_consecutive_add(embedding, pose, model, cut):
 # 	half_poses[0,cut:] = 0
 # 	half_poses[1,:cut] = half_poses[1,cut:]
 # 	half_poses[1,cut:] = 0
-# 	new_e = [None]*n 
+# 	new_e = [None]*n
 # 	poses = []
 # 	z_refs = __get_latent_reps(model.encoder, half_poses, model.MODEL_CODE, cut-1)
 # 	z_ref = __get_latent_reps(model.encoder, np.array([pose]), model.MODEL_CODE, h-1)
@@ -563,11 +574,11 @@ def __get_consecutive(embedding, pose, model, cut, k):
 					__mean(embedding, z_ref, 45, weights, w_i),
 					__random(embedding, z_ref, 5000, weights, w_i),
 					__random(embedding, z_ref, 10000, weights, w_i)])
-	
+
 	new_pose = None
 	if model.MODEL_CODE in [HL_LSTM, Prior_LSTM]:
 		new_pose = __get_decoded_reps(model.decoder, z_refs, model.MODEL_CODE, pose=half_poses[0,:1])[:,cut:]
-	else:	
+	else:
 		new_pose = __get_decoded_reps(model.decoder, z_refs, model.MODEL_CODE)[:,cut:]
 
 	# n,_,d = new_pose.shape
@@ -595,11 +606,11 @@ def __get_consecutive_multi(embedding, pose, model, cut, h):
 					__random(embedding, z_refs[-1], 5000, weights, w_i),
 					__random(embedding, z_refs[-1], 10000, weights, w_i),
 					__multi_match(embedding, z_refs, {h: weights})])
-	
+
 	new_pose = None
 	if model.MODEL_CODE in [HL_LSTM, Prior_LSTM]:
 		new_pose = __get_decoded_reps(model.decoder, z_refs, model.MODEL_CODE, pose=half_poses[0,:1])[:,cut:]
-	else:	
+	else:
 		new_pose = __get_decoded_reps(model.decoder, z_refs, model.MODEL_CODE)[:,cut:]
 
 
@@ -650,7 +661,7 @@ def __get_next_overlap(embedding, pose, encoder, decoder, cut, h, model_name):
 
 # 		for j in range(l_n):
 # 			poses[-1,j] = np.mean(poses[max(0, j-h+1):min(l_n-h+1, j+1),j], axis=0)
-		
+
 # 		err[i] = __pose_error(true_pose[0], poses[-1])
 # 		image.plot_poses(true_pose, poses, title='Pattern matching (long) (prediction in bold)')
 
@@ -735,7 +746,7 @@ def plot_metrics(model, data_iterator, validation_data, n_valid = 100):
 		x = range(1,201)
 		plt.plot(x, mean_diff_sorted, label='diff 20-%d'%(model.hierarchies[cut]+1))
 		plt.fill_between(x, mean_diff_sorted-std_diff_sorted, mean_diff_sorted+std_diff_sorted, alpha=0.5)
-		
+
 		rand_idx = np.random.choice(embedding.shape[0], 1000, replace=False)
 		for k in cuts:
 			diff = [embedding[rand_idx[a],k] - embedding[rand_idx[b],k] for a in range(1000) for b in range(a)]
@@ -744,7 +755,7 @@ def plot_metrics(model, data_iterator, validation_data, n_valid = 100):
 			plt.plot(x, rand_mean, label='diff %d-%d'%(model.hierarchies[k]+1, model.hierarchies[k]+1))
 			plt.fill_between(x, rand_mean-std_diff, rand_mean+std_diff, alpha=0.2)
 		plt.legend()
-		plt.savefig(OUT_DIR+'sdasdasdasd' + __get_timestamp() + '.png') 
+		plt.savefig(OUT_DIR+'sdasdasdasd' + __get_timestamp() + '.png')
 		plt.close()
 		# plt.show()
 
@@ -783,7 +794,7 @@ def plot_metrics(model, data_iterator, validation_data, n_valid = 100):
 	y_label = 'Error'
 	title = 'Pose error'
 	__plot(x, ys, errs, labels, x_label, y_label, x_ticks, title, model.MODEL_CODE)
-	
+
 	ys_e = np.array([[np.mean(scores['e_score'][n][cut]) for n in rn] for cut in cuts])
 	errs_e = np.array([[np.std(scores['e_score'][n][cut]) for n in rn] for cut in cuts])
 	title = 'Latent error'
@@ -791,8 +802,8 @@ def plot_metrics(model, data_iterator, validation_data, n_valid = 100):
 
 	with open(OUT_DIR+'plot_metrics_%d'%(model.MODEL_CODE)+__get_timestamp()+'.json', 'w') as jsonfile:
 		json.dump({
-			'x':x.tolist(), 
-			'score':ys.tolist(), 
+			'x':x.tolist(),
+			'score':ys.tolist(),
 			'score_std':errs.tolist(),
 			'e_score':ys_e.tolist(),
 			'e_score_std':errs_e.tolist()
@@ -814,7 +825,7 @@ def plot_metrics_labels(model, data_iterator, validation_data, n=1000):
 	# x = range(1,201)
 	# plt.plot(x, mean_diff_sorted, label='diff')
 	# plt.fill_between(x, mean_diff_sorted-std_diff_sorted, mean_diff_sorted+std_diff_sorted, alpha=0.5)
-	
+
 	# rand_idx = np.random.choice(emb.shape[1], 1000, replace=False)
 	# for k in range(2):
 	# 	diff = [emb[k,rand_idx[a]] - emb[k,rand_idx[b]] for a in range(1000) for b in range(a)]
@@ -823,7 +834,7 @@ def plot_metrics_labels(model, data_iterator, validation_data, n=1000):
 	# 	plt.plot(x, rand_mean, label='labeled' if k == 0 else 'unlabeled')
 	# 	plt.fill_between(x, rand_mean-std_diff, rand_mean+std_diff, alpha=0.2)
 	# plt.legend()
-	# plt.savefig(OUT_DIR+'sdasdasdasd' + __get_timestamp() + '.png') 
+	# plt.savefig(OUT_DIR+'sdasdasdasd' + __get_timestamp() + '.png')
 	# plt.close()
 	# # plt.show()
 
