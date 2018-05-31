@@ -6,8 +6,10 @@ import glob
 import metrics
 import matplotlib.pyplot as plt
 
-LOAD_PATH = '../data/src/h3.6/results/'
+LOAD_PATH = '../../data/src/h3.6/results/'
 _N = 8
+DATA_ITER_SIZE = 100
+
 
 def iter_actions(from_path=''):
 	for filename in glob.glob(from_path+LOAD_PATH + '*_0-0.npy'):
@@ -49,15 +51,16 @@ def compare_raw_closest(data_iterator):
 			best_score = 10000
 			best_x = None
 			n = gt.shape[0]
-			for xs, _ in data_iterator:
-				for x in xs:
-					score = __pose_seq_error(x[:n], gt)
+			for xs, _ in iter1:
+				for x in tqdm(xs):
+					score = metrics.__pose_seq_error(x[:n], gt)
 					if score < best_score:
 						best_score = score
 						best_x = x[n:]
-
-			error[i] = __pose_seq_error(best_x, gtp, cumulative=True)
-			error_[i] = __pose_seq_error(pd, gtp, cumulative=True)
+				break
+			iter1, iter2 = tee(iter2)
+			error[i] = metrics.__pose_seq_error(best_x, gtp, cumulative=True)
+			error_[i] = metrics.__pose_seq_error(pd, gtp, cumulative=True)
 
 		print error
 		print error_
@@ -218,5 +221,6 @@ def compare(model, data_iterator):
 if __name__ == '__main__':
 	# get_baselines('../')
 	import parser
-	data_iterator = parser.data_generator('../../data/h3.6/train', '../../data/h3.6/train', 75, 3000)
+	data_iterator = parser.data_generator('../../data/h3.6/train/', '../../data/h3.6/train/', 149, DATA_ITER_SIZE)
+	print data_iterator
 	compare_raw_closest(data_iterator)

@@ -175,7 +175,7 @@ def __pose_seq_error(pose_ref, pose_pred, fixed=False, cumulative=False):
 	pose_y = np.reshape(pose_pred, (ts,-1, 3))
 	error = [__pose_error(pose_x[t], pose_y[t], True) for t in range(ts)]
 	if cumulative:
-		return [np.mean([error[:i]]) for i in range(ts)]
+		return [np.mean(error[:i+1]) for i in range(ts)]
 	else:
 		return np.mean(error)
 
