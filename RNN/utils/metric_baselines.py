@@ -10,7 +10,7 @@ import fk_animate
 
 LOAD_PATH = '../data/src/h3.6/results/'
 _N = 8
-DATA_ITER_SIZE = 10000
+DATA_ITER_SIZE = 1000
 
 
 def iter_actions(from_path=''):
@@ -63,7 +63,9 @@ def compare_raw_closest(from_path, data_iterator):
 						score = metrics.__pose_seq_error(x[:n], gt)
 						if score < best_score:
 							best_score = score
-							best_x = x[n:]
+							del best_x
+							best_x = np.copy(x[n:])
+					del xs
 
 				iter1, iter2 = tee(iter2)
 
@@ -236,8 +238,8 @@ def compare(model, data_iterator):
 
 
 if __name__ == '__main__':
-	get_baselines('../')
-	# import parser
-	# data_iterator = parser.data_generator('../../data/h3.6/train/', '../../data/h3.6/train/', 149, DATA_ITER_SIZE)
-	# print data_iterator
-	# compare_raw_closest('../', data_iterator)
+	#get_baselines('../')
+	import parser
+	data_iterator = parser.data_generator('../../data/h3.6/train/', '../../data/h3.6/train/', 149, DATA_ITER_SIZE)
+	print data_iterator
+	compare_raw_closest('../', data_iterator)
