@@ -39,35 +39,40 @@ def get_baselines(from_path=''):
 
 def compare_raw_closest(data_iterator):
 	import csv
+	with open('../../results/nn_results.csv', 'wb') as csvfile:
+		spamwriter = csv.writer(csvfile)
+		iter1, iter2 = tee(data_iterator)
+		for basename in iter_actions():
+			print basename
+			error = [None]*_N
+			error_ = [None]*_N
+			for i in tqdm(range(_N)):
+				gt = np.load(LOAD_PATH + basename + '_0-%d.npy'%i)
+				pd = np.load(LOAD_PATH + basename + '_1-%d.npy'%i)
+				gtp = np.load(LOAD_PATH + basename + '_2-%d.npy'%i)
 
-	iter1, iter2 = tee(data_iterator)
-	for basename in iter_actions():
-		print basename
-		error = [None]*_N
-		error_ = [None]*_N
-		for i in tqdm(range(_N)):
-			gt = np.load(LOAD_PATH + basename + '_0-%d.npy'%i)
-			pd = np.load(LOAD_PATH + basename + '_1-%d.npy'%i)
-			gtp = np.load(LOAD_PATH + basename + '_2-%d.npy'%i)
+				best_score = 10000
+				best_x = None
+				n = gt.shape[0]
+				for xs, _ in iter1:
+					for x in tqdm(xs):
+						score = metrics.__pose_seq_error(x[:n], gt)
+						if score < best_score:
+							best_score = score
+							best_x = x[n:]
+					break
+				iter1, iter2 = tee(iter2)
+				error[i] = metrics.__pose_seq_error(best_x, gtp, cumulative=True)
+				error_[i] = metrics.__pose_seq_error(pd, gtp, cumulative=True)
 
-			best_score = 10000
-			best_x = None
-			n = gt.shape[0]
-			for xs, _ in iter1:
-				for x in tqdm(xs):
-					score = metrics.__pose_seq_error(x[:n], gt)
-					if score < best_score:
-						best_score = score
-						best_x = x[n:]
-				break
-			iter1, iter2 = tee(iter2)
-			error[i] = metrics.__pose_seq_error(best_x, gtp, cumulative=True)
-			error_[i] = metrics.__pose_seq_error(pd, gtp, cumulative=True)
-
-		print 'nearest neighbor'
-		print np.mean(error, axis=0)
-		print 'baseline error'
-		print np.mean(error_, axis=0)
+			_err = np.mean(error, axis=0)
+			print 'nearest neighbor'
+			print _err
+			spamwriter.writerow([basename, 'nn'] + _err.tolist())
+			_err = np.mean(error_, axis=0)
+			print 'baseline error'
+			print np.mean(error_, axis=0)
+			spamwriter.writerow([basename, 'nn'] + _err.tolist())
 
 
 def compare_label_embedding(model, data_iterator):
