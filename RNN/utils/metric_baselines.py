@@ -13,6 +13,7 @@ import fk_animate
 
 LOAD_PATH = '../data/src/h3.6/results/'
 _N = 1
+_N_PRED = 50
 DATA_ITER_SIZE = 10000
 RANDOM_N = 1000
 
@@ -60,8 +61,8 @@ def compare_raw_closest(from_path, data_iterator):
 		error_score = {basename:[10000]*_N for basename in iter_actions(from_path)}
 		error_x = {basename:[None]*_N for basename in iter_actions(from_path)}
 		gt = load__(0)
-		gtp = load__(2, 25)
-		pd = load__(1, 25)
+		gtp = load__(2, _N_PRED)
+		pd = load__(1, _N_PRED)
 		n_input = 49
 		iterations = 0
 
@@ -90,7 +91,7 @@ def compare_raw_closest(from_path, data_iterator):
 				error[i] = metrics.__pose_seq_error(error_x[basename][i], gtp[basename][i], cumulative=True)
 				error_[i] = metrics.__pose_seq_error(pd[basename][i], gtp[basename][i], cumulative=True)
 				np.save(from_path + LOAD_PATH + basename + '_nn_raw-%d.npy'%i, error_x[basename][i])
-				fk_animate.animate_compare(gtp[basename][i],
+				fk_animate.animate_compare(gt[basename][i], gtp[basename][i],
 					error_x[basename][i], 'Nearest Neighbor (1/%d)'%(DATA_ITER_SIZE/RANDOM_N),
 					pd[basename][i], 'Residual sup. (MA)', from_path+LOAD_PATH+'images/')
 
@@ -260,6 +261,5 @@ def compare(model, data_iterator):
 if __name__ == '__main__':
 	#get_baselines('../')
 	import parser
-	data_iterator = parser.data_generator('../../data/h3.6/train/', '../../data/h3.6/train/', 74, DATA_ITER_SIZE)
-	print data_iterator
+	data_iterator = parser.data_generator('../../data/h3.6/train/', '../../data/h3.6/train/', _N_PRED+49, DATA_ITER_SIZE)
 	compare_raw_closest('../', data_iterator)

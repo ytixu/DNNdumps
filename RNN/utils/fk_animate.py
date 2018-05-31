@@ -32,7 +32,7 @@ def animate_random(model, start_seq, embedding, mean=0.38919052, std=0.1443201):
 		# poses = metrics.__get_decoded_reps(model.decoder, enc, model.MODEL_CODE)
 
 
-def animate_compare(true_seq, pred_seq, pred_name, baseline_seq, baseline_name, save_path):
+def animate_compare(start_seq, true_seq, pred_seq, pred_name, baseline_seq, baseline_name, save_path):
 	fig = plt.figure()
 	ax_true = fig.add_subplot(1, 3, 1, projection='3d')
 	ax_baseline = fig.add_subplot(1, 3, 2, projection='3d')
@@ -46,17 +46,24 @@ def animate_compare(true_seq, pred_seq, pred_name, baseline_seq, baseline_name, 
 	ob_baseline = viz.Ax3DPose(ax_baseline)
 	ob_pred = viz.Ax3DPose(ax_pred)
 
+	n_start = start_seq.shape[0]
+
 	def init():
 		return ob_true.get_lines() + ob_pred.get_lines() + ob_pred.get_lines()
 
 	def animate(t):
-		ob_true.update(true_seq[t])
-		ob_baseline.update(baseline_seq[t])
-		ob_pred.update(pred_seq[t])
+		if t > n_start:
+			ob_true.update(true_seq[t-n_start])
+			ob_baseline.update(baseline_seq[t-n_start])
+			ob_pred.update(pred_seq[t-n_start])
+		else:
+			ob_true.update(start_seq[t])
+			ob_baseline.update(start_seq[t])
+			ob_pred.update(start_seq[t])
 		return init()
 
 
-	anim = animation.FuncAnimation(fig, animate, init_func=init, frames=true_seq.shape[0], interval=200, blit=True)
+	anim = animation.FuncAnimation(fig, animate, init_func=init, frames=true_seq.shape[0]+n_start, interval=400, blit=True)
 	anim.save(save_path+'animation.gif', writer='imagemagick', fps=60)
 
 
