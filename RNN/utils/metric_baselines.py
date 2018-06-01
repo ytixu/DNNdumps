@@ -66,18 +66,17 @@ def compare_raw_closest(from_path, data_iterator):
 		gt = load__(0)
 		gtp = load__(2, _N_PRED)
 		pd = load__(1, _N_PRED)
-		n_input = 49
 		iterations = 0
 
 		for xs, _ in data_iterator:
-			idx = np.random.choice(xs.shape[0], RANDOM_N, replace=False)
+			idx = np.random.choice(xs.shape[0], min(RANDOM_N, xs.shape[0]), replace=False)
 			for x in tqdm(xs[idx]):
 				for basename in iter_actions(from_path):
 					for i in range(_N):
-						score = metrics.__pose_seq_error(x[:n_input], gt[basename][i][-_N_INPUT:])
+						score = metrics.__pose_seq_error(x[:_N_INPUT], gt[basename][i][-_N_INPUT:])
 						if score < error_score[basename][i]:
 							error_score[basename][i] = score
-							error_x[basename][i] = np.copy(x[n_input:])
+							error_x[basename][i] = np.copy(x[_N_INPUT:])
 
 
 			del xs
@@ -295,9 +294,9 @@ def compare(model, data_iterator):
 if __name__ == '__main__':
 	#get_baselines('../')
 	#
-	# import parser
-	# data_iterator = parser.data_generator('../../data/h3.6/train/', '../../data/h3.6/train/', _N_PRED+_N_INPUT, DATA_ITER_SIZE)
-	# compare_raw_closest('../', data_iterator)
+	import parser
+	data_iterator = parser.data_generator('../../data/h3.6/train/', '../../data/h3.6/train/', _N_PRED+_N_INPUT, DATA_ITER_SIZE)
+	compare_raw_closest('../', data_iterator)
 
-	plot_results('../../results/nn_results.csv')
+	# plot_results('../../results/nn_results.csv')
 	# animate_results('../', 'nn_raw', 'Nearest nei. (1/10)')
