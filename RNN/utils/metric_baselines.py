@@ -294,9 +294,9 @@ def compare(model, data_iterator):
 if __name__ == '__main__':
 	#get_baselines('../')
 	#
-	import parser
-	data_iterator = parser.data_generator('../../data/h3.6/train/', '../../data/h3.6/train/', _N_PRED+_N_INPUT, DATA_ITER_SIZE)
-	compare_raw_closest('../', data_iterator)
+	# import parser
+	# data_iterator = parser.data_generator('../../data/h3.6/train/', '../../data/h3.6/train/', _N_PRED+_N_INPUT, DATA_ITER_SIZE)
+	# compare_raw_closest('../', data_iterator)
 
-	# plot_results('../../results/nn_results.csv')
-	# animate_results('../', 'nn_raw', 'Nearest nei. (1/10)')
+	plot_results('../../results/nn_15_results.csv')
+	animate_results('../', 'nn_15', 'Nearest nei. (1/10)')
