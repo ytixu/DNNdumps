@@ -134,7 +134,7 @@ def animate_results(from_path, predict, predict_name, baseline='1',
 			pd = np.load(from_path + LOAD_PATH + basename + '_%s-%d.npy'%(predict, i))
 
 			fk_animate.animate_compare(gt, gtp[:len(pd)], pd, predict_name, bpd[:len(pd)], baseline_name,
-					from_path+LOAD_PATH+'images/%s-%d-%s'%(basename, i, '-'.join(predict_name.split(' '))))
+					from_path+LOAD_PATH+'images/%s-%d-%s'%(basename, i, predict_name.replace('.', '').replace('/', '-').replace(' ', '-')))
 
 
 
