@@ -738,7 +738,7 @@ def plot_metrics(model, data_iterator, validation_data, n_valid = 100):
 	if model.MODEL_CODE == L_LSTM:
 		embedding = get_label_embedding(model, data_iterator, subspaces=model.hierarchies)
 	else:
-		embedding = get_embedding(model, data_iterator, subspaces=model.hierarchies)
+		embedding = get_embedding(model, data_iterator)
 
 	diff_mean = {}
 	for cut in cuts:
@@ -764,7 +764,6 @@ def plot_metrics(model, data_iterator, validation_data, n_valid = 100):
 		plt.close()
 		# plt.show()
 	print diff_mean
-
 
 	idxs = np.random.choice(len(validation_data), n_valid)
 	enc = __get_latent_reps(model.encoder, validation_data[idxs], model.MODEL_CODE)
@@ -792,7 +791,10 @@ def plot_metrics(model, data_iterator, validation_data, n_valid = 100):
 			t_pose = np.zeros(pose.shape)
 			t_pose[:model.hierarchies[cut]+1] = pose[:model.hierarchies[cut]+1]
 			for i, n in enumerate(rn):
-				scores['score'][n][cut][k] = np.mean([np.linalg.norm(t_pose[t,:-model.label_dim]-p_poses[i,t,:-model.label_dim]) for t in range(model.timesteps)])
+				if model.MODEL_CODE == L_LSTM:
+					scores['score'][n][cut][k] = np.mean([np.linalg.norm(t_pose[t,:-model.label_dim]-p_poses[i,t,:-model.label_dim]) for t in range(model.timesteps)])
+				else:
+                                        scores['score'][n][cut][k] = np.mean([np.linalg.norm(t_pose[t]-p_poses[i,t]) for t in range(model.timesteps)])
 
 	x = np.arange(len(rn))
 	ys = np.array([[np.mean(scores['score'][n][cut]) for n in rn] for cut in cuts])
