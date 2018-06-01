@@ -12,15 +12,15 @@ import matplotlib.pyplot as plt
 import fk_animate
 
 LOAD_PATH = '../data/src/h3.6/results/'
-_N = 1
-_N_PRED = 100
+_N = 8
+_N_PRED = 25
 DATA_ITER_SIZE = 10000
 RANDOM_N = 1000
 
 def iter_actions(from_path=''):
 	for filename in glob.glob(from_path+LOAD_PATH + '*_0-0.npy'):
 		yield os.path.basename(filename).split('_')[0]
-		break
+
 
 def get_baselines(from_path=''):
 	# import image
@@ -75,14 +75,12 @@ def compare_raw_closest(from_path, data_iterator):
 						if score < error_score[basename][i]:
 							error_score[basename][i] = score
 							error_x[basename][i] = np.copy(x[n_input:])
-							#print error_x[basename][i].shape, pd[basename][i].shape, gtp[basename][i].shape
+
 
 			del xs
 			iterations += 1
 			print iterations
-			break
-			# iter1, iter2 = tee(iter2)
-
+			# break
 
 		for basename in iter_actions(from_path):
 			error = [None]*_N
@@ -91,9 +89,9 @@ def compare_raw_closest(from_path, data_iterator):
 				error[i] = metrics.__pose_seq_error(error_x[basename][i], gtp[basename][i], cumulative=True)
 				error_[i] = metrics.__pose_seq_error(pd[basename][i], gtp[basename][i], cumulative=True)
 				np.save(from_path + LOAD_PATH + basename + '_nn_raw-%d.npy'%i, error_x[basename][i])
-				fk_animate.animate_compare(gt[basename][i], gtp[basename][i],
-					error_x[basename][i], 'Nearest Neighbor (1/%d)'%(DATA_ITER_SIZE/RANDOM_N),
-					pd[basename][i], 'Residual sup. (MA)', from_path+LOAD_PATH+'images/')
+				# fk_animate.animate_compare(gt[basename][i], gtp[basename][i],
+				#	error_x[basename][i], 'Nearest Neighbor (1/%d)'%(DATA_ITER_SIZE/RANDOM_N),
+				#	pd[basename][i], 'Residual sup. (MA)', from_path+LOAD_PATH+'images/')
 
 			print basename
 			_err = np.mean(error, axis=0)
