@@ -1,5 +1,5 @@
-# import matplotlib
-# matplotlib.use('Agg')
+import matplotlib
+matplotlib.use('Agg')
 
 from itertools import tee
 import numpy as np
@@ -133,8 +133,9 @@ def animate_results(from_path, predict, predict_name, baseline='1',
 			bpd = np.load(from_path + LOAD_PATH + basename + '_%s-%d.npy'%(baseline, i))
 			pd = np.load(from_path + LOAD_PATH + basename + '_%s-%d.npy'%(predict, i))
 
-			fk_animate.animate_compare(gt, gtp, pd, predict_name, bpd[:len(pd)], baseline_name,
+			fk_animate.animate_compare(gt, gtp[:len(pd)], pd, predict_name, bpd[:len(pd)], baseline_name,
 					from_path+LOAD_PATH+'images/%s-%d-%s'%(basename, i, '-'.join(predict_name.split(' '))))
+
 
 
 def compare_label_embedding(model, data_iterator):
@@ -297,4 +298,4 @@ if __name__ == '__main__':
 	# compare_raw_closest('../', data_iterator)
 
 	# plot_results('../../results/nn_results.csv')
-	animate_results('../', 'nn', 'Nearest nei. (1/10)')
+	animate_results('../', 'nn_raw', 'Nearest nei. (1/10)')
