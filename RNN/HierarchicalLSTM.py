@@ -46,12 +46,12 @@ class H_LSTM:
 		encoded = None
 		if USE_GRU:
 			encoded = GRU(self.latent_dim, return_sequences=True)(inputs)
-		else:		
+		else:
 			encoded = LSTM(self.latent_dim, return_sequences=True)(inputs)
 
 		z = Input(shape=(self.latent_dim,))
 		decode_1 = RepeatVector(self.timesteps)
-		decode_2 = None 
+		decode_2 = None
 		if USE_GRU:
 			decode_2 = GRU(self.output_dim, return_sequences=True)
 		else:
@@ -66,7 +66,7 @@ class H_LSTM:
 
 		decoded_ = decode_1(z)
 		decoded_ = decode_2(decoded_)
-		
+
 		self.encoder = Model(inputs, encoded)
 		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
@@ -92,7 +92,7 @@ class H_LSTM:
 			y[:,i,h+1:,:] = 0.0
 		return np.reshape(y, (-1, self.timesteps*len(self.hierarchies), y.shape[-1]))
 
-	def run(self, data_iterator, valid_data): 
+	def run(self, data_iterator, valid_data):
 		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
 		# tbCallBack = TensorBoard(log_dir='../tb_graphs', histogram_freq=0, write_graph=True, write_images=True)
 		if not self.load():
@@ -123,17 +123,18 @@ class H_LSTM:
 					# print y_test_decoded.shape
 					y_test_decoded = np.reshape(y_test_decoded, (len(self.hierarchies), self.timesteps, -1))
 					image.plot_poses(y_test_orig, y_test_decoded)
-					
+
 
 				iter1, iter2 = tee(iter2)
-			
+
 			# self.history.record(self.log_path, model_vars)
 			data_iterator = iter2
 		# metric_baselines.compare(self, data_iterator)
 		# metrics.gen_long_sequence(valid_data, self)
 		# fk_animate.animate_random(self, valid_data[50])
 		# metrics.validate(valid_data, self.encoder, self.decoder, self.timesteps, metrics.H_LSTM)
-		association_evaluation.eval_sim_bw_levels(self, valid_data)
+		# association_evaluation.eval_sim_bw_levels(self, valid_data)
+		metrics.plot_metrics(self, data_iterator, valid_data)
 		# metric_baselines.compare_embedding(self, data_iterator)
 		# embedding_plotter.see_hierarchical_embedding(self, data_iterator, valid_data, model_vars)
 		# iter1, iter2 = tee(data_iterator)

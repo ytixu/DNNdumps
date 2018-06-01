@@ -15,7 +15,7 @@ MEAN = 1
 RANDOM = 2
 
 
-OUT_DIR = '../out/'
+OUT_DIR = '../out/new_out/'
 
 def __get_timestamp():
 	return strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime())
@@ -146,8 +146,8 @@ def __cuts():
 	# return [4]
 
 def __rn():
-	# return [100, 200, -1, -2, -3]
-	return [100, 500, 1000, 5000, 10000, 50000, 55000 -1, -2, -3]
+	return [100, 200, -1, -2, -3, -4]
+	# return [100, 500, 1000, 5000, 10000, 50000, 55000 -1, -2, -3, -4]
 
 def __common_params(n):
 	cuts = __cuts()
@@ -734,7 +734,12 @@ def plot_metrics(model, data_iterator, validation_data, n_valid = 100):
 	cuts, rn, scores = __common_params(n_valid)
 	given_n = model.hierarchies[1]
 	new_e = None
-	embedding = get_label_embedding(model, data_iterator, subspaces=model.hierarchies)
+	embedding = None
+	if model.MODEL_CODE == L_LSTM:
+		embedding = get_label_embedding(model, data_iterator, subspaces=model.hierarchies)
+	else:
+		embedding = get_embedding(model, data_iterator, subspaces=model.hierarchies)
+
 	diff_mean = {}
 	for cut in cuts:
 		diff = embedding[:,cut] - embedding[:,1]
@@ -755,9 +760,10 @@ def plot_metrics(model, data_iterator, validation_data, n_valid = 100):
 			plt.plot(x, rand_mean, label='diff %d-%d'%(model.hierarchies[k]+1, model.hierarchies[k]+1))
 			plt.fill_between(x, rand_mean-std_diff, rand_mean+std_diff, alpha=0.2)
 		plt.legend()
-		plt.savefig(OUT_DIR+'sdasdasdasd' + __get_timestamp() + '.png')
+		plt.savefig(OUT_DIR+'diff_bw_levels_%d-%d'%(model.hierarchies[cut], model.hierarchies[1]) + __get_timestamp() + '.png')
 		plt.close()
 		# plt.show()
+	print diff_mean
 
 
 	idxs = np.random.choice(len(validation_data), n_valid)
@@ -770,6 +776,9 @@ def plot_metrics(model, data_iterator, validation_data, n_valid = 100):
 			weights, w_i = __get_weights(ls, z_ref)
 			zs = np.zeros((len(rn), z_ref.shape[-1]))
 			for i,n in enumerate(rn):
+				if rn == -4:
+					new_e_idx = __closest_partial_index(embedding[:,1])
+					new_e = embedding[new_e_idx,cut]
 				if rn == -3:
 					new_e = z_ref + diff_mean[cut]
 				elif n > -2:
@@ -789,7 +798,7 @@ def plot_metrics(model, data_iterator, validation_data, n_valid = 100):
 	ys = np.array([[np.mean(scores['score'][n][cut]) for n in rn] for cut in cuts])
 	errs = np.array([[np.std(scores['score'][n][cut]) for n in rn] for cut in cuts])
 	labels = [str(model.hierarchies[c] + 1) for c in cuts]
-	x_ticks = map(str, rn[:-3])+['all', 'all (CLOSEST)', 'ADD']
+	x_ticks = map(str, rn[:-4])+['all', 'CLOSEST', 'ADD', 'P_CLOSEST']
 	x_label = 'Number of random latent representation'
 	y_label = 'Error'
 	title = 'Pose error'
