@@ -15,7 +15,7 @@ MEAN = 1
 RANDOM = 2
 
 
-OUT_DIR = '../out/new_out/'
+OUT_DIR = '../new_out/'
 
 def __get_timestamp():
 	return strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime())
