@@ -14,6 +14,7 @@ import fk_animate
 LOAD_PATH = '../data/src/h3.6/results/'
 _N = 8
 _N_PRED = 25
+_N_INPUT = 15
 DATA_ITER_SIZE = 10000
 RANDOM_N = 1000
 
@@ -57,7 +58,7 @@ def compare_raw_closest(from_path, data_iterator):
 			return {basename: [np.load(from_path + LOAD_PATH + basename + '_%d-%d.npy'%(i, j)) for j in range(_N)]
 					for basename in iter_actions(from_path)}
 
-	with open('../../results/nn_results.csv', 'wb') as csvfile:
+	with open('../../results/nn_15_results.csv', 'wb') as csvfile:
 		spamwriter = csv.writer(csvfile)
 		# iter1, iter2 = tee(data_iterator)
 		error_score = {basename:[10000]*_N for basename in iter_actions(from_path)}
@@ -73,7 +74,7 @@ def compare_raw_closest(from_path, data_iterator):
 			for x in tqdm(xs[idx]):
 				for basename in iter_actions(from_path):
 					for i in range(_N):
-						score = metrics.__pose_seq_error(x[:n_input], gt[basename][i])
+						score = metrics.__pose_seq_error(x[:n_input], gt[basename][i][-_N_INPUT:])
 						if score < error_score[basename][i]:
 							error_score[basename][i] = score
 							error_x[basename][i] = np.copy(x[n_input:])
@@ -90,10 +91,10 @@ def compare_raw_closest(from_path, data_iterator):
 			for i in range(_N):
 				error[i] = metrics.__pose_seq_error(error_x[basename][i], gtp[basename][i], cumulative=True)
 				error_[i] = metrics.__pose_seq_error(pd[basename][i], gtp[basename][i], cumulative=True)
-				np.save(from_path + LOAD_PATH + basename + '_nn_raw-%d.npy'%i, error_x[basename][i])
+				np.save(from_path + LOAD_PATH + basename + '_nn_15-%d.npy'%i, error_x[basename][i])
 				# fk_animate.animate_compare(gt[basename][i], gtp[basename][i],
-				#	error_x[basename][i], 'Nearest Neighbor (1/%d)'%(DATA_ITER_SIZE/RANDOM_N),
-				#	pd[basename][i], 'Residual sup. (MA)', from_path+LOAD_PATH+'images/')
+				# 	error_x[basename][i], 'Nearest Neighbor (1/%d)'%(DATA_ITER_SIZE/RANDOM_N),
+				# 	pd[basename][i], 'Residual sup. (MA)', from_path+LOAD_PATH+'images/')
 
 			print basename
 			_err = np.mean(error, axis=0)
@@ -118,7 +119,8 @@ def plot_results(plot_csv):
 				plt.xlabel('time-steps')
 				plt.ylabel('error')
 				plt.title(basename)
-				plt.show()
+				plt.savefig('../../results/nearest-nei/%s-1-10.png'%(basename))
+				plt.close()
 
 			basename = row[0]
 			plt.plot(range(1,len(row)-1), map(float, row[2:]), label=row[1])
@@ -294,8 +296,8 @@ if __name__ == '__main__':
 	#get_baselines('../')
 	#
 	# import parser
-	# data_iterator = parser.data_generator('../../data/h3.6/train/', '../../data/h3.6/train/', _N_PRED+49, DATA_ITER_SIZE)
+	# data_iterator = parser.data_generator('../../data/h3.6/train/', '../../data/h3.6/train/', _N_PRED+_N_INPUT, DATA_ITER_SIZE)
 	# compare_raw_closest('../', data_iterator)
 
-	# plot_results('../../results/nn_results.csv')
-	animate_results('../', 'nn_raw', 'Nearest nei. (1/10)')
+	plot_results('../../results/nn_results.csv')
+	# animate_results('../', 'nn_raw', 'Nearest nei. (1/10)')
