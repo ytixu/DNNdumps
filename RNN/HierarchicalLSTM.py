@@ -30,7 +30,7 @@ class H_LSTM:
 		self.cv_splits = args['cv_splits'] if 'cv_splits' in args else 0.2
 
 		self.timesteps = args['timesteps'] if 'timesteps' in args else 10
-		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [0,9,14,19,29]
+		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [15,19,29] #[0,9,14,19,29]
 		# self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
 		self.input_dim = args['input_dim']
 		self.output_dim = args['output_dim']
