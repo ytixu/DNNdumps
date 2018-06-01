@@ -146,8 +146,8 @@ def __cuts():
 	# return [4]
 
 def __rn():
-	return [100, 200, -1, -2, -3, -4]
-	# return [100, 500, 1000, 5000, 10000, 50000, 55000 -1, -2, -3, -4]
+	# return [100, 200, -1, -2, -3, -4]
+	return [100, 500, 1000, 5000, 10000, 50000, 55000 -1, -2, -3, -4]
 
 def __common_params(n):
 	cuts = __cuts()
@@ -248,7 +248,7 @@ def get_embedding(model, data_iterator, subspace=-1):
 				embedding = np.concatenate((embedding, e[:,subspace]), axis=0)
 			else:
 				embedding = np.concatenate((embedding, e[:,model.hierarchies]), axis=0)
-		break
+		# break
 	print embedding.shape
 	return embedding
 
