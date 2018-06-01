@@ -65,6 +65,3 @@ def animate_compare(start_seq, true_seq, pred_seq, pred_name, baseline_seq, base
 
 	anim = animation.FuncAnimation(fig, animate, init_func=init, frames=true_seq.shape[0]+n_start, interval=400, blit=True)
 	anim.save(save_path+'animation.gif', writer='imagemagick', fps=60)
-
-
-

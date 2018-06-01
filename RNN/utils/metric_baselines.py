@@ -1,5 +1,5 @@
-import matplotlib
-matplotlib.use('Agg')
+# import matplotlib
+# matplotlib.use('Agg')
 
 from itertools import tee
 import numpy as np
@@ -45,8 +45,10 @@ def get_baselines(from_path=''):
 	plt.legend()
 	plt.show()
 
+
 def compare_raw_closest(from_path, data_iterator):
 	import csv
+
 	def load__(i, cut=0):
 		if cut > 0:
 			return {basename: [np.load(from_path + LOAD_PATH + basename + '_%d-%d.npy'%(i, j))[:cut] for j in range(_N)]
@@ -97,11 +99,42 @@ def compare_raw_closest(from_path, data_iterator):
 			_err = np.mean(error, axis=0)
 			print 'nearest neighbor'
 			print _err
-			spamwriter.writerow([basename, 'nn'] + _err.tolist())
+			spamwriter.writerow([basename, 'Nearest nei. (1/%d)'%(DATA_ITER_SIZE/RANDOM_N)] + _err.tolist())
 			_err = np.mean(error_, axis=0)
 			print 'baseline error'
 			print np.mean(error_, axis=0)
-			spamwriter.writerow([basename, 'nn'] + _err.tolist())
+			spamwriter.writerow([basename, 'Residual sup. (MA)'] + _err.tolist())
+
+
+def plot_results(plot_csv):
+	import csv
+	with open(plot_csv, 'rb') as csvfile:
+		reader = csv.reader(csvfile)
+		basename = ''
+		for row in reader:
+			print row[0]
+			if basename != row[0] and basename != '':
+				plt.legend()
+				plt.xlabel('time-steps')
+				plt.ylabel('error')
+				plt.title(basename)
+				plt.show()
+
+			basename = row[0]
+			plt.plot(range(1,len(row)-1), map(float, row[2:]), label=row[1])
+
+def animate_results(from_path, predict, predict_name, baseline='1',
+		baseline_name='Residual sup. (MA)', ground_truth='2'):
+	for basename in iter_actions(from_path):
+		for i in range(_N):
+			print basename, i
+			gt = np.load(from_path + LOAD_PATH + basename + '_0-%d.npy'%i)
+			gtp = np.load(from_path + LOAD_PATH + basename + '_%s-%d.npy'%(ground_truth,i))
+			bpd = np.load(from_path + LOAD_PATH + basename + '_%s-%d.npy'%(baseline, i))
+			pd = np.load(from_path + LOAD_PATH + basename + '_%s-%d.npy'%(predict, i))
+
+			fk_animate.animate_compare(gt, gtp, pd, predict_name, bpd[:len(pd)], baseline_name,
+					from_path+LOAD_PATH+'images/%s-%d-%s'%(basename, i, '-'.join(predict_name.split(' '))))
 
 
 def compare_label_embedding(model, data_iterator):
@@ -258,6 +291,10 @@ def compare(model, data_iterator):
 
 if __name__ == '__main__':
 	#get_baselines('../')
-	import parser
-	data_iterator = parser.data_generator('../../data/h3.6/train/', '../../data/h3.6/train/', _N_PRED+49, DATA_ITER_SIZE)
-	compare_raw_closest('../', data_iterator)
+	#
+	# import parser
+	# data_iterator = parser.data_generator('../../data/h3.6/train/', '../../data/h3.6/train/', _N_PRED+49, DATA_ITER_SIZE)
+	# compare_raw_closest('../', data_iterator)
+
+	# plot_results('../../results/nn_results.csv')
+	animate_results('../', 'nn', 'Nearest nei. (1/10)')
