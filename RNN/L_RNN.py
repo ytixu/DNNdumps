@@ -7,7 +7,7 @@ from keras.optimizers import RMSprop
 
 from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines, association_evaluation
 
-LEARNING_RATE = 0.000001
+LEARNING_RATE = 0.00001
 NAME = 'L_LSTM'
 USE_GRU = True
 if USE_GRU:
@@ -33,7 +33,7 @@ class L_LSTM:
 		self.labels = args['labels']
 		self.input_dim = args['input_dim'] + self.label_dim
 		self.output_dim = args['output_dim'] + self.label_dim
-		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [49,69]
+		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [14,19,29]
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
 		self.load_path = args['load_path']

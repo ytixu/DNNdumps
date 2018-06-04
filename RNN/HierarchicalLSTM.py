@@ -13,6 +13,8 @@ from utils import parser, image, embedding_plotter, metrics, metric_baselines, f
 
 NAME = 'H_LSTM'
 USE_GRU = True
+L_RATE = 0.0001
+
 if USE_GRU:
 	from keras.layers import GRU
 else:
@@ -73,7 +75,7 @@ class H_LSTM:
 		self.encoder = Model(inputs, encoded)
 		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
-		opt = RMSprop(lr=0.00001)
+		opt = RMSprop(lr=L_RATE)
 		self.autoencoder.compile(optimizer=opt, loss='mean_squared_error')
 
 		self.autoencoder.summary()
@@ -98,7 +100,7 @@ class H_LSTM:
 	def run(self, data_iterator, valid_data):
 		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
 		# tbCallBack = TensorBoard(log_dir='../tb_graphs', histogram_freq=0, write_graph=True, write_images=True)
-		if not self.load():
+		if self.load():
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			loss = 10000
