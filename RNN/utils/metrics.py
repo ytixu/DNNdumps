@@ -748,7 +748,7 @@ def plot_metrics(model, data_iterator, validation_data, n_valid = 100):
 		idx = np.argsort(diff_mean[cut])
 		mean_diff_sorted = diff_mean[cut][idx]
 		std_diff_sorted = std_diff[idx]
-		x = range(1,201)
+		x = range(1,model.latent_dim+1)
 		plt.plot(x, mean_diff_sorted, label='diff 20-%d'%(model.hierarchies[cut]+1))
 		plt.fill_between(x, mean_diff_sorted-std_diff_sorted, mean_diff_sorted+std_diff_sorted, alpha=0.5)
 

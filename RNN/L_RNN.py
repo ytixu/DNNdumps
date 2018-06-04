@@ -1,3 +1,6 @@
+import matplotlib
+matplotlib.use('Agg')
+
 import numpy as np
 from itertools import tee
 from sklearn import cross_validation
@@ -103,7 +106,7 @@ class L_LSTM:
 
 	def run(self, data_iterator, valid_data):
 		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
-		if self.load():
+		if not self.load():
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			loss = 10000
@@ -142,7 +145,7 @@ class L_LSTM:
 
 		# embedding_plotter.see_hierarchical_embedding(self.encoder, self.decoder, data_iterator, valid_data, model_vars, self.label_dim)
 		# iter1, iter2 = tee(data_iterator)
-		metrics.validate(valid_data, self)
+		# metrics.validate(valid_data, self)
 		metrics.plot_metrics(self, data_iterator, valid_data)
 		# metrics.plot_metrics_labels(self, data_iterator, valid_data)
 		# metric_baselines.compare(self, data_iterator)
