@@ -22,13 +22,13 @@ def __get_timestamp():
 
 def __plot(x, ys, errs, labels, x_label, y_label, x_ticks, title, model_name, baseline=None):
 	for i in range(len(ys)):
-		plt.plot(x, ys[i], label=labels[i])
-		plt.fill_between(x, ys[i]-errs[i], ys[i]+errs[i], alpha=0.3)
+		p = plt.plot(x, ys[i], label=labels[i])
+		plt.fill_between(x, ys[i]-errs[i], ys[i]+errs[i], alpha=0.3, color=p[-1].get_color())
 	if baseline:
 		y = np.array([baseline[0] for _ in range(len(x))])
 		err = np.array([baseline[1] for _ in range(len(x))])
-		plt.plot(x, y, label='Baseline', color='#999999')
-		plt.fill_between(x, y-err, y+err, label='Baseline', facecolor='#999999', alpha=0.3)
+		p = plt.plot(x, y, label='Baseline', color='#999999')
+		plt.fill_between(x, y-err, y+err, label='Baseline', facecolor='#999999', alpha=0.3, color=p[-1].get_color())
 	plt.xticks(x, x_ticks)
 	plt.legend()
 	plt.xlabel(x_label)
@@ -749,16 +749,16 @@ def plot_metrics(model, data_iterator, validation_data, n_valid = 100):
 		mean_diff_sorted = diff_mean[cut][idx]
 		std_diff_sorted = std_diff[idx]
 		x = range(1,model.latent_dim+1)
-		plt.plot(x, mean_diff_sorted, label='diff 20-%d'%(model.hierarchies[cut]+1))
-		plt.fill_between(x, mean_diff_sorted-std_diff_sorted, mean_diff_sorted+std_diff_sorted, alpha=0.5)
+		p = plt.plot(x, mean_diff_sorted, label='diff 20-%d'%(model.hierarchies[cut]+1))
+		plt.fill_between(x, mean_diff_sorted-std_diff_sorted, mean_diff_sorted+std_diff_sorted, alpha=0.5, color=p[-1].get_color())
 
 		rand_idx = np.random.choice(embedding.shape[0], 1000, replace=False)
 		for k in cuts:
 			diff = [embedding[rand_idx[a],k] - embedding[rand_idx[b],k] for a in range(1000) for b in range(a)]
 			rand_mean = np.mean(diff, axis=0)[idx]
 			std_diff = np.std(diff, axis=0)[idx]
-			plt.plot(x, rand_mean, label='diff %d-%d'%(model.hierarchies[k]+1, model.hierarchies[k]+1))
-			plt.fill_between(x, rand_mean-std_diff, rand_mean+std_diff, alpha=0.2)
+			p = plt.plot(x, rand_mean, label='diff %d-%d'%(model.hierarchies[k]+1, model.hierarchies[k]+1))
+			plt.fill_between(x, rand_mean-std_diff, rand_mean+std_diff, alpha=0.2, color=p[-1].get_color())
 		plt.legend()
 		plt.savefig(OUT_DIR+'diff_bw_levels_%d-%d'%(model.hierarchies[cut], model.hierarchies[1]) + __get_timestamp() + '.png')
 		plt.close()

@@ -12,13 +12,13 @@ def eval_sim_bw_levels(model, validation_data):
 	# mean, var = np.zeros(len(model.hierarchies)), np.zeros(len(model.hierarchies))
 	x = np.arange(model.timesteps) + 1
 	encodings = metrics.__get_latent_reps(model.encoder, validation_data, model.MODEL_CODE)
-	
+
 	for c, cut in enumerate(tqdm(model.hierarchies)):
 		mean_z, var_z = np.zeros(h), np.zeros(h)
 		n = validation_data.shape[0]
 		mean, var = np.zeros(h), np.zeros(h)
 		# x1, x2 = np.zeros(validation_data[0].shape), np.zeros(validation_data[0].shape)
-		
+
 		# decodings_cut = metrics.__get_decoded_reps(model.decoder, encodings[:, cut], model.MODEL_CODE)
 		for i in range(model.timesteps):
 			diff = [e_dist(encodings[j, cut], encodings[j,i]) for j in range(n)]
@@ -55,18 +55,18 @@ def eval_sim_bw_levels(model, validation_data):
 			# plt.show()
 
 		p = plt.plot(x, mean_z, label=cut+1)
-		plt.fill_between(x, mean_z-var_z, mean_z+var_z, alpha=0.3)
+		plt.fill_between(x, mean_z-var_z, mean_z+var_z, alpha=0.3, color=p[-1].get_color())
 		plt.plot(x, mean, linestyle='dashed', color=p[-1].get_color())
 		plt.fill_between(x, mean-var, mean+var, alpha=0.2, color=p[-1].get_color())
 
 	# plt.errorbar(np.array(model.hierarchies) + 1, mean, yerr=var, fmt='o')
-	
+
 	plt.xlabel('length')
 	plt.ylabel('l2 difference')
 	plt.title('diffence in Z')
 	plt.legend()
 	# plt.show()
-	plt.savefig(metrics.OUT_DIR+'diff_in_z_%s'%(model.MODEL_CODE) + metrics.__get_timestamp() + '.png') 
+	plt.savefig(metrics.OUT_DIR+'diff_in_z_%s'%(model.MODEL_CODE) + metrics.__get_timestamp() + '.png')
 
 
 def eval_label_dist(model, validation_data):
@@ -78,8 +78,8 @@ def eval_label_dist(model, validation_data):
 	diff = [[np.linalg.norm(encodings_labels[i,j] - encodings[i,j]) for j in range(model.timesteps)] for i in range(encodings.shape[0])]
 	mean_diff = np.mean(diff, axis=0)
 	std_diff = np.std(diff, axis=0)
-	plt.plot(x, mean_diff, label='labels')
-	plt.fill_between(x, mean_diff-std_diff, mean_diff+std_diff, alpha=0.3)
+	p = plt.plot(x, mean_diff, label='labels')
+	plt.fill_between(x, mean_diff-std_diff, mean_diff+std_diff, alpha=0.3, color=p[-1].get_color())
 	for h in tqdm(model.hierarchies):
 		diff = [[np.linalg.norm(encodings_labels[i,h] - encodings_labels[i,hh]) for hh in range(model.timesteps)] for i in range(encodings.shape[0])]
 		mean_diff = np.mean(diff, axis=0)
@@ -150,7 +150,7 @@ def eval_distance(model, validation_data):
 
 		x_min, x_max = np.min(diff_i), np.max(diff_i)
 		x = np.arange(x_min, x_max, (x_max-x_min)/50)
-		
+
 		f = np.poly1d(np.polyfit(diff_i,diff_p_norm, 2))
 		p = plt.plot(x, f(x), label=h+1)
 		plt.scatter(diff_i, diff_p_norm, alpha=0.2, c=p[-1].get_color())
