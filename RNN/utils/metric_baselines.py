@@ -141,8 +141,9 @@ def animate_results(from_path, predict, predict_name, baseline='1',
 
 def compare_label_embedding(model, data_iterator):
 	import image
-	# embedding = metrics.get_label_embedding(model, data_iterator, without_label_only=True, subspaces=model.hierarchies[-2:])
-	# mean_diff, diff = metrics.get_embedding_diffs(embedding[1], embedding[0])
+	embedding = metrics.get_label_embedding(model, data_iterator, without_label_only=True, subspaces=model.hierarchies[-2:])
+	print embedding.shape
+	mean_diff, diff = metrics.get_embedding_diffs(embedding[:,1], embedding[:,0])
 	cut = model.hierarchies[-2]+1
 	pred_n = model.timesteps-cut
 	for basename in iter_actions():
@@ -160,14 +161,14 @@ def compare_label_embedding(model, data_iterator):
 			pose_pred_bl[i] = pd[:pred_n]
 			pose_gt[i] = gtp[:pred_n]
 
-		new_enc = model.encoder.predict(pose_ref)[:,cut-1] # + mean_diff
-		pose_pred = model.decoder.predict(new_enc)
-		# pose_pred = model.decoder.predict(new_enc)[:,-pred_n:,:-model.label_dim]
-		# error_bl = [metrics.__pose_seq_error(pose_gt[i], pose_pred_bl[i]) for i in range(_N)]
-		# error = [metrics.__pose_seq_error(pose_gt[i], pose_pred[i]) for i in range(_N)]
-		# print np.mean(error), np.mean(error_bl)
-		error = [metrics.__pose_seq_error(pose_ref[i], pose_pred[i]) for i in range(_N)]
-		print np.mean(error) # , np.mean(error_bl)
+		new_enc = model.encoder.predict(pose_ref)[:,cut-1] + mean_diff
+		# pose_pred = model.decoder.predict(new_enc)
+		pose_pred = model.decoder.predict(new_enc)[:,-pred_n:,:-model.label_dim]
+		error_bl = [metrics.__pose_seq_error(pose_gt[i], pose_pred_bl[i]) for i in range(_N)]
+		error = [metrics.__pose_seq_error(pose_gt[i], pose_pred[i]) for i in range(_N)]
+		print np.mean(error), np.mean(error_bl)
+		# error = [metrics.__pose_seq_error(pose_ref[i], pose_pred[i]) for i in range(_N)]
+		# print np.mean(error) # , np.mean(error_bl)
 		image.plot_poses(pose_pred, image_dir='../new_out/')
 
 def compare_embedding(model, data_iterator):
