@@ -146,9 +146,9 @@ class L_LSTM:
 		# embedding_plotter.see_hierarchical_embedding(self.encoder, self.decoder, data_iterator, valid_data, model_vars, self.label_dim)
 		# iter1, iter2 = tee(data_iterator)
 		# metrics.validate(valid_data, self)
-		metrics.plot_metrics(self, data_iterator, valid_data)
+		# metrics.plot_metrics(self, data_iterator, valid_data)
 		# metrics.plot_metrics_labels(self, data_iterator, valid_data)
-		# metric_baselines.compare(self, data_iterator)
+		metric_baselines.compare_label_embedding(self, data_iterator)
 		# association_evaluation.eval_distance(self, valid_data)
 		# evaluate.eval_pattern_reconstruction(self.encoder, self.decoder, iter2)
 

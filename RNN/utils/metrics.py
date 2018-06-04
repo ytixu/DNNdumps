@@ -216,7 +216,7 @@ def get_label_embedding(model, data_iterator, also_without_label=False, without_
 	embedding = []
 	for x, y in data_iterator:
 		if without_label_only:
-			x = x[:,:,-model.label_dim:] = 0
+			x[:,:,-model.label_dim:] = 0
 		e_l = __get_latent_reps(model.encoder, x, model.MODEL_CODE)[:,subspaces]
 		if also_without_label:
 			x[:,:,-model.label_dim:] = 0
@@ -254,6 +254,7 @@ def get_embedding(model, data_iterator, subspace=-1):
 
 def get_embedding_diffs(e_sup, e_sub):
 	diff = e_sup - e_sub
+	print diff.shape
 	mean_diff = np.mean(diff, axis=0)
 	return mean_diff, diff
 
