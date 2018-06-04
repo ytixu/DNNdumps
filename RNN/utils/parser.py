@@ -71,7 +71,7 @@ def data_generator(input_dir, output_dir, timesteps, batch_size, label=False, ls
 	if '_robot' in output_dir:
 		norm = np.pi*2
 
-	x, y, l = [], 0, []
+	x, y, l = [], [], []
 	name_label = ''
 	batch_count = 0
 	for input_file in glob.glob(input_dir+'*'):
@@ -94,23 +94,23 @@ def data_generator(input_dir, output_dir, timesteps, batch_size, label=False, ls
 
 			if label:
 				new_x = np.array([[np.concatenate([temp_x[j+k], new_l], axis=0) for j in range(timesteps)] for k in range(count-timesteps+1)])
-				#new_y = np.array([[np.concatenate([output_data[i+j+k], new_l], axis=0) for j in range(timesteps)] for k in range(count-timesteps+1)])
+				new_y = np.array([[np.concatenate([output_data[i+j+k], new_l], axis=0) for j in range(timesteps)] for k in range(count-timesteps+1)])
 			else:
 				new_x = np.array([[temp_x[j+k] for j in range(timesteps)] for k in range(count-timesteps+1)])
-				#new_y = np.array([[output_data[i+j+k] for j in range(timesteps)] for k in range(count-timesteps+1)])
+				new_y = np.array([[output_data[i+j+k] for j in range(timesteps)] for k in range(count-timesteps+1)])
 
 			if len(x) == 0:
 				x = new_x
-				#y = new_y
+				y = new_y
 			else:
 				x = np.concatenate((x, new_x), axis=0)
-				#y = np.concatenate((y, new_y), axis=0)
+				y = np.concatenate((y, new_y), axis=0)
 
 			batch_count += len(new_x)
 			if batch_count >= batch_size:
 				batch_count = 0
 				yield x, y/norm
-				x, y = [], 0
+				x, y = [], []
 	if len(x) != 0:
 		yield x, y/norm
 
