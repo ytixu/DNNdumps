@@ -169,7 +169,10 @@ def compare_label_embedding(model, data_iterator):
 		print np.mean(error), np.mean(error_bl)
 		# error = [metrics.__pose_seq_error(pose_ref[i], pose_pred[i]) for i in range(_N)]
 		# print np.mean(error) # , np.mean(error_bl)
-		image.plot_poses(pose_pred, image_dir='../new_out/')
+		image.plot_poses(pose_pred, title='rnn', image_dir='../new_out/')
+		image.plot_poses(pose_pred_bl, title='baseline', image_dir='../new_out/')
+		image.plot_poses(pose_gt, title='gt', image_dir='../new_out/')
+		np.save('../new_out/LRNN-%s.npy'%basename, pose_pred)
 
 def compare_embedding(model, data_iterator):
 	import image
