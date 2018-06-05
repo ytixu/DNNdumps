@@ -189,7 +189,7 @@ def compare_label_embedding(model, data_iterator, with_label=True):
 
 		if with_label:
 			print model.labels[basename]
-			pose_ref[:,:cut,-model.label_dim:] = model.labels[basename]
+			pose_ref[:,:cut,model.labels[basename]-model.label_dim] = 1.0
 
 		new_enc = model.encoder.predict(pose_ref)[:,cut-1] + mean_diff
 		# pose_pred = model.decoder.predict(new_enc)
