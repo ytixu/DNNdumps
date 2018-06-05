@@ -754,7 +754,7 @@ def plot_metrics(model, data_iterator, validation_data, n_valid = 100):
 		plt.fill_between(x, mean_diff_sorted-std_diff_sorted, mean_diff_sorted+std_diff_sorted, alpha=0.5, color=p[-1].get_color())
 
 		rand_idx = np.random.choice(embedding.shape[0], 1000, replace=False)
-		for k in cuts:
+		for k in range(len(model.hierarchies)):
 			diff = [embedding[rand_idx[a],k] - embedding[rand_idx[b],k] for a in range(1000) for b in range(a)]
 			rand_mean = np.mean(diff, axis=0)[idx]
 			std_diff = np.std(diff, axis=0)[idx]
@@ -764,6 +764,7 @@ def plot_metrics(model, data_iterator, validation_data, n_valid = 100):
 		plt.savefig(OUT_DIR+'diff_bw_levels_%d-%d'%(model.hierarchies[cut], model.hierarchies[1]) + __get_timestamp() + '.png')
 		plt.close()
 		# plt.show()
+	return
 	print diff_mean
 
 	idxs = np.random.choice(len(validation_data), n_valid)
