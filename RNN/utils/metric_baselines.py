@@ -139,10 +139,9 @@ def animate_results(from_path, predict, predict_name, baseline='1',
 
 
 
-def compare_label_embedding(model, data_iterator):
+def compare_label_embedding(model, data_iterator, with_label=True):
 	import image
-	embedding = metrics.get_label_embedding(model, data_iterator, without_label_only=True, subspaces=model.hierarchies[-2:])
-	print embedding.shape
+	embedding = metrics.get_label_embedding(model, data_iterator, without_label_only=with_label, subspaces=model.hierarchies[-2:])
 	mean_diff, diff = metrics.get_embedding_diffs(embedding[:,1], embedding[:,0])
 	cut = model.hierarchies[-2]+1
 	pred_n = model.timesteps-cut
@@ -160,6 +159,9 @@ def compare_label_embedding(model, data_iterator):
 			pose_ref[i,:cut,:-model.label_dim] = gt[-cut:]
 			pose_pred_bl[i] = pd[:pred_n]
 			pose_gt[i] = gtp[:pred_n]
+
+		if with_label:
+			pose_ref[:,:,-model.label_dim:] = model.labels[basename]
 
 		new_enc = model.encoder.predict(pose_ref)[:,cut-1] + mean_diff
 		# pose_pred = model.decoder.predict(new_enc)
