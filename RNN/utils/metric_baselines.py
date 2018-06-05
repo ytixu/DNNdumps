@@ -335,4 +335,4 @@ if __name__ == '__main__':
 	# plot_results('../../results/nn_15_results.csv')
 	# animate_results('../', 'nn_15', 'Nearest nei. (1/10)')
 
-	plot_results_npy('../', ['../new_out/L_RNN-t30-l400/with-lables/LRNN-', '../new_out/L_RNN-t30-l400/without-lables/LRNN-'], ['Label', 'Labeless'])
+	plot_results_npy('../', ['../../new_out/L_RNN-t30-l400/with-lables/LRNN-', '../../new_out/L_RNN-t30-l400/without-labels/LRNN-'], ['Label', 'Labeless'])
