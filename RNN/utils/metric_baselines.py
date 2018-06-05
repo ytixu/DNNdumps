@@ -124,10 +124,10 @@ def plot_results(plot_csv):
 			basename = row[0]
 			plt.plot(range(1,len(row)-1), map(float, row[2:]), label=row[1])
 
-def plot_results_npy(from_path, npy_files_dir, method_names):
+def plot_results_npy(from_path, npy_files_dirs, method_names):
 	for basename in iter_actions(from_path):
 		for i in range(len(method_names)):
-			pd = np.load(npy_files_dir + basename + '.npy')
+			pd = np.load(npy_files_dirs[i] + basename + '.npy')
 			score = [None]*_N
 			score_ = [None]*_N
 			t = pd.shape[1]
@@ -165,7 +165,6 @@ def animate_results(from_path, predict, predict_name, baseline='1',
 					from_path+LOAD_PATH+'images/%s-%d-%s'%(basename, i, predict_name.replace('.', '').replace('/', '-').replace(' ', '-')))
 
 
-
 def compare_label_embedding(model, data_iterator, with_label=True):
 	import image
 	embedding = metrics.get_label_embedding(model, data_iterator, without_label_only=(not with_label), subspaces=model.hierarchies[-2:])
@@ -189,7 +188,7 @@ def compare_label_embedding(model, data_iterator, with_label=True):
 
 		if with_label:
 			print model.labels[basename]
-			pose_ref[:,:cut,model.labels[basename]-model.label_dim] = 1.0
+			pose_ref[:,:cut,-model.label_dim:] = model.labels[basename]
 
 		new_enc = model.encoder.predict(pose_ref)[:,cut-1] + mean_diff
 		# pose_pred = model.decoder.predict(new_enc)
@@ -333,5 +332,7 @@ if __name__ == '__main__':
 	# data_iterator = parser.data_generator('../../data/h3.6/train/', '../../data/h3.6/train/', _N_PRED+_N_INPUT, DATA_ITER_SIZE)
 	# compare_raw_closest('../', data_iterator)
 
-	plot_results('../../results/nn_15_results.csv')
-	animate_results('../', 'nn_15', 'Nearest nei. (1/10)')
+	# plot_results('../../results/nn_15_results.csv')
+	# animate_results('../', 'nn_15', 'Nearest nei. (1/10)')
+
+	plot_results_npy('../', ['../new_out/L_RNN-t30-l400/with-lables/LRNN-', '../new_out/L_RNN-t30-l400/without-lables/LRNN-'], ['Label', 'Labeless'])
