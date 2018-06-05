@@ -100,7 +100,7 @@ class H_LSTM:
 	def run(self, data_iterator, valid_data):
 		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
 		# tbCallBack = TensorBoard(log_dir='../tb_graphs', histogram_freq=0, write_graph=True, write_images=True)
-		if self.load():
+		if not self.load():
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			loss = 10000
@@ -139,8 +139,8 @@ class H_LSTM:
 		# fk_animate.animate_random(self, valid_data[50])
 		# metrics.validate(valid_data, self.encoder, self.decoder, self.timesteps, metrics.H_LSTM)
 		# association_evaluation.eval_sim_bw_levels(self, valid_data)
-		metrics.plot_metrics(self, data_iterator, valid_data)
-		# metric_baselines.compare_embedding(self, data_iterator)
+		# metrics.plot_metrics(self, data_iterator, valid_data)
+		metric_baselines.compare_embedding(self, data_iterator)
 		# embedding_plotter.see_hierarchical_embedding(self, data_iterator, valid_data, model_vars)
 		# iter1, iter2 = tee(data_iterator)
 		# metrics.validate(valid_data, self.encoder, self.decoder, self.timesteps, metrics.H_LSTM)

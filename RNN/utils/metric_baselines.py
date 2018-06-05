@@ -234,6 +234,7 @@ def compare_embedding(model, data_iterator):
 		image.plot_poses(pose_pred, title='rnn')
 		image.plot_poses(pose_pred_bl, title='baseline')
 		image.plot_poses(pose_gt, title='gt')
+		np.save('../new_out/HRNN-%s.npy'%basename, pose_pred)
 
 
 def compare(model, data_iterator):
