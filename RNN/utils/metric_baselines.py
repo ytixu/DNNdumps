@@ -124,6 +124,33 @@ def plot_results(plot_csv):
 			basename = row[0]
 			plt.plot(range(1,len(row)-1), map(float, row[2:]), label=row[1])
 
+def plot_results_npy(from_path, npy_files_dir, method_names):
+	for basename in iter_actions(from_path):
+		for i in range(len(method_names)):
+			pd = np.load(npy_files_dir + basename + '.npy')
+			score = [None]*_N
+			score_ = [None]*_N
+			t = pd.shape[1]
+
+			for j in range(_N):
+				gt = np.load(from_path + LOAD_PATH + basename + '_2-%d.npy'%j)[:t]
+				score[j] = metrics.__pose_seq_error(pd[j], gt, cumulative=True)
+				if i == 0:
+					pd_b = np.load(from_path + LOAD_PATH + basename + '_1-%d.npy'%j)[:t]
+					score_[j] = metrics.__pose_seq_error(pd_b, gt, cumulative=True)
+
+			plt.plot(range(1,t+1), np.mean(score, axis=0), label=method_names[i])
+
+			if i == 0:
+				plt.plot(range(1,t+1), np.mean(score_, axis=0), label='Residual sup. (MA)')
+
+		plt.legend()
+		plt.xlabel('time-steps')
+		plt.ylabel('error')
+		plt.title(basename)
+		plt.savefig('../../new_out/L-RNN-%s.png'%(basename))
+		plt.close()
+
 def animate_results(from_path, predict, predict_name, baseline='1',
 		baseline_name='Residual sup. (MA)', ground_truth='2'):
 	for basename in iter_actions(from_path):
