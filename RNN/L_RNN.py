@@ -10,7 +10,7 @@ from keras.optimizers import RMSprop
 
 from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines, association_evaluation
 
-LEARNING_RATE = 0.00001
+LEARNING_RATE = 0.00005
 NAME = 'L_LSTM'
 USE_GRU = True
 if USE_GRU:
@@ -106,7 +106,7 @@ class L_LSTM:
 
 	def run(self, data_iterator, valid_data):
 		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
-		if not self.load():
+		if self.load():
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			loss = 10000
@@ -147,8 +147,8 @@ class L_LSTM:
 		# iter1, iter2 = tee(data_iterator)
 		# metrics.validate(valid_data, self)
 		# metrics.plot_metrics(self, data_iterator, valid_data)
-		# metrics.plot_metrics_labels(self, data_iterator, valid_data)
-		metric_baselines.compare_label_embedding(self, data_iterator)
+		metrics.plot_metrics_labels(self, data_iterator, valid_data)
+		# metric_baselines.compare_label_embedding(self, data_iterator)
 		# association_evaluation.eval_distance(self, valid_data)
 		# evaluate.eval_pattern_reconstruction(self.encoder, self.decoder, iter2)
 
