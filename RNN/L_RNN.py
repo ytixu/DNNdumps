@@ -34,6 +34,7 @@ class L_LSTM:
 		self.timesteps = args['timesteps'] if 'timesteps' in args else 5
 		self.label_dim = args['label_dim']
 		self.labels = args['labels']
+		print self.labels
 		self.input_dim = args['input_dim'] + self.label_dim
 		self.output_dim = args['output_dim'] + self.label_dim
 		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [14,19,29]
