@@ -4,6 +4,8 @@ import glob
 import os.path
 import numpy as np
 
+TOGGLE_MODE = 'sample'
+
 def random_data_generator(timesteps, batch_size):
 	# two gaussians
 	for i in range(10000):
@@ -150,12 +152,12 @@ def get_parse(model_name, labels=False):
 		args['label_dim'] = ld
 	train_data = None
 	if labels:
-		if args['mode'] == 'train':
+		if args['mode'] == TOGGLE_MODE:
 			train_data = data_generator_random(args['input_data'], args['output_data'], args['timesteps'], 30000, 400, True, ls, ld)
 		else:
 			train_data = data_generator(args['input_data'], args['output_data'], args['timesteps'], 1000, True, ls, ld)
 	else:
-		if args['mode'] == 'train':
+		if args['mode'] == TOGGLE_MODE:
 			train_data = data_generator_random(args['input_data'], args['output_data'], args['timesteps'], 30000, 400)
 		else:
 			train_data = data_generator(args['input_data'], args['output_data'], args['timesteps'], 1000)

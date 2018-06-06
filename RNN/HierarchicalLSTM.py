@@ -32,7 +32,7 @@ class H_LSTM:
 		self.cv_splits = args['cv_splits'] if 'cv_splits' in args else 0.2
 
 		self.timesteps = args['timesteps'] if 'timesteps' in args else 10
-		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [14, 19, 28, 29] #[0,9,14,19,29]
+		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [24, 29] #[0,9,14,19,29]
 		# self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
 		self.input_dim = args['input_dim']
 		self.output_dim = args['output_dim']
@@ -100,7 +100,7 @@ class H_LSTM:
 	def run(self, data_iterator, valid_data):
 		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
 		# tbCallBack = TensorBoard(log_dir='../tb_graphs', histogram_freq=0, write_graph=True, write_images=True)
-		if self.load():
+		if not self.load():
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			loss = 10000
