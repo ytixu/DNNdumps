@@ -32,7 +32,7 @@ class H_LSTM:
 		self.cv_splits = args['cv_splits'] if 'cv_splits' in args else 0.2
 
 		self.timesteps = args['timesteps'] if 'timesteps' in args else 10
-		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [14,19,29] #[14, 19, 29] #[0,9,14,19,29]
+		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [29] #[14, 19, 29] #[0,9,14,19,29]
 		# self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
 		self.input_dim = args['input_dim']
 		self.output_dim = args['output_dim']
@@ -63,11 +63,14 @@ class H_LSTM:
 			decode_2 = LSTM(self.output_dim, return_sequences=True)
 
 		decoded = [None]*len(self.hierarchies)
-		for i, h in enumerate(self.hierarchies):
-			e = Lambda(lambda x: x[:,h], output_shape=(self.latent_dim,))(encoded)
-			decoded[i] = decode_1(e)
-			decoded[i] = decode_2(decoded[i])
-		decoded = concatenate(decoded, axis=1)
+		if len(self.hierarchies) == 1:
+			decoded = Lambda(lambda x: x[:,self.hierarchies[0]], output_shape=(self.latent_dim,))(encoded)
+		else:
+			for i, h in enumerate(self.hierarchies):
+				e = Lambda(lambda x: x[:,h], output_shape=(self.latent_dim,))(encoded)
+				decoded[i] = decode_1(e)
+				decoded[i] = decode_2(decoded[i])
+			decoded = concatenate(decoded, axis=1)
 
 		decoded_ = decode_1(z)
 		decoded_ = decode_2(decoded_)
@@ -91,6 +94,8 @@ class H_LSTM:
 		return False
 
 	def __alter_y(self, y):
+		if len(self.hierarchies) == 1:
+			return y
 		y = np.repeat(y, len(self.hierarchies), axis=0)
 		y = np.reshape(y, (-1, len(self.hierarchies), self.timesteps, y.shape[-1]))
 		for i, h in enumerate(self.hierarchies):
