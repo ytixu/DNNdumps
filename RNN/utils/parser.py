@@ -4,7 +4,7 @@ import glob
 import os.path
 import numpy as np
 
-TOGGLE_MODE = 'sample'
+TOGGLE_MODE = 'train'
 
 def random_data_generator(timesteps, batch_size):
 	# two gaussians

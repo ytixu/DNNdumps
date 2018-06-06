@@ -13,7 +13,7 @@ from utils import parser, image, embedding_plotter, metrics, metric_baselines, f
 
 NAME = 'H_LSTM'
 USE_GRU = True
-L_RATE = 0.00001
+L_RATE = 0.001
 
 if USE_GRU:
 	from keras.layers import GRU
@@ -32,7 +32,7 @@ class H_LSTM:
 		self.cv_splits = args['cv_splits'] if 'cv_splits' in args else 0.2
 
 		self.timesteps = args['timesteps'] if 'timesteps' in args else 10
-		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [24, 29] #[0,9,14,19,29]
+		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [14,19,29] #[14, 19, 29] #[0,9,14,19,29]
 		# self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
 		self.input_dim = args['input_dim']
 		self.output_dim = args['output_dim']
@@ -84,7 +84,7 @@ class H_LSTM:
 
 	def load(self):
 		self.make_model()
-		if not self.trained:
+		if self.trained:
 			self.autoencoder.load_weights(self.load_path)
 			print 'LOADED------'
 			return True
@@ -139,11 +139,11 @@ class H_LSTM:
 		# fk_animate.animate_random(self, valid_data[50])
 		# metrics.validate(valid_data, self.encoder, self.decoder, self.timesteps, metrics.H_LSTM)
 		# association_evaluation.eval_sim_bw_levels(self, valid_data)
-		# metrics.plot_metrics(self, data_iterator, valid_data)
+		metrics.plot_metrics(self, data_iterator, valid_data)
 		# metric_baselines.compare_embedding(self, data_iterator)
 		# embedding_plotter.see_hierarchical_embedding(self, data_iterator, valid_data, model_vars)
 		# iter1, iter2 = tee(data_iterator)
-		metrics.validate(valid_data, self)
+		# metrics.validate(valid_data, self)
 		# evaluate.eval_pattern_reconstruction(self.encoder, self.decoder, iter2)
 
 if __name__ == '__main__':
