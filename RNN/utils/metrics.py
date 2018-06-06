@@ -764,7 +764,7 @@ def plot_metrics(model, data_iterator, validation_data, n_valid = 100):
 		plt.savefig(OUT_DIR+'diff_bw_levels_%d-%d'%(model.hierarchies[cut], model.hierarchies[1]) + __get_timestamp() + '.png')
 		plt.close()
 		# plt.show()
-	return
+
 	print diff_mean
 
 	idxs = np.random.choice(len(validation_data), n_valid)
