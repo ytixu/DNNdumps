@@ -1,4 +1,6 @@
 import numpy as np
+from tqdm import tqdm
+import metrics
 
 def error(y_true, y_predict):
 	return np.mean(np.mean(np.square(y_true - y_predict), axis=1), axis=1)
@@ -24,7 +26,7 @@ def random_baseline(data_iterator):
 	var = np.zeros(h)
 	for i in range(h):
 		x_ref[:,:i+1] = 0
-		x_pick[:,:i+1] = 0 
+		x_pick[:,:i+1] = 0
 		err = error(x_ref, x_pick)
 		mean[i] = np.mean(err)
 		var[i] = np.std(err)
@@ -69,6 +71,35 @@ def eval_pattern_reconstruction(encoder, decoder, data_iterator):
 
 	print mean
 	print var
+
+def eval_nearest_neighbor(validation_data, training_data, n=100, n_input=15):
+	error_score = [1000]*n
+	error_x = [None]*n
+	for i in tqdm(np.random.choice(len(training_data), n, replace=False)):
+		for xs, _ in data_iterator:
+			idx = np.random.choice(xs.shape[0], min(1000, xs.shape[0]), replace=False)
+			for x in tqdm(xs[idx]):
+				score = metrics.__pose_seq_error(x[:n_input], validation_data[i,:n_input])
+				if score < error_score[i]:
+					error_score[i] = score
+					error_x[i] = np.copy(x[n_input:])
+
+	error = [None]*n
+	error_ = [None]*n
+	for i in range(n):
+		error[i] = metrics.__pose_seq_error(error_x[basename][i], gtp[basename][i], cumulative=True)
+		# fk_animate.animate_compare(gt[basename][i], gtp[basename][i],
+		# 	error_x[basename][i], 'Nearest Neighbor (1/%d)'%(DATA_ITER_SIZE/RANDOM_N),
+		# 	pd[basename][i], 'Residual sup. (MA)', from_path+LOAD_PATH+'images/')
+
+	_err = np.mean(error, axis=0)
+	plt.plot(range(1,_err.shape[0]), _err)
+	plt.xlabel('time-steps')
+	plt.ylabel('error')
+	plt.title('Nearest Neighbor (1/10)')
+	plt.savefig('../results/nn-random-sampled-%d.png'%n)
+	plt.close()
+
 
 def test():
 	y_true = np.reshape(np.arange(20), (5,2,2))
