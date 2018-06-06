@@ -780,7 +780,7 @@ def plot_metrics(model, data_iterator, validation_data, n_valid = 100):
 				if rn == -4:
 					new_e_idx = __closest_partial_index(embedding[:,1])
 					new_e = embedding[new_e_idx,cut]
-				if rn == -3:
+				elif rn == -3:
 					new_e = z_ref + diff_mean[cut]
 				elif n > -2:
 					new_e = __random(ls, z_ref, n, weights, w_i)
