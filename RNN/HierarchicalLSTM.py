@@ -1,5 +1,5 @@
-# import matplotlib
-# matplotlib.use('Agg')
+import matplotlib
+matplotlib.use('Agg')
 
 import numpy as np
 from itertools import tee
@@ -32,7 +32,7 @@ class H_LSTM:
 		self.cv_splits = args['cv_splits'] if 'cv_splits' in args else 0.2
 
 		self.timesteps = args['timesteps'] if 'timesteps' in args else 10
-		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [29] # [14, 19, 29] #[0,9,14,19,29]
+		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [14, 19, 29] #[0,9,14,19,29]
 		# self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
 		self.input_dim = args['input_dim']
 		self.output_dim = args['output_dim']
@@ -146,8 +146,8 @@ class H_LSTM:
 		# fk_animate.animate_random(self, valid_data[50])
 		# metrics.validate(valid_data, self.encoder, self.decoder, self.timesteps, metrics.H_LSTM)
 		# association_evaluation.eval_sim_bw_levels(self, valid_data)
-		evaluate.eval_nearest_neighbor(valid_data, data_iterator)
-		# metrics.plot_metrics(self, data_iterator, valid_data)
+		# evaluate.eval_nearest_neighbor(valid_data, data_iterator)
+		metrics.plot_metrics(self, data_iterator, valid_data)
 		# metric_baselines.compare_embedding(self, data_iterator)
 		# embedding_plotter.see_hierarchical_embedding(self, data_iterator, valid_data, model_vars)
 		# iter1, iter2 = tee(data_iterator)
