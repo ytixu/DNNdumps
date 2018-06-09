@@ -1,6 +1,8 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from tqdm import tqdm
 import metrics
+
 
 def error(y_true, y_predict):
 	return np.mean(np.mean(np.square(y_true - y_predict), axis=1), axis=1)
@@ -72,33 +74,36 @@ def eval_pattern_reconstruction(encoder, decoder, data_iterator):
 	print mean
 	print var
 
-def eval_nearest_neighbor(validation_data, training_data, n=100, n_input=15):
-	error_score = [1000]*n
-	error_x = [None]*n
-	for i in tqdm(np.random.choice(len(training_data), n, replace=False)):
-		for xs, _ in data_iterator:
-			idx = np.random.choice(xs.shape[0], min(1000, xs.shape[0]), replace=False)
-			for x in tqdm(xs[idx]):
-				score = metrics.__pose_seq_error(x[:n_input], validation_data[i,:n_input])
+def eval_nearest_neighbor(validation_data, training_data, n_valid=250, n_random=1000, n_input=15):
+	error_score = [1000]*n_valid
+	error_x = [None]*n_valid
+	idxs = np.random.choice(len(validation_data), n_valid, replace=False)
+	for xs, _ in training_data:
+		idx_comp = np.random.choice(xs.shape[0], min(n_random, xs.shape[0]), replace=False)
+		for i, idx in enumerate(tqdm(idxs)):
+			for x in xs[idx_comp]:
+				score = metrics.__pose_seq_error(x[:n_input], validation_data[idx,:n_input])
 				if score < error_score[i]:
 					error_score[i] = score
 					error_x[i] = np.copy(x[n_input:])
 
-	error = [None]*n
-	error_ = [None]*n
-	for i in range(n):
-		error[i] = metrics.__pose_seq_error(error_x[basename][i], gtp[basename][i], cumulative=True)
+
+	error = [None]*n_valid
+	error_ = [None]*n_valid
+	for i, idx in enumerate(idxs):
+		error[i] = metrics.__pose_seq_error(error_x[i], validation_data[idx,n_input:], cumulative=True)
 		# fk_animate.animate_compare(gt[basename][i], gtp[basename][i],
 		# 	error_x[basename][i], 'Nearest Neighbor (1/%d)'%(DATA_ITER_SIZE/RANDOM_N),
 		# 	pd[basename][i], 'Residual sup. (MA)', from_path+LOAD_PATH+'images/')
 
 	_err = np.mean(error, axis=0)
-	plt.plot(range(1,_err.shape[0]), _err)
+	plt.plot(range(1,_err.shape[0]+1), _err)
 	plt.xlabel('time-steps')
 	plt.ylabel('error')
 	plt.title('Nearest Neighbor (1/10)')
 	plt.savefig('../results/nn-random-sampled-%d.png'%n)
 	plt.close()
+	# plt.show()
 
 
 def test():

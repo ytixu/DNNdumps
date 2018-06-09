@@ -1,5 +1,5 @@
-import matplotlib
-matplotlib.use('Agg')
+# import matplotlib
+# matplotlib.use('Agg')
 
 import numpy as np
 from itertools import tee
@@ -9,11 +9,11 @@ from keras.models import Model
 from keras.callbacks import TensorBoard
 from keras.optimizers import RMSprop
 
-from utils import parser, image, embedding_plotter, metrics, metric_baselines, fk_animate, association_evaluation
+from utils import parser, image, embedding_plotter, metrics, metric_baselines, fk_animate, association_evaluation, evaluate
 
 NAME = 'H_LSTM'
 USE_GRU = True
-L_RATE = 0.00005
+L_RATE = 0.00001
 
 if USE_GRU:
 	from keras.layers import GRU
@@ -32,7 +32,7 @@ class H_LSTM:
 		self.cv_splits = args['cv_splits'] if 'cv_splits' in args else 0.2
 
 		self.timesteps = args['timesteps'] if 'timesteps' in args else 10
-		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [14, 19, 29] #[0,9,14,19,29]
+		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [29] # [14, 19, 29] #[0,9,14,19,29]
 		# self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
 		self.input_dim = args['input_dim']
 		self.output_dim = args['output_dim']
