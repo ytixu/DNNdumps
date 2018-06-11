@@ -101,7 +101,7 @@ def eval_nearest_neighbor(validation_data, training_data, n_valid=250, n_random=
 	plt.xlabel('time-steps')
 	plt.ylabel('error')
 	plt.title('Nearest Neighbor (1/10)')
-	plt.savefig('../results/nn-random-sampled-%d.png'%n)
+	plt.savefig('../new_out/nn-random-sampled-v%d-r%d.png'%(n_valid, n_random))
 	plt.close()
 	# plt.show()
 
