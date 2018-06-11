@@ -901,3 +901,4 @@ def plot_metrics_labels(model, data_iterator, validation_data, n=1000):
 		if add:
 			title = 'Label error (ADD)'
 		__plot(x, ys, errs, labels, x_label, y_label, x_ticks, title, model.MODEL_CODE)
+

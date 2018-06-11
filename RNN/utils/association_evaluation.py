@@ -177,3 +177,48 @@ def eval_distance(model, validation_data):
 	# plt.xlabel('Pose norm')
 	# plt.ylabel('Z norm')
 	# plt.show()
+
+
+### Evaluate generation/interpolation
+# check in ave(x,y) belongs to the same subspace
+# use nearest neighbour to compute score
+def eval_generation(model, action_data, data_iterator, n=2, n_comp=2, cut=-1):
+	ind_rand = np.random.choice(action_data.shape[0], n, replace=False)
+	n = n/2
+	encoded = metrics.__get_latent_reps(model.encoder, action_data[ind_rand], model.MODEL_CODE, n=cut)
+	encoded = np.array([(encoded[i] + encoded[i+n])/2 for i in range(n)])
+	action_data = metrics.__get_decoded_reps(model.decoder, encoded, model.MODEL_CODE)
+	scores = np.array([[1000]*n]*len(model.labels))
+	for xs,_ in data_iterator:
+		x_idx = np.random.choice(len(xs), np.min(n_comp, len(xs)), replace=False)
+		for x in xs[x_idx]:
+			for i, z in enumerate(action_data):
+				s = metrics.__pose_seq_error(z[:-model.label_dim], x[:-model.label_dim], cumulative=True)
+				label_idx = np.argmax(x[-model.label_dim:])
+				if scores[label_idx,i] > s:
+					scores[label_idx,i] = s
+
+	print 'mean', np.mean(scores, axis=0)
+	print 'std', np.std(scores, axis=0)
+	print 'max', np.max(scores, axis=0)
+	print 'min', np.min(scores, axis=0)
+
+
+def eval_center(model, action_data, n=200, n_comp=1000, cut=-1):
+	encoded = metrics.__get_latent_reps(model.encoder, action_data, model.MODEL_CODE, n=cut)
+	center_a = np.mean(encoded, axis=0)
+	center_a = metrics.__get_decoded_reps(model.decoder, center_a, model.MODEL_CODE)
+	center_raw = np.mean(action_data, axis=0)
+	pseudo_center_idxs = np.random.choice(action_data.shape[0], n, replace=False)
+	comp_idxs = np.random.choice(action_data.shape[0], n_comp, replace=False)
+	scores = [[1000]*(n+2)]*n_comp
+	for i in comp_idxs:
+		for j in pseudo_center_idxs:
+			scores[i][j] = metrics.__pose_seq_error(action_data[i], action_data[j], cumulative=True)
+		score[i][-2] = metrics.__pose_seq_error(action_data[i], center_raw, cumulative=True)
+		score[i][-1] = metrics.__pose_seq_error(action_data[i], center_a, cumulative=True)
+
+	print 'mean', np.mean(scores, axis=0)
+	print 'std', np.std(scores, axis=0)
+	print 'min', np.min(scores, axis=0)
+	print 'max', np.max(scores, axis=0)
