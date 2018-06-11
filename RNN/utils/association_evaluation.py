@@ -1,7 +1,9 @@
 import numpy as np
 from tqdm import tqdm
-import metrics
 import matplotlib.pyplot as plt
+import json
+
+import metrics
 
 def e_dist(ea, eb):
 	# return np.linalg.norm(ea - eb)
@@ -179,6 +181,23 @@ def eval_distance(model, validation_data):
 	# plt.show()
 
 
+def __save_score(scores, model, name):
+	labels = {v: k for k, v in model.labels.iteritems()}
+	with open('../new_out/%s-%s-t%d-l%d.json'%(name, model.NAME, model.timesteps, model.latent_dim)) as jsonfile:
+	json.dump({
+		'labels':labels,
+		'mean':np.mean(scores, axis=0),
+		'std':np.std(scores, axis=0),
+		'max':np.max(scores, axis=0),
+		'min':np.min(scores, axis=0)
+		}, jsonfile)
+
+	print labels
+	print 'mean', np.mean(scores, axis=0)
+	print 'std', np.std(scores, axis=0)
+	print 'min', np.min(scores, axis=0)
+	print 'max', np.max(scores, axis=0)
+
 ### Evaluate generation/interpolation
 # check in ave(x,y) belongs to the same subspace
 # use nearest neighbour to compute score
@@ -203,28 +222,30 @@ def eval_generation(model, action_data, data_iterator, n=200, n_comp=1000, cut=-
 					scores[i][label_idx] = s
 		del xs
 
-	print model.labels
-	print 'mean', np.mean(scores, axis=0)
-	print 'std', np.std(scores, axis=0)
-	print 'max', np.max(scores, axis=0)
-	print 'min', np.min(scores, axis=0)
-
+	__save_score(scores, model, 'eval_generation')
 
 def eval_center(model, action_data, n=200, n_comp=1000, cut=-1):
+	if cut == -1:
+		cut = model.hierarchies[-1]
+
 	encoded = metrics.__get_latent_reps(model.encoder, action_data, model.MODEL_CODE, n=cut)
 	center_a = np.mean(encoded, axis=0)
 	center_a = metrics.__get_decoded_reps(model.decoder, center_a, model.MODEL_CODE)
 	center_raw = np.mean(action_data, axis=0)
 	pseudo_center_idxs = np.random.choice(action_data.shape[0], n, replace=False)
-	comp_idxs = np.random.choice(action_data.shape[0], n_comp, replace=False)
-	scores = [[1000]*(n+2)]*n_comp
+	comp_idxs = np.random.choice(action_data.shape[0], min(n_comp, action_data.shape[0]), replace=False)
+	scores = np.array([[1000]*(n+2)]*n_comp)
+	print scores.shape
+
+	if model.MODEL_CODE == metrics.L_LSTM:
+		center_a = center_a[:,:,:-model.label_dim]
+		center_raw = center_raw[:,:,:-model.label_dim]
+		action_data = action_data[:,:,:-model.label_dim]
+
 	for i in tqdm(comp_idxs):
 		for j in pseudo_center_idxs:
-			scores[i][j] = metrics.__pose_seq_error(action_data[i], action_data[j], cumulative=True)
-		score[i][-2] = metrics.__pose_seq_error(action_data[i], center_raw, cumulative=True)
-		score[i][-1] = metrics.__pose_seq_error(action_data[i], center_a, cumulative=True)
+			scores[i][j] = metrics.__pose_seq_error(action_data[i], action_data[j])
+		score[i][-2] = metrics.__pose_seq_error(action_data[i], center_raw)
+		score[i][-1] = metrics.__pose_seq_error(action_data[i], center_a)
 
-	print 'mean', np.mean(scores, axis=0)
-	print 'std', np.std(scores, axis=0)
-	print 'min', np.min(scores, axis=0)
-	print 'max', np.max(scores, axis=0)
+	__save_score(scores, model, 'eval_center')
