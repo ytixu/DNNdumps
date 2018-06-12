@@ -34,8 +34,9 @@ def animate_random(model, start_seq, embedding, mean=0.38919052, std=0.1443201):
 
 def animate_motion(seq, name, save_path):
 	fig = plt.figure()
-	fig.set_title(name)
-	ob = viz.Ax3DPose(fig)
+	ax = fig.add_subplot(1, 1, 1, projection='3d')
+	ax.set_title(name)
+	ob = viz.Ax3DPose(ax)
 	n_t = seq.shape[0]
 
 	def init():

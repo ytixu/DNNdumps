@@ -269,38 +269,41 @@ def eval_generation_from_label(model, data_iterator, cut=-1):
 
 		z_motion = metrics.__get_latent_reps(model.encoder, xs, model.MODEL_CODE, n=cut)
 		idx = np.argmax(xs[:,0,-model.label_dim:], axis=1)
-		print z_motion.shape, idx.shape
+		# print z_motion.shape, idx.shape
+		# print idx
 		xs[:,:,:-model.label_dim] = 0
 		z_label = metrics.__get_latent_reps(model.encoder, xs, model.MODEL_CODE, n=cut)
 		diff = z_motion - z_label
 		for i in range(model.label_dim):
 			idx_label = np.where(idx == i)
-			print diff[idx_label].shape
+			# print diff[idx_label].shape
 			n_d = diff[idx_label].shape[0]
 			if n_d > 0:
-				print np.mean(diff[idx_label], axis=0).shape
-				diff_by_label[i] = diff_by_label[i] + np.mean(diff[idx_label], axis=0)
+				# print np.sum(diff[idx_label], axis=0).shape
+				diff_by_label[i] = diff_by_label[i] + np.sum(diff[idx_label], axis=0)
 				diff_n[i] = diff_n[i] + n_d
 		del xs, idx, diff
+		break
 
-	x = range(len(model.latent_dim))
+	x = range(model.latent_dim)
 	for i, n_d in enumerate(diff_n):
 		diff_by_label[i] = diff_by_label[i]/n_d
 		plt.plot(x, diff_by_label[i])
 	plt.xlabel('latent dimensions')
 	plt.ylabel('mean difference')
 	plt.title('Mean difference with/without motion')
-	plt.savefig('../new_out/eval_generation_from_label-z-'+model.NAME+.'.png')
+	plt.savefig('../new_out/eval_generation_from_label-z-'+model.NAME+'.png')
 	plt.close()
 
 	print 'generating...'
 	valid_data = np.zeros((model.label_dim, model.timesteps, model.input_dim))
-	valid_data[:,:,-model.label_dim:] = np.identity(model.label_dim)[:]
+	for i in range(model.timesteps):
+		valid_data[:,i,-model.label_dim:] = np.identity(model.label_dim)
 	z_label = metrics.__get_latent_reps(model.encoder, valid_data, model.MODEL_CODE, n=cut)
 	z_gen = z_label + diff_by_label
 	action_pred = metrics.__get_decoded_reps(model.decoder, z_gen, model.MODEL_CODE)
 	filename = '../new_out/eval_generation_from_label-gen_poses-'+model.NAME+'.npy'
-	np.save()
+	np.save(filename, action_pred)
 
 	print 'animating...'
 	animate_poses(filename, model, '../new_out/eval_generation_from_label-animate-')
