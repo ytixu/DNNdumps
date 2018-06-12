@@ -265,13 +265,15 @@ def plot_results(directory, model_name, action_type):
 		y = data['mean']
 		yerr = [data['min'], data['max']]
 		plt.errorbar(x, y, yerr=yerr, fmt='o')
+		yerr = data['std']
+		plt.errorbar(x, y, yerr=yerr, fmt='o')
 		plt.xticks(x, [data['labels'][str(i)] for i in range(len(x))], rotation='vertical')
 		plt.xlabel('category')
 		plt.ylabel('closest distance')
 		plt.margins(0.1)
 		plt.subplots_adjust(bottom=0.25)
-		plt.title('Distance to interpolated %s motion (min, mean, max)'%action_type)
-		plt.savefig(directory+'eval_generation-'+model_name+'.png')
+		plt.title('Distance to interpolated %s motion (min, mean, std, max)'%action_type)
+		plt.savefig(directory+'eval_generation-'+model_name+'-std.png')
 		plt.close()
 
 
@@ -284,12 +286,14 @@ def plot_results(directory, model_name, action_type):
 		yerr = [[data['min'][i] for i in idx]+[data['min'][-1], data['min'][-2]],
 				[data['max'][i] for i in idx]+[data['max'][-1], data['max'][-2]]]
 		plt.errorbar(x, y, yerr=yerr, fmt='o')
+		yerr = [data['std'][i] for i in idx]+[data['std'][-1], data['std'][-2]]
+		plt.errorbar(x, y, yerr=yerr, fmt='o')
 		plt.xticks(x, ['']*200 + ['z', 'raw'])
 		plt.margins(0.1)
 		plt.xlabel('centers')
 		plt.ylabel('distance to other %s motions'%action_type)
 		plt.title('Centers comparison for %s (min, mean, max)'%action_type)
-		plt.savefig(directory+'eval_center-'+model_name+'.png')
+		plt.savefig(directory+'eval_center-'+model_name+'-std.png')
 		plt.close()
 
 if __name__ == '__main__':
