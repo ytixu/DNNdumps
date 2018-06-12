@@ -256,6 +256,10 @@ def eval_center(model, action_data, n=200, n_comp=1000, cut=-1):
 		scores[l][-1] = metrics.__pose_seq_error(action_data[i], center_a)
 
 	__save_score(scores, model, 'eval_center')
+	print 'animating...'
+	import fk_animate
+	fk_animate.animate_motion(center_raw, 'center raw', '../new_out/center_raw_animate')
+	fk_animate.animate_motion(center_a, 'center latent', '../new_out/center_latent_animate')
 
 def eval_generation_from_label(model, data_iterator, cut=-1):
 	if cut == -1:
