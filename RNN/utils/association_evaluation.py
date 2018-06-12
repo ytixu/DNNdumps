@@ -269,7 +269,7 @@ def plot_results(directory, model_name, action_type):
 		plt.xlabel('category')
 		plt.ylabel('closest distance')
 		plt.margins(0.1)
-		plt.subplots_adjust(bottom=0.15)
+		plt.subplots_adjust(bottom=0.25)
 		plt.title('Distance to interpolated %s motion (min, mean, max)'%action_type)
 		plt.savefig(directory+'eval_generation-'+model_name+'.png')
 		plt.close()
