@@ -259,24 +259,25 @@ def eval_center(model, action_data, n=200, n_comp=1000, cut=-1):
 
 
 def plot_results(directory, model_name, action_type):
-	with open(directory+'eval_center-'+model_name+'.json', 'rb') as jsonfile:
-		data = json.loads(jsonfile)
+	with open(directory+'eval_generation-'+model_name+'.json', 'rb') as jsonfile:
+		data = json.loads(jsonfile.read())
 		x = range(len(data['labels']))
 		y = data['mean']
 		yerr = [data['min'], data['max']]
+		print len(x), len(y)
 		plt.errorbar(x, y, yerr=yerr, fmt='o')
 		plt.xticks(x, [data['labels'][str(i)] for i in range(len(x))])
 		plt.xlabel('category')
 		plt.ylabel('closest distance')
 		plt.title('Distance from interpolated %s motion to motions of different categories (min, mean, max)'%action_type)
-		plt.savefig(directory+'eval_center-'model_name+'.png')
+		plt.savefig(directory+'eval_generation-'+model_name+'.png')
 		plt.close()
 
 
-	with open(directory+'eval_generation-'+model_name+'.json', 'rb') as jsonfile:
-		data = json.loads(jsonfile)
+	with open(directory+'eval_center-'+model_name+'.json', 'rb') as jsonfile:
+		data = json.loads(jsonfile.read())
 		x = range(len(data['mean']))
-		idx = np.flip(np.argsort(data['mean'][:-2]))
+		idx = np.flip(np.argsort(data['mean'][:-2]), 0)
 		y = [data['mean'][i] for i in idx]+[data['mean'][-1], data['mean'][-2]]
 		yerr = [[data['min'][i] for i in idx]+[data['min'][-1], data['min'][-2]],
 				[data['max'][i] for i in idx]+[data['max'][-1], data['max'][-2]]]
@@ -285,7 +286,7 @@ def plot_results(directory, model_name, action_type):
 		plt.xlabel('centers')
 		plt.ylabel('distance to other %s motions'%action_type)
 		plt.title('Centers comparison for %s (min, mean, max)'%action_type)
-		plt.savefig(directory+'eval_generation-'model_name+'.png')
+		plt.savefig(directory+'eval_center-'+model_name+'.png')
 		plt.close()
 
 if __name__ == '__main__':
