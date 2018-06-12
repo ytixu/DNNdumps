@@ -258,8 +258,8 @@ def eval_center(model, action_data, n=200, n_comp=1000, cut=-1):
 	__save_score(scores, model, 'eval_center')
 	print 'animating...'
 	import fk_animate
-	fk_animate.animate_motion(center_raw, 'center raw', '../new_out/center_raw_animate')
-	fk_animate.animate_motion(center_a, 'center latent', '../new_out/center_latent_animate')
+	fk_animate.animate_motion(center_raw, 'center raw', '../new_out/center_raw_animate-%s-t%d-l%d'%(model.NAME, model.timesteps, model.latent_dim))
+	fk_animate.animate_motion(center_a, 'center latent', '../new_out/center_latent_animate-%s-t%d-l%d'%(model.NAME, model.timesteps, model.latent_dim))
 
 def eval_generation_from_label(model, data_iterator, cut=-1):
 	if cut == -1:
