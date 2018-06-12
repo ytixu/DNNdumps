@@ -348,7 +348,8 @@ def plot_results(directory, model_name, action_type):
 		plt.errorbar(x, y, yerr=yerr, fmt='o')
 		yerr = [data['std'][i] for i in idx]+data['std'][-3:]
 		plt.errorbar(x, y, yerr=yerr, fmt='o')
-		plt.xticks(x, ['']*200 + ['gen-label', 'z', 'raw'])
+		plt.xticks(x, ['']*200 + ['gen-label', 'z', 'raw'], rotation='vertical')
+		plt.subplots_adjust(bottom=0.15)
 		plt.margins(0.1)
 		plt.xlabel('centers')
 		plt.ylabel('distance to other %s motions'%action_type)
