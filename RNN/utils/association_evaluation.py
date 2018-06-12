@@ -303,7 +303,7 @@ def eval_generation_from_label(model, data_iterator, cut=-1):
 	z_gen = z_label + diff_by_label
 	action_pred = metrics.__get_decoded_reps(model.decoder, z_gen, model.MODEL_CODE)
 	filename = '../new_out/eval_generation_from_label-gen_poses-'+model.NAME+'.npy'
-	np.save(filename, action_pred)
+	np.save(filename, action_pred[:,:,:-model.label_dim])
 
 	print 'animating...'
 	animate_poses(filename, model, '../new_out/eval_generation_from_label-animate-')
