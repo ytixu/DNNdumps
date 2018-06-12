@@ -283,7 +283,6 @@ def eval_generation_from_label(model, data_iterator, cut=-1):
 				diff_by_label[i] = diff_by_label[i] + np.sum(diff[idx_label], axis=0)
 				diff_n[i] = diff_n[i] + n_d
 		del xs, idx, diff
-		break
 
 	x = range(model.latent_dim)
 	for i, n_d in enumerate(diff_n):
