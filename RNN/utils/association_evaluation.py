@@ -297,5 +297,5 @@ def plot_results(directory, model_name, action_type):
 		plt.close()
 
 if __name__ == '__main__':
-	action_type = 'greeting'
-	plot_results('../../new_out/'+action_type+'/', 'L_GRU-t30-l800', action_type)
+	action_type = 'walking'
+	plot_results('../../new_out/'+action_type+'/', 'L_GRU-t30-l400', action_type)
