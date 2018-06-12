@@ -227,6 +227,7 @@ def eval_generation(model, action_data, data_iterator, n=200, n_comp=1000, cut=-
 
 	__save_score(scores, model, 'eval_generation')
 
+## Check if encoded center is as close to others as in the raw space
 def eval_center(model, action_data, n=200, n_comp=1000, cut=-1):
 	if cut == -1:
 		cut = model.hierarchies[-1]
@@ -252,3 +253,9 @@ def eval_center(model, action_data, n=200, n_comp=1000, cut=-1):
 		scores[l][-1] = metrics.__pose_seq_error(action_data[i], center_a)
 
 	__save_score(scores, model, 'eval_center')
+
+
+# def plot_results(filename):
+# 	with open(filename, 'rb') as jsonfile:
+# 		data = json.loads(jsonfile)
+# 		plt.
