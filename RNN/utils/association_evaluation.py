@@ -183,13 +183,13 @@ def eval_distance(model, validation_data):
 
 def __save_score(scores, model, name):
 	labels = {v: k for k, v in model.labels.iteritems()}
-	with open('../new_out/%s-%s-t%d-l%d.json'%(name, model.NAME, model.timesteps, model.latent_dim)) as jsonfile:
-	json.dump({
-		'labels':labels,
-		'mean':np.mean(scores, axis=0),
-		'std':np.std(scores, axis=0),
-		'max':np.max(scores, axis=0),
-		'min':np.min(scores, axis=0)
+	with open('../new_out/%s-%s-t%d-l%d.json'%(name, model.NAME, model.timesteps, model.latent_dim), 'wb') as jsonfile:
+		json.dump({
+			'labels':labels,
+			'mean':np.mean(scores, axis=0).tolist(),
+			'std':np.std(scores, axis=0).tolist(),
+			'max':np.max(scores, axis=0).tolist(),
+			'min':np.min(scores, axis=0).tolist()
 		}, jsonfile)
 
 	print labels
@@ -211,7 +211,8 @@ def eval_generation(model, action_data, data_iterator, n=200, n_comp=1000, cut=-
 	encoded = metrics.__get_latent_reps(model.encoder, action_data[ind_rand], model.MODEL_CODE, n=cut)
 	encoded = np.array([(encoded[i] + encoded[i+n])/2 for i in range(n)])
 	action_data = metrics.__get_decoded_reps(model.decoder, encoded, model.MODEL_CODE)
-	scores = [[1000]*len(model.labels)]*n
+	scores = [[1000.0]*len(model.labels)]*n
+	count = 0
 	for xs,_ in data_iterator:
 		x_idx = np.random.choice(xs.shape[0], min(n_comp, xs.shape[0]), replace=False)
 		for x in tqdm(xs[x_idx]):
@@ -221,6 +222,8 @@ def eval_generation(model, action_data, data_iterator, n=200, n_comp=1000, cut=-
 				if scores[i][label_idx] > s:
 					scores[i][label_idx] = s
 		del xs
+		print count
+		count += 1
 
 	__save_score(scores, model, 'eval_generation')
 
@@ -229,23 +232,23 @@ def eval_center(model, action_data, n=200, n_comp=1000, cut=-1):
 		cut = model.hierarchies[-1]
 
 	encoded = metrics.__get_latent_reps(model.encoder, action_data, model.MODEL_CODE, n=cut)
-	center_a = np.mean(encoded, axis=0)
-	center_a = metrics.__get_decoded_reps(model.decoder, center_a, model.MODEL_CODE)
+	center_a = np.array([np.mean(encoded, axis=0)])
+	center_a = metrics.__get_decoded_reps(model.decoder, center_a, model.MODEL_CODE)[0]
 	center_raw = np.mean(action_data, axis=0)
 	pseudo_center_idxs = np.random.choice(action_data.shape[0], n, replace=False)
 	comp_idxs = np.random.choice(action_data.shape[0], min(n_comp, action_data.shape[0]), replace=False)
-	scores = np.array([[1000]*(n+2)]*n_comp)
+	scores = np.array([[1000.0]*(n+2)]*n_comp)
 	print scores.shape
 
 	if model.MODEL_CODE == metrics.L_LSTM:
-		center_a = center_a[:,:,:-model.label_dim]
-		center_raw = center_raw[:,:,:-model.label_dim]
+		center_a = center_a[:,:-model.label_dim]
+		center_raw = center_raw[:,:-model.label_dim]
 		action_data = action_data[:,:,:-model.label_dim]
 
-	for i in tqdm(comp_idxs):
-		for j in pseudo_center_idxs:
-			scores[i][j] = metrics.__pose_seq_error(action_data[i], action_data[j])
-		score[i][-2] = metrics.__pose_seq_error(action_data[i], center_raw)
-		score[i][-1] = metrics.__pose_seq_error(action_data[i], center_a)
+	for l, i in enumerate(tqdm(comp_idxs)):
+		for k, j in enumerate(pseudo_center_idxs):
+			scores[l][k] = metrics.__pose_seq_error(action_data[i], action_data[j])
+		scores[l][-2] = metrics.__pose_seq_error(action_data[i], center_raw)
+		scores[l][-1] = metrics.__pose_seq_error(action_data[i], center_a)
 
 	__save_score(scores, model, 'eval_center')

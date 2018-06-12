@@ -155,12 +155,12 @@ def get_parse(model_name, labels=False):
 		if args['mode'] == TOGGLE_MODE:
 			train_data = data_generator_random(args['input_data'], args['output_data'], args['timesteps'], 30000, 400, True, ls, ld)
 		else:
-			train_data = data_generator(args['input_data'], args['output_data'], args['timesteps'], 1000, True, ls, ld)
+			train_data = data_generator(args['input_data'], args['output_data'], args['timesteps'], 10000, True, ls, ld)
 	else:
 		if args['mode'] == TOGGLE_MODE:
 			train_data = data_generator_random(args['input_data'], args['output_data'], args['timesteps'], 30000, 400)
 		else:
-			train_data = data_generator(args['input_data'], args['output_data'], args['timesteps'], 1000)
+			train_data = data_generator(args['input_data'], args['output_data'], args['timesteps'], 10000)
 
 	validation_data = []
 	if args['validation_input_data']:
