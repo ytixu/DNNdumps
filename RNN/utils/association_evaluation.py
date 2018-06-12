@@ -231,7 +231,8 @@ def eval_generation(model, action_data, data_iterator, n=200, n_comp=1000, cut=-
 	__save_score(scores, model, 'eval_generation')
 
 ## Check if encoded center is as close to others as in the raw space
-def eval_center(model, action_data, n=200, n_comp=1000, cut=-1):
+def eval_center(model, action_data, action_name, n=200, n_comp=1000, cut=-1):
+	label_gen_centers = '../new_out/L_RNN-t30-l400/generate_from_labels/eval_generation_from_label-gen_poses-L_GRU.npy'
 	if cut == -1:
 		cut = model.hierarchies[-1]
 
@@ -241,7 +242,7 @@ def eval_center(model, action_data, n=200, n_comp=1000, cut=-1):
 	center_raw = np.mean(action_data, axis=0)
 	pseudo_center_idxs = np.random.choice(action_data.shape[0], n, replace=False)
 	comp_idxs = np.random.choice(action_data.shape[0], min(n_comp, action_data.shape[0]), replace=False)
-	scores = np.array([[1000.0]*(n+2)]*n_comp)
+	scores = np.array([[1000.0]*(n+3)]*n_comp)
 	print scores.shape
 
 	if model.MODEL_CODE == metrics.L_LSTM:
@@ -249,11 +250,14 @@ def eval_center(model, action_data, n=200, n_comp=1000, cut=-1):
 		center_raw = center_raw[:,:-model.label_dim]
 		action_data = action_data[:,:,:-model.label_dim]
 
+	center_from_label = np.load(label_gen_centers)[model.labels[action_name]]
+
 	for l, i in enumerate(tqdm(comp_idxs)):
 		for k, j in enumerate(pseudo_center_idxs):
 			scores[l][k] = metrics.__pose_seq_error(action_data[i], action_data[j])
-		scores[l][-2] = metrics.__pose_seq_error(action_data[i], center_raw)
-		scores[l][-1] = metrics.__pose_seq_error(action_data[i], center_a)
+		scores[l][-3] = metrics.__pose_seq_error(action_data[i], center_from_label)
+		scores[l][-2] = metrics.__pose_seq_error(action_data[i], center_a)
+		scores[l][-1] = metrics.__pose_seq_error(action_data[i], center_raw)
 
 	__save_score(scores, model, 'eval_center')
 	print 'animating...'
@@ -307,42 +311,44 @@ def eval_generation_from_label(model, data_iterator, cut=-1):
 	action_pred = metrics.__get_decoded_reps(model.decoder, z_gen, model.MODEL_CODE)
 	filename = '../new_out/eval_generation_from_label-gen_poses-'+model.NAME+'.npy'
 	np.save(filename, action_pred[:,:,:-model.label_dim])
+	# filename = '../new_out/eval_generation_from_label-gen_z-'+model.NAME+'.npy'
+	# np.save(filename, z_gen)
 
 	print 'animating...'
 	animate_poses(filename, model, '../new_out/eval_generation_from_label-animate-')
 
 
 def plot_results(directory, model_name, action_type):
-	with open(directory+'eval_generation-'+model_name+'.json', 'rb') as jsonfile:
-		data = json.loads(jsonfile.read())
-		x = range(len(data['labels']))
-		y = data['mean']
-		yerr = [data['min'], data['max']]
-		plt.errorbar(x, y, yerr=yerr, fmt='o')
-		yerr = data['std']
-		plt.errorbar(x, y, yerr=yerr, fmt='o')
-		plt.xticks(x, [data['labels'][str(i)] for i in range(len(x))], rotation='vertical')
-		plt.xlabel('category')
-		plt.ylabel('closest distance')
-		plt.margins(0.1)
-		plt.subplots_adjust(bottom=0.25)
-		plt.title('Distance to interpolated %s motion (min, mean, std, max)'%action_type)
-		plt.savefig(directory+'eval_generation-'+model_name+'-std.png')
-		plt.close()
+	# with open(directory+'eval_generation-'+model_name+'.json', 'rb') as jsonfile:
+	# 	data = json.loads(jsonfile.read())
+	# 	x = range(len(data['labels']))
+	# 	y = data['mean']
+	# 	yerr = [data['min'], data['max']]
+	# 	plt.errorbar(x, y, yerr=yerr, fmt='o')
+	# 	yerr = data['std']
+	# 	plt.errorbar(x, y, yerr=yerr, fmt='o')
+	# 	plt.xticks(x, [data['labels'][str(i)] for i in range(len(x))], rotation='vertical')
+	# 	plt.xlabel('category')
+	# 	plt.ylabel('closest distance')
+	# 	plt.margins(0.1)
+	# 	plt.subplots_adjust(bottom=0.25)
+	# 	plt.title('Distance to interpolated %s motion (min, mean, std, max)'%action_type)
+	# 	plt.savefig(directory+'eval_generation-'+model_name+'-std.png')
+	# 	plt.close()
 
 
 	with open(directory+'eval_center-'+model_name+'.json', 'rb') as jsonfile:
 		data = json.loads(jsonfile.read())
-		x = range(200)+[210, 220]
+		x = range(200)+[210, 220, 230]
 		idx = np.flip(np.argsort(data['mean'][:-2]), 0)
-		y = [data['mean'][i] for i in idx]+[data['mean'][-1], data['mean'][-2]]
+		y = [data['mean'][i] for i in idx]+data['mean'][-3:]
 		print len(x), len(y)
-		yerr = [[data['min'][i] for i in idx]+[data['min'][-1], data['min'][-2]],
-				[data['max'][i] for i in idx]+[data['max'][-1], data['max'][-2]]]
+		yerr = [[data['min'][i] for i in idx]+data['min'][-3:],
+				[data['max'][i] for i in idx]+data['max'][-3:]]
 		plt.errorbar(x, y, yerr=yerr, fmt='o')
-		yerr = [data['std'][i] for i in idx]+[data['std'][-1], data['std'][-2]]
+		yerr = [data['std'][i] for i in idx]+data['std'][-3:]
 		plt.errorbar(x, y, yerr=yerr, fmt='o')
-		plt.xticks(x, ['']*200 + ['z', 'raw'])
+		plt.xticks(x, ['']*200 + ['gen-label', 'z', 'raw'])
 		plt.margins(0.1)
 		plt.xlabel('centers')
 		plt.ylabel('distance to other %s motions'%action_type)
