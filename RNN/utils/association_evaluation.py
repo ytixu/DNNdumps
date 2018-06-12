@@ -340,11 +340,11 @@ def plot_results(directory, model_name, action_type):
 	with open(directory+'eval_center-'+model_name+'.json', 'rb') as jsonfile:
 		data = json.loads(jsonfile.read())
 		x = range(200)+[210, 220, 230]
-		idx = np.flip(np.argsort(data['mean'][:-2]), 0)
+		idx = np.flip(np.argsort(data['mean'][:-3]), 0)
 		y = [data['mean'][i] for i in idx]+data['mean'][-3:]
 		print len(x), len(y)
 		yerr = [[data['min'][i] for i in idx]+data['min'][-3:],
-				[data['max'][i] for i in idx]+data['max'][-3:]]
+			[data['max'][i] for i in idx]+data['max'][-3:]]
 		plt.errorbar(x, y, yerr=yerr, fmt='o')
 		yerr = [data['std'][i] for i in idx]+data['std'][-3:]
 		plt.errorbar(x, y, yerr=yerr, fmt='o')
