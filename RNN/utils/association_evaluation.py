@@ -268,7 +268,7 @@ def plot_results(directory, model_name, action_type):
 		plt.xticks(x, [data['labels'][str(i)] for i in range(len(x))], rotation='vertical')
 		plt.xlabel('category')
 		plt.ylabel('closest distance')
-		plt.margins(1)
+		plt.margins(0.2)
 		plt.title('Distance to interpolated %s motion (min, mean, max)'%action_type)
 		plt.savefig(directory+'eval_generation-'+model_name+'.png')
 		plt.close()
@@ -284,7 +284,7 @@ def plot_results(directory, model_name, action_type):
 				[data['max'][i] for i in idx]+[data['max'][-1], data['max'][-2]]]
 		plt.errorbar(x, y, yerr=yerr, fmt='o')
 		plt.xticks(x, map(str, range(1, len(x)-1)) + ['z', 'raw'])
-		plt.margins(1)
+		plt.margins(0.2)
 		plt.xlabel('centers')
 		plt.ylabel('distance to other %s motions'%action_type)
 		plt.title('Centers comparison for %s (min, mean, max)'%action_type)
