@@ -257,6 +257,54 @@ def eval_center(model, action_data, n=200, n_comp=1000, cut=-1):
 
 	__save_score(scores, model, 'eval_center')
 
+def eval_generation_from_label(model, data_iterator, cut=-1):
+	if cut == -1:
+		cut = model.hierarchies[-1]
+	diff_by_label = np.zeros((len(model.labels), model.latent_dim))
+	diff_n = [0]*len(model.labels)
+	count = 0
+	for xs, _ in data_iterator:
+		count += 1
+		print count
+
+		z_motion = metrics.__get_latent_reps(model.encoder, xs, model.MODEL_CODE, n=cut)
+		idx = np.argmax(xs[:,0,-model.label_dim:], axis=1)
+		print z_motion.shape, idx.shape
+		xs[:,:,:-model.label_dim] = 0
+		z_label = metrics.__get_latent_reps(model.encoder, xs, model.MODEL_CODE, n=cut)
+		diff = z_motion - z_label
+		for i in range(model.label_dim):
+			idx_label = np.where(idx == i)
+			print diff[idx_label].shape
+			n_d = diff[idx_label].shape[0]
+			if n_d > 0:
+				print np.mean(diff[idx_label], axis=0).shape
+				diff_by_label[i] = diff_by_label[i] + np.mean(diff[idx_label], axis=0)
+				diff_n[i] = diff_n[i] + n_d
+		del xs, idx, diff
+
+	x = range(len(model.latent_dim))
+	for i, n_d in enumerate(diff_n):
+		diff_by_label[i] = diff_by_label[i]/n_d
+		plt.plot(x, diff_by_label[i])
+	plt.xlabel('latent dimensions')
+	plt.ylabel('mean difference')
+	plt.title('Mean difference with/without motion')
+	plt.savefig('../new_out/eval_generation_from_label-z-'+model.NAME+.'.png')
+	plt.close()
+
+	print 'generating...'
+	valid_data = np.zeros((model.label_dim, model.timesteps, model.input_dim))
+	valid_data[:,:,-model.label_dim:] = np.identity(model.label_dim)[:]
+	z_label = metrics.__get_latent_reps(model.encoder, valid_data, model.MODEL_CODE, n=cut)
+	z_gen = z_label + diff_by_label
+	action_pred = metrics.__get_decoded_reps(model.decoder, z_gen, model.MODEL_CODE)
+	filename = '../new_out/eval_generation_from_label-gen_poses-'+model.NAME+'.npy'
+	np.save()
+
+	print 'animating...'
+	animate_poses(filename, model, '../new_out/eval_generation_from_label-animate-')
+
 
 def plot_results(directory, model_name, action_type):
 	with open(directory+'eval_generation-'+model_name+'.json', 'rb') as jsonfile:
@@ -295,6 +343,14 @@ def plot_results(directory, model_name, action_type):
 		plt.title('Centers comparison for %s (min, mean, max)'%action_type)
 		plt.savefig(directory+'eval_center-'+model_name+'-std.png')
 		plt.close()
+
+def animate_poses(filename, model, save_path):
+	import fk_animate
+	labels = {v: k for k, v in model.labels.iteritems()}
+	poses = np.load(filename)
+	for i in tqdm(range(model.label_dim)):
+		fk_animate.animate_motion(poses[i], labels[i], save_path)
+
 
 if __name__ == '__main__':
 	action_type = 'walking'

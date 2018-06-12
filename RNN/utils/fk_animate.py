@@ -32,6 +32,25 @@ def animate_random(model, start_seq, embedding, mean=0.38919052, std=0.1443201):
 		# poses = metrics.__get_decoded_reps(model.decoder, enc, model.MODEL_CODE)
 
 
+def animate_motion(seq, name, save_path):
+	fig = plt.figure()
+	fig.set_title(name)
+	ob = viz.Ax3DPose(fig)
+	n_t = seq.shape[0]
+
+	def init():
+		return ob.get_lines()
+
+	def animate(t):
+		ob.update(seq[t])
+		return init()
+
+
+	anim = animation.FuncAnimation(fig, animate, init_func=init, frames=n_t, interval=400, blit=True)
+	filename = save_path+name+'.gif'
+	anim.save(filename, writer='imagemagick', fps=60)
+
+
 def animate_compare(start_seq, true_seq, pred_seq, pred_name, baseline_seq, baseline_name, save_path):
 	fig = plt.figure()
 	ax_true = fig.add_subplot(1, 3, 1, projection='3d')
