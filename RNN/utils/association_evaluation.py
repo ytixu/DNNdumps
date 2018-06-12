@@ -319,22 +319,22 @@ def eval_generation_from_label(model, data_iterator, cut=-1):
 
 
 def plot_results(directory, model_name, action_type):
-	# with open(directory+'eval_generation-'+model_name+'.json', 'rb') as jsonfile:
-	# 	data = json.loads(jsonfile.read())
-	# 	x = range(len(data['labels']))
-	# 	y = data['mean']
-	# 	yerr = [data['min'], data['max']]
-	# 	plt.errorbar(x, y, yerr=yerr, fmt='o')
-	# 	yerr = data['std']
-	# 	plt.errorbar(x, y, yerr=yerr, fmt='o')
-	# 	plt.xticks(x, [data['labels'][str(i)] for i in range(len(x))], rotation='vertical')
-	# 	plt.xlabel('category')
-	# 	plt.ylabel('closest distance')
-	# 	plt.margins(0.1)
-	# 	plt.subplots_adjust(bottom=0.25)
-	# 	plt.title('Distance to interpolated %s motion (min, mean, std, max)'%action_type)
-	# 	plt.savefig(directory+'eval_generation-'+model_name+'-std.png')
-	# 	plt.close()
+	with open(directory+'eval_generation-'+model_name+'.json', 'rb') as jsonfile:
+		data = json.loads(jsonfile.read())
+		x = range(len(data['labels']))
+		y = data['mean']
+		yerr = [data['min'], data['max']]
+		plt.errorbar(x, y, yerr=yerr, fmt='o')
+		yerr = data['std']
+		plt.errorbar(x, y, yerr=yerr, fmt='o')
+		plt.xticks(x, [data['labels'][str(i)] for i in range(len(x))], rotation='vertical')
+		plt.xlabel('category')
+		plt.ylabel('closest distance')
+		plt.margins(0.1)
+		plt.subplots_adjust(bottom=0.25)
+		plt.title('Distance to interpolated %s motion (min, mean, std, max)'%action_type)
+		plt.savefig(directory+'eval_generation-'+model_name+'-std.png')
+		plt.close()
 
 
 	with open(directory+'eval_center-'+model_name+'.json', 'rb') as jsonfile:
