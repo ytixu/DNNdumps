@@ -10,7 +10,7 @@ from keras.optimizers import RMSprop
 
 from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines, association_evaluation
 
-LEARNING_RATE = 0.000005
+LEARNING_RATE = 0.0001
 NAME = 'L_LSTM'
 USE_GRU = True
 if USE_GRU:
@@ -148,11 +148,11 @@ class L_LSTM:
 		# embedding_plotter.see_hierarchical_embedding(self.encoder, self.decoder, data_iterator, valid_data, model_vars, self.label_dim)
 		# iter1, iter2 = tee(data_iterator)
 		# metrics.validate(valid_data, self)
-		metrics.plot_metrics(self, data_iterator, valid_data)
+		# metrics.plot_metrics(self, data_iterator, valid_data)
 		# association_evaluation.eval_generation(self, valid_data, data_iterator)
 		# association_evaluation.eval_center(self, valid_data)
 		# metrics.plot_metrics_labels(self, data_iterator, valid_data)
-		# metric_baselines.compare_label_embedding(self, data_iterator)
+		metric_baselines.compare_label_embedding(self, data_iterator)
 		# association_evaluation.eval_distance(self, valid_data)
 		# evaluate.eval_pattern_reconstruction(self.encoder, self.decoder, iter2)
 
