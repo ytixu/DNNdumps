@@ -364,6 +364,23 @@ def transfer_motion(model, action_data, from_motion_name, to_motion_name, data_i
 
 	np.save(save_path+'scores.npy', scores)
 
+def plot_transfer_motion(model, filename):
+	data = np.load(filename)
+	name = filename.split('transfer_motion-')[-1].split('-scores')[0]
+	x = range(model.label_dim)
+	for i in range(data.shape[0]):
+		plt.scatter(x, data[i])
+
+	labels = {v: k for k, v in model.labels.iteritems()}
+	plt.xticks(x, [labels[i] for i in range(model.label_dim)], rotation='vertical')
+	plt.xlabel('category')
+	plt.ylabel('closest distance')
+	plt.margins(0.1)
+	plt.subplots_adjust(bottom=0.25)
+	plt.title('Distance to trans. motion (%s)'%name)
+	plt.savefig('../new_out/plot_transfer_motion-'+name+'.png')
+	plt.close()
+
 
 def plot_results(directory, model_name, action_type):
 	with open(directory+'eval_generation-'+model_name+'.json', 'rb') as jsonfile:
