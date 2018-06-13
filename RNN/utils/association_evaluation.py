@@ -320,7 +320,7 @@ def eval_generation_from_label(model, data_iterator, cut=-1):
 	# animate_poses(filename, model, '../new_out/eval_generation_from_label-animate-')
 
 def transfer_motion(model, action_data, from_motion_name, to_motion_name, n=2, cut=-1):
-	LABEL_GEN_CENTERS = '../new_out/L_RNN-t30-l400/generate_from_labels/eval_generation_from_label-gen_z-L_GRU.npy'
+	LABEL_GEN_Z = '../new_out/L_RNN-t30-l400/generate_from_labels/eval_generation_from_label-gen_z-L_GRU.npy'
 	if cut == -1:
 		cut = model.hierarchies[-1]
 
@@ -330,8 +330,8 @@ def transfer_motion(model, action_data, from_motion_name, to_motion_name, n=2, c
 	# center_from_label[:,:,:-model.label_dim] = np.load(LABEL_GEN_CENTERS)[[model.labels[from_motion_name], model.labels[to_motion_name]]]
 	# center_from_label[0,:,-model.label_dim+model.labels[from_motion_name]] = 1
 	# center_from_label[1,:,-model.label_dim+model.labels[to_motion_name]] = 1
-	center_from_label = np.load(LABEL_GEN_CENTERS)[[model.labels[from_motion_name], model.labels[to_motion_name]]]
-	z_labels = metrics.__get_latent_reps(model.encoder, center_from_label, model.MODEL_CODE, n=cut)
+	z_labels = np.load(LABEL_GEN_Z)[[model.labels[from_motion_name], model.labels[to_motion_name]]]
+	# z_labels = metrics.__get_latent_reps(model.encoder, center_from_label, model.MODEL_CODE, n=cut)
 	z_infered = z_actions - z_labels[0] + z_labels[1]
 	action_infered = metrics.__get_decoded_reps(model.decoder, z_infered, model.MODEL_CODE)
 
