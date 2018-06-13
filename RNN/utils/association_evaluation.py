@@ -321,7 +321,7 @@ def eval_generation_from_label(model, data_iterator, cut=-1):
 
 def transfer_motion(model, action_data, from_motion_name, to_motion_name, n=10, cut=-1):
 	LABEL_GEN_Z = '../new_out/L_RNN-t30-l400/generate_from_labels/eval_generation_from_label-gen_z-L_GRU.npy'
-	# LABEL_GEN_CENTERS = '../new_out/L_RNN-t30-l400/generate_from_labels/eval_generation_from_label-gen_poses-L_GRU.npy'
+	LABEL_GEN_CENTERS = '../new_out/L_RNN-t30-l400/generate_from_labels/eval_generation_from_label-gen_poses-L_GRU.npy'
 	if cut == -1:
 		cut = model.hierarchies[-1]
 
@@ -329,7 +329,6 @@ def transfer_motion(model, action_data, from_motion_name, to_motion_name, n=10, 
 	z_actions = metrics.__get_latent_reps(model.encoder, action_data, model.MODEL_CODE, n=cut)
 
 	z_labels = np.load(LABEL_GEN_Z)[[model.labels[from_motion_name], model.labels[to_motion_name]]]
-	print z_labels[:,:,-model.label_dim:]
 	z_infered = z_actions - z_labels[0] + z_labels[1]
 	action_from_z = metrics.__get_decoded_reps(model.decoder, z_infered, model.MODEL_CODE)
 	# action_normalized = metrics.__get_decoded_reps(model.decoder, z_infered/np.linalg.norm(z_infered), model.MODEL_CODE)
