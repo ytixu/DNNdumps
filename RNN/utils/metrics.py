@@ -742,30 +742,38 @@ def plot_metrics(model, data_iterator, validation_data, n_valid = 100):
 		embedding = get_embedding(model, data_iterator)
 	print embedding.shape
 	diff_mean = {}
+
 	for cut in cuts:
 		diff = embedding[:,cut] - embedding[:,1]
 		diff_mean[cut] = np.mean(diff, axis=0)
-		std_diff = np.std(diff, axis=0)
-		idx = np.argsort(diff_mean[cut])
-		mean_diff_sorted = diff_mean[cut][idx]
-		std_diff_sorted = std_diff[idx]
-		x = range(1,model.latent_dim+1)
-		p = plt.plot(x, mean_diff_sorted, label='diff 20-%d'%(model.hierarchies[cut]+1))
-		plt.fill_between(x, mean_diff_sorted-std_diff_sorted, mean_diff_sorted+std_diff_sorted, alpha=0.5, color=p[-1].get_color())
 
-		rand_idx = np.random.choice(embedding.shape[0], 1000, replace=False)
-		for k in range(len(model.hierarchies)):
-			diff = [embedding[rand_idx[a],k] - embedding[rand_idx[b],k] for a in range(1000) for b in range(a)]
-			rand_mean = np.mean(diff, axis=0)[idx]
-			std_diff = np.std(diff, axis=0)[idx]
-			p = plt.plot(x, rand_mean, label='diff %d-%d'%(model.hierarchies[k]+1, model.hierarchies[k]+1))
-			plt.fill_between(x, rand_mean-std_diff, rand_mean+std_diff, alpha=0.2, color=p[-1].get_color())
+		idx = np.argsort(diff_mean[cut])
+		x = range(1,model.latent_dim+1)
+		for i in range(diff.shape[0]):
+			p = plt.plot(x, diff[i][idx], label='diff 20-%d'%(model.hierarchies[cut]+1), c='blue')
+
+		# std_diff = np.std(diff, axis=0)
+		# idx = np.argsort(diff_mean[cut])
+		# mean_diff_sorted = diff_mean[cut][idx]
+		# std_diff_sorted = std_diff[idx]
+		# x = range(1,model.latent_dim+1)
+		# p = plt.plot(x, mean_diff_sorted, label='diff 20-%d'%(model.hierarchies[cut]+1))
+		# plt.fill_between(x, mean_diff_sorted-std_diff_sorted, mean_diff_sorted+std_diff_sorted, alpha=0.5, color=p[-1].get_color())
+
+		# rand_idx = np.random.choice(embedding.shape[0], 1000, replace=False)
+		# for k in range(len(model.hierarchies)):
+		# 	diff = [embedding[rand_idx[a],k] - embedding[rand_idx[b],k] for a in range(1000) for b in range(a)]
+		# 	rand_mean = np.mean(diff, axis=0)[idx]
+		# 	std_diff = np.std(diff, axis=0)[idx]
+		# 	p = plt.plot(x, rand_mean, label='diff %d-%d'%(model.hierarchies[k]+1, model.hierarchies[k]+1))
+		# 	plt.fill_between(x, rand_mean-std_diff, rand_mean+std_diff, alpha=0.2, color=p[-1].get_color())
 		plt.legend()
-		# plt.savefig(OUT_DIR+'diff_bw_levels_%d-%d'%(model.hierarchies[cut], model.hierarchies[1]) + __get_timestamp() + '.png')
+		plt.savefig(OUT_DIR+'diff_bw_levels_%d-%d'%(model.hierarchies[cut], model.hierarchies[1]) + __get_timestamp() + '.png')
 		plt.close()
 		# plt.show()
 
-	print diff_mean
+	return
+	# print diff_mean
 
 	idxs = np.random.choice(len(validation_data), n_valid)
 	enc = __get_latent_reps(model.encoder, validation_data[idxs], model.MODEL_CODE)
