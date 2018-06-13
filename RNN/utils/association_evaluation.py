@@ -202,15 +202,13 @@ def __save_score(scores, model, name):
 	print 'max', np.max(scores, axis=0)
 
 ### Evaluate generation/interpolation
-# check in ave(x,y) belongs to the same subspace
+# check in avg(x,y) belongs to the same subspace
 # use nearest neighbour to compute score
 def eval_generation(model, action_data, data_iterator, n=200, n_comp=1000, cut=-1):
 	if cut == -1:
 		cut = model.hierarchies[-1]
 	ind_rand = np.random.choice(action_data.shape[0], n, replace=False)
 	n = n/2
-	encoded = metrics.__get_latent_reps(model.encoder, action_data[ind_rand], model.MODEL_CODE, n=cut)
-	encoded = np.array([(encoded[i] + encoded[i+n])/2 for i in range(n)])
 	encoded = metrics.__get_latent_reps(model.encoder, action_data[ind_rand], model.MODEL_CODE, n=cut)
 	encoded = np.array([(encoded[i] + encoded[i+n])/2 for i in range(n)])
 	action_data = metrics.__get_decoded_reps(model.decoder, encoded, model.MODEL_CODE)
@@ -220,7 +218,7 @@ def eval_generation(model, action_data, data_iterator, n=200, n_comp=1000, cut=-
 		x_idx = np.random.choice(xs.shape[0], min(n_comp, xs.shape[0]), replace=False)
 		for x in tqdm(xs[x_idx]):
 			for i, z in enumerate(action_data):
-				s = metrics.__pose_seq_error(z[:-model.label_dim], x[:-model.label_dim])
+				s = metrics.__pose_seq_error(z[:,:-model.label_dim], x[:,:-model.label_dim])
 				label_idx = np.argmax(x[-model.label_dim:]) - model.input_dim + model.label_dim
 				if scores[i][label_idx] > s:
 					scores[i][label_idx] = s
@@ -354,7 +352,7 @@ def transfer_motion(model, action_data, from_motion_name, to_motion_name, data_i
 		x_idx = np.random.choice(xs.shape[0], min(n_comp, xs.shape[0]), replace=False)
 		for x in tqdm(xs[x_idx]):
 			for i, z in enumerate(action_from_z):
-				s = metrics.__pose_seq_error(z[:-model.label_dim], x[:-model.label_dim])
+				s = metrics.__pose_seq_error(z[:,:-model.label_dim], x[:,:-model.label_dim])
 				label_idx = np.argmax(x[-model.label_dim:]) - model.input_dim + model.label_dim
 				if scores[i][label_idx] > s:
 					scores[i][label_idx] = s
