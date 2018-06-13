@@ -63,7 +63,7 @@ def data_generator_random(input_dir, output_dir, timesteps, batch_size, n, label
 
 		yield x, x
 
-def data_generator(input_dir, output_dir, timesteps, batch_size, label=False, ls=[], ld=0):
+def data_generator(input_dir, output_dir, timesteps, batch_size, label=False, ls=[], ld=0, only_label=''):
 	# files must be in different directories,
 	# input and output filename must match for corresponding data
 	# each file is one sequence
@@ -82,10 +82,12 @@ def data_generator(input_dir, output_dir, timesteps, batch_size, label=False, ls
 			name_label = name_id.split('_')[0]
 			new_l = np.zeros(ld)
 			new_l[ls[name_label]] = 1
+			if only_label != '' and name_label != only_label:
+				continue
 
 		# 2D arrays
 		input_data = np.load(input_file)
-		output_data = np.load(input_file) # np.load(output_dir+name_id)
+		output_data = np.load(output_dir+name_id)
 
 		batch = batch_size-batch_count
 		for i in range(0, input_data.shape[0], batch):
@@ -140,6 +142,7 @@ def get_parse(model_name, labels=False):
 	ap.add_argument('-ld', '--latent_dim', required=False, help='Embedding size', default='100', type=int)
 	ap.add_argument('-o', '--option_dim', required=False, help='Number of options', default='2', type=int)
 	ap.add_argument('-l', '--log_path', required=False, help='Log file for loss history', default=get_log_name(model_name))
+        ap.add_argument('-only', '--only_label', required=False, help='Only load data with this label', default='')
 
 
 	# ap.add_argument('-lr', '--learning_rate', required=False, help='Learning rate', default='5000', choices=list_of_modes)
@@ -155,20 +158,20 @@ def get_parse(model_name, labels=False):
 		if args['mode'] == TOGGLE_MODE:
 			train_data = data_generator_random(args['input_data'], args['output_data'], args['timesteps'], 30000, 400, True, ls, ld)
 		else:
-			train_data = data_generator(args['input_data'], args['output_data'], args['timesteps'], 10000, True, ls, ld)
+			train_data = data_generator(args['input_data'], args['output_data'], args['timesteps'], 10000, True, ls, ld, only_label=args['only_label'])
 	else:
 		if args['mode'] == TOGGLE_MODE:
 			train_data = data_generator_random(args['input_data'], args['output_data'], args['timesteps'], 30000, 400)
 		else:
-			train_data = data_generator(args['input_data'], args['output_data'], args['timesteps'], 10000)
+			train_data = data_generator(args['input_data'], args['output_data'], args['timesteps'], 10000, only_label=args['only_label'])
 
 	validation_data = []
 	if args['validation_input_data']:
 		vd = None
 		if labels:
-			vd = data_generator(args['validation_input_data'], args['validation_input_data'], args['timesteps'], 10000000, True, ls, ld)
+			vd = data_generator(args['validation_input_data'], args['validation_input_data'], args['timesteps'], 10000000, True, ls, ld, only_label=args['only_label'])
 		else:
-			vd = data_generator(args['validation_input_data'], args['validation_input_data'], args['timesteps'], 10000000)
+			vd = data_generator(args['validation_input_data'], args['validation_input_data'], args['timesteps'], 10000000, only_label=args['only_label'])
 		for v, _ in vd:
 			validation_data = v
 			break
