@@ -319,7 +319,7 @@ def eval_generation_from_label(model, data_iterator, cut=-1):
 	# print 'animating...'
 	# animate_poses(filename, model, '../new_out/eval_generation_from_label-animate-')
 
-def transfer_motion(model, action_data, from_motion_name, to_motion_name, n=10, cut=-1):
+def transfer_motion(model, action_data, from_motion_name, to_motion_name, data_iterator, n=10, n_comp=1000, cut=-1):
 	LABEL_GEN_Z = '../new_out/L_RNN-t30-l400/generate_from_labels/eval_generation_from_label-gen_z-L_GRU.npy'
 	LABEL_GEN_CENTERS = '../new_out/L_RNN-t30-l400/generate_from_labels/eval_generation_from_label-gen_poses-L_GRU.npy'
 	if cut == -1:
@@ -348,7 +348,21 @@ def transfer_motion(model, action_data, from_motion_name, to_motion_name, n=10, 
 		fk_animate.animate_motion([action_data[i], action_from_z[i], action_from_pose[i]], [from_motion_name, to_motion_name, to_motion_name+'(+name)'], save_path+str(i))
 		# fk_animate.animate_motion([action_data[i], action_from_z[i], action_normalized[i]], [from_motion_name, to_motion_name, to_motion_name+'(norm)'], save_path+str(i)+'-')
 
+	scores = [[1000.0]*len(model.labels)]*n
+	count = 0
+	for xs,_ in data_iterator:
+		x_idx = np.random.choice(xs.shape[0], min(n_comp, xs.shape[0]), replace=False)
+		for x in tqdm(xs[x_idx]):
+			for i, z in enumerate(action_from_z):
+				s = metrics.__pose_seq_error(z[:-model.label_dim], x[:-model.label_dim])
+				label_idx = np.argmax(x[-model.label_dim:]) - model.input_dim + model.label_dim
+				if scores[i][label_idx] > s:
+					scores[i][label_idx] = s
+		del xs
+		print count
+		count += 1
 
+	np.save(save_path+'scores.npy', scores)
 
 
 def plot_results(directory, model_name, action_type):
