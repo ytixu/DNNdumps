@@ -430,4 +430,4 @@ def animate_poses(filename, model, save_path):
 
 if __name__ == '__main__':
 	action_type = 'sitting'
-	plot_results('../../new_out/', 'L_GRU-t30-l400', action_type)
+	plot_results('../../new_out/'+action_type+'/', 'L_GRU-t30-l400', action_type)
