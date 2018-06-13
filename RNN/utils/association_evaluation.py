@@ -204,7 +204,7 @@ def __save_score(scores, model, name):
 ### Evaluate generation/interpolation
 # check in avg(x,y) belongs to the same subspace
 # use nearest neighbour to compute score
-def eval_generation(model, action_data, data_iterator, n=200, n_comp=1000, cut=-1):
+def eval_generation(model, action_data, data_iterator, n=20, n_comp=1000, cut=-1):
 	if cut == -1:
 		cut = model.hierarchies[-1]
 	ind_rand = np.random.choice(action_data.shape[0], n, replace=False)
