@@ -362,6 +362,7 @@ def transfer_motion(model, action_data, from_motion_name, to_motion_name, data_i
 		print count
 		count += 1
 
+	print scores
 	np.save(save_path+'scores.npy', scores)
 
 
