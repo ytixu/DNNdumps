@@ -147,7 +147,7 @@ def __cuts():
 
 def __rn():
 	# return [100, 200, -1, -2, -3, -4]
-	return [100, 500, 1000, 5000, 10000, 50000, 55000 -1, -2, -3, -4]
+	return [100, 500, 1000, 5000, 10000, -1, -2, -3, -4]
 
 def __common_params(n):
 	cuts = __cuts()
@@ -740,7 +740,7 @@ def plot_metrics(model, data_iterator, validation_data, n_valid = 100):
 		embedding = get_label_embedding(model, data_iterator, subspaces=model.hierarchies)
 	else:
 		embedding = get_embedding(model, data_iterator)
-
+	print embedding.shape
 	diff_mean = {}
 	for cut in cuts:
 		diff = embedding[:,cut] - embedding[:,1]
@@ -761,7 +761,7 @@ def plot_metrics(model, data_iterator, validation_data, n_valid = 100):
 			p = plt.plot(x, rand_mean, label='diff %d-%d'%(model.hierarchies[k]+1, model.hierarchies[k]+1))
 			plt.fill_between(x, rand_mean-std_diff, rand_mean+std_diff, alpha=0.2, color=p[-1].get_color())
 		plt.legend()
-		plt.savefig(OUT_DIR+'diff_bw_levels_%d-%d'%(model.hierarchies[cut], model.hierarchies[1]) + __get_timestamp() + '.png')
+		# plt.savefig(OUT_DIR+'diff_bw_levels_%d-%d'%(model.hierarchies[cut], model.hierarchies[1]) + __get_timestamp() + '.png')
 		plt.close()
 		# plt.show()
 
