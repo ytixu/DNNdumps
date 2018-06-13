@@ -751,7 +751,7 @@ def plot_metrics(model, data_iterator, validation_data, n_valid = 100):
 		x = range(1,model.latent_dim+1)
 		rand_lines = np.random.choice(diff.shape[0], 15, replace=False)
 		for i in rand_lines:
-			p = plt.plot(x, diff[i][idx], label='diff 20-%d'%(model.hierarchies[cut]+1), c='blue')
+			p = plt.plot(x, diff[i][idx], label='diff 20-%d'%(model.hierarchies[cut]+1))
 
 		# std_diff = np.std(diff, axis=0)
 		# idx = np.argsort(diff_mean[cut])
