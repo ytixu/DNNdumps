@@ -231,8 +231,8 @@ def eval_generation(model, action_data, data_iterator, n=200, n_comp=1000, cut=-
 	__save_score(scores, model, 'eval_generation')
 
 ## Check if encoded center is as close to others as in the raw space
+LABEL_GEN_CENTERS = '../new_out/L_RNN-t30-l400/generate_from_labels/eval_generation_from_label-gen_poses-L_GRU.npy'
 def eval_center(model, action_data, action_name, n=200, n_comp=1000, cut=-1):
-	label_gen_centers = '../new_out/L_RNN-t30-l400/generate_from_labels/eval_generation_from_label-gen_poses-L_GRU.npy'
 	if cut == -1:
 		cut = model.hierarchies[-1]
 
@@ -250,7 +250,7 @@ def eval_center(model, action_data, action_name, n=200, n_comp=1000, cut=-1):
 		center_raw = center_raw[:,:-model.label_dim]
 		action_data = action_data[:,:,:-model.label_dim]
 
-	center_from_label = np.load(label_gen_centers)[model.labels[action_name]]
+	center_from_label = np.load(LABEL_GEN_CENTERS)[model.labels[action_name]]
 
 	for l, i in enumerate(tqdm(comp_idxs)):
 		for k, j in enumerate(pseudo_center_idxs):
@@ -265,6 +265,8 @@ def eval_center(model, action_data, action_name, n=200, n_comp=1000, cut=-1):
 	fk_animate.animate_motion(center_raw, 'center raw', '../new_out/center_raw_animate-%s-t%d-l%d'%(model.NAME, model.timesteps, model.latent_dim))
 	fk_animate.animate_motion(center_a, 'center latent', '../new_out/center_latent_animate-%s-t%d-l%d'%(model.NAME, model.timesteps, model.latent_dim))
 
+## generate motion from label
+# which match with the center
 def eval_generation_from_label(model, data_iterator, cut=-1):
 	if cut == -1:
 		cut = model.hierarchies[-1]
@@ -316,6 +318,26 @@ def eval_generation_from_label(model, data_iterator, cut=-1):
 
 	print 'animating...'
 	animate_poses(filename, model, '../new_out/eval_generation_from_label-animate-')
+
+def transfer_motion(model, action_data, from_motion_name, to_motion_name, n=10, cut=-1):
+	if cut == -1:
+		cut = model.hierarchies[-1]
+
+	action_data = action_data[np.random.choice(action_data.shape[0], n, replace=False)]
+	z_actions = metrics.__get_latent_reps(model.encoder, action_data, model.MODEL_CODE, n=cut)
+	center_from_label = np.load(LABEL_GEN_CENTERS)[model.labels[action_name]]
+	center_from_label = center_from_label[model.labels[from_motion_name], model.labels[to_motion_name]]
+	z_labels = metrics.__get_latent_reps(model.encoder, center_from_label, model.MODEL_CODE, n=cut)
+	z_infered = z_actions - z_labels[0] + z_labels[1]
+	action_infered = metrics.__get_decoded_reps(model.decoder, z_infered, model.MODEL_CODE)
+
+	print 'animating...'
+	import fk_animate
+	save_path = '../new_out/transfer_motion-%s-to-%s-'%(from_motion_name, to_motion_name)
+	for i in range(z_actions.shape[0]):
+		fk_animate.animate_motion(action_data[i], action_infered[i], save_path+str(i))
+
+
 
 
 def plot_results(directory, model_name, action_type):

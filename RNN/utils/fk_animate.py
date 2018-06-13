@@ -33,22 +33,34 @@ def animate_random(model, start_seq, embedding, mean=0.38919052, std=0.1443201):
 
 
 def animate_motion(seq, name, save_path):
+	if type(name) == type('str'):
+		seq = [seq]
+		name = [name]
+
 	fig = plt.figure()
-	ax = fig.add_subplot(1, 1, 1, projection='3d')
-	ax.set_title(name)
-	ob = viz.Ax3DPose(ax)
-	n_t = seq.shape[0]
+	n = len(seq)
+	axs = [None]*n
+	obs = [None]*n
+	for i in range(n):
+		axs[i] = fig.add_subplot(1, len(seq), i, projection='3d')
+		axs[i].set_title(name[i])
+		obs = viz.Ax3DPose(axs[i])
+
+	n_t = seq[0].shape[0]
 
 	def init():
-		return ob.get_lines()
+		if n == 0:
+			return obs[0].get_lines()
+		return sum([obs[i].get_lines() for i in range(n)]
 
 	def animate(t):
-		ob.update(seq[t])
+		for i in range(n):
+			obs[i].update(seq[i][t])
 		return init()
 
 
 	anim = animation.FuncAnimation(fig, animate, init_func=init, frames=n_t, interval=400, blit=True)
-	filename = save_path+name+'.gif'
+	filename = save_path+'-'.joint(name)+'.gif'
 	anim.save(filename, writer='imagemagick', fps=60)
 
 
