@@ -231,8 +231,8 @@ def eval_generation(model, action_data, data_iterator, n=200, n_comp=1000, cut=-
 	__save_score(scores, model, 'eval_generation')
 
 ## Check if encoded center is as close to others as in the raw space
-LABEL_GEN_CENTERS = '../new_out/L_RNN-t30-l400/generate_from_labels/eval_generation_from_label-gen_poses-L_GRU.npy'
 def eval_center(model, action_data, action_name, n=200, n_comp=1000, cut=-1):
+	LABEL_GEN_CENTERS = '../new_out/L_RNN-t30-l400/generate_from_labels/eval_generation_from_label-gen_poses-L_GRU.npy'
 	if cut == -1:
 		cut = model.hierarchies[-1]
 
@@ -310,25 +310,27 @@ def eval_generation_from_label(model, data_iterator, cut=-1):
 		valid_data[:,i,-model.label_dim:] = np.identity(model.label_dim)
 	z_label = metrics.__get_latent_reps(model.encoder, valid_data, model.MODEL_CODE, n=cut)
 	z_gen = z_label + diff_by_label
-	action_pred = metrics.__get_decoded_reps(model.decoder, z_gen, model.MODEL_CODE)
-	filename = '../new_out/eval_generation_from_label-gen_poses-'+model.NAME+'.npy'
-	np.save(filename, action_pred[:,:,:-model.label_dim])
-	# filename = '../new_out/eval_generation_from_label-gen_z-'+model.NAME+'.npy'
-	# np.save(filename, z_gen)
+	# action_pred = metrics.__get_decoded_reps(model.decoder, z_gen, model.MODEL_CODE)
+	# filename = '../new_out/eval_generation_from_label-gen_poses-'+model.NAME+'.npy'
+	# np.save(filename, action_pred[:,:,:-model.label_dim])
+	filename = '../new_out/eval_generation_from_label-gen_z-'+model.NAME+'.npy'
+	np.save(filename, z_gen)
 
-	print 'animating...'
-	animate_poses(filename, model, '../new_out/eval_generation_from_label-animate-')
+	# print 'animating...'
+	# animate_poses(filename, model, '../new_out/eval_generation_from_label-animate-')
 
 def transfer_motion(model, action_data, from_motion_name, to_motion_name, n=2, cut=-1):
+	LABEL_GEN_CENTERS = '../new_out/L_RNN-t30-l400/generate_from_labels/eval_generation_from_label-gen_z-L_GRU.npy'
 	if cut == -1:
 		cut = model.hierarchies[-1]
 
 	action_data = action_data[np.random.choice(action_data.shape[0], n, replace=False)]
 	z_actions = metrics.__get_latent_reps(model.encoder, action_data, model.MODEL_CODE, n=cut)
-	center_from_label = np.zeros((2, model.timesteps, model.input_dim))
-	center_from_label[:,:,:-model.label_dim] = np.load(LABEL_GEN_CENTERS)[[model.labels[from_motion_name], model.labels[to_motion_name]]]
-	center_from_label[0,:,-model.label_dim+model.labels[from_motion_name]] = 1
-	center_from_label[1,:,-model.label_dim+model.labels[to_motion_name]] = 1
+	# center_from_label = np.zeros((2, model.timesteps, model.input_dim))
+	# center_from_label[:,:,:-model.label_dim] = np.load(LABEL_GEN_CENTERS)[[model.labels[from_motion_name], model.labels[to_motion_name]]]
+	# center_from_label[0,:,-model.label_dim+model.labels[from_motion_name]] = 1
+	# center_from_label[1,:,-model.label_dim+model.labels[to_motion_name]] = 1
+	center_from_label = np.load(LABEL_GEN_CENTERS)[[model.labels[from_motion_name], model.labels[to_motion_name]]]
 	z_labels = metrics.__get_latent_reps(model.encoder, center_from_label, model.MODEL_CODE, n=cut)
 	z_infered = z_actions - z_labels[0] + z_labels[1]
 	action_infered = metrics.__get_decoded_reps(model.decoder, z_infered, model.MODEL_CODE)
