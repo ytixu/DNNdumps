@@ -30,8 +30,8 @@ class Forward_NN:
 
 	def make_model(self):
 		inputs = Input(shape=(self.input_dim,))
-		#d1 = Dense(self.interim_dim, activation='relu')(inputs)
-		outputs = Dense(self.output_dim, activation='tanh')(inputs)
+		d1 = Dense(self.interim_dim, activation='relu')(inputs)
+		outputs = Dense(self.output_dim, activation='tanh')(d1)
 
 		self.model = Model(inputs, outputs)
 		self.model.compile(optimizer='RMSprop', loss='mean_squared_error')
