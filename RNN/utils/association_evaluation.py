@@ -428,6 +428,30 @@ def animate_poses(filename, model, save_path):
 		fk_animate.animate_motion(poses[i], labels[i], save_path)
 
 
+def plot_add(model, data_iterator):
+	embedding = None
+	if model.MODEL_CODE == L_LSTM:
+		embedding = metrics.get_label_embedding(model, data_iterator, subspaces=model.hierarchies)
+	else:
+		embedding = metrics.get_embedding(model, data_iterator)
+
+	diff1 = np.mean(embedding[:,1] - embedding[:,0], axis=0)
+	diff2 = np.mean(embedding[:,2] - embedding[:,1], axis=0)
+	diff3 = np.mean(embedding[:,2] - embedding[:,0], axis=0)
+
+	ordering = np.argsort(diff3)
+	x = range(1, ordering.shape[0]+1)
+	plt.plot(x, diff1[ordering], label='%d-%d'%(model.hierarchies[1]+1, model.hierarchies[0]+1))
+	plt.plot(x, diff2[ordering], label='%d-%d'%(model.hierarchies[2]+1, model.hierarchies[1]+1))
+	plt.plot(x, diff3[ordering], label='%d-%d'%(model.hierarchies[2]+1, model.hierarchies[0]+1))
+	plt.legend()
+	plt.xlabel('dimensions')
+	plt.ylabel('mean difference')
+	plt.savefig('../new_out/plot_add-'+model.NAME+'-std.png')
+	plt.close()
+
+
+
 if __name__ == '__main__':
 	action_type = 'sitting'
 	plot_results('../../new_out/'+action_type+'/', 'L_GRU-t30-l400', action_type)
