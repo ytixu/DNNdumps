@@ -787,7 +787,7 @@ def plot_metrics(model, data_iterator, validation_data, n_valid = 100):
 			zs = np.zeros((len(rn), z_ref.shape[-1]))
 			for i,n in enumerate(rn):
 				if n == -4:
-					new_e_idx = __closest_partial_index(embedding[:,1])
+					new_e_idx = __closest_partial_index(embedding[:,1], z_ref)
 					new_e = embedding[new_e_idx,cut]
 				elif n == -3:
 					new_e = z_ref + diff_mean[cut]
