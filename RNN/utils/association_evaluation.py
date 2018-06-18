@@ -435,19 +435,27 @@ def plot_add(model, data_iterator):
 	else:
 		embedding = metrics.get_embedding(model, data_iterator)
 
-	diff1 = np.mean(np.cos(embedding[:,1]) + np.sin(embedding[:,0]), axis=0)
-	diff2 = np.mean(np.cos(embedding[:,2]) + np.sin(embedding[:,1]), axis=0)
-	diff3 = np.mean(np.cos(embedding[:,2]) + np.sin(embedding[:,0]), axis=0)
+	dif = embedding[:,2] - embedding[:,1]
+	add = embedding[:,2] + embedding[:,1]
 
-	ordering = np.argsort(diff3)
+	y = np.mean(dif, axis=0)
+	ordering = np.argsort(y)
+	y = y[ordering]
+	err = np.std(dif, axis=0)[ordering]
 	x = range(1, ordering.shape[0]+1)
-	plt.plot(x, diff1[ordering], label='%d+%d'%(model.hierarchies[1]+1, model.hierarchies[0]+1))
-	plt.plot(x, diff2[ordering], label='%d+%d'%(model.hierarchies[2]+1, model.hierarchies[1]+1))
-	plt.plot(x, diff3[ordering], label='%d+%d'%(model.hierarchies[2]+1, model.hierarchies[0]+1))
+
+	p = plt.plot(x, y, label='diff')
+	plt.fill_between(x, y-err, y+err, alpha=0.3, color=p[-1].get_color())
+
+	y = np.mean(add, axis=0)[ordering]
+	err = np.std(dif, axis=0)[ordering]
+
+	plt.plot(x, y, label='add')
+	plt.fill_between(x, y-err, y+err, alpha=0.3, color=p[-1].get_color())
 	plt.legend()
-	plt.xlabel('dimensions')
-	plt.ylabel('mean difference')
-	plt.savefig('../new_out/plot_add-cs-'+model.NAME+'-std.png')
+	# plt.xlabel('dimensions')
+	# plt.ylabel('mean difference')
+	plt.savefig('../new_out/plot_add-std-'+model.NAME+'-std.png')
 	plt.close()
 
 	pred1 = embedding[:,1] + diff2
