@@ -450,7 +450,7 @@ def plot_add(model, data_iterator):
 	y = np.mean(diff, axis=0)[ordering]
 	err = np.std(diff, axis=0)[ordering]
 
-	plt.plot(x, y, label='diff')
+	p = plt.plot(x, y, label='diff')
 	plt.fill_between(x, y-err, y+err, alpha=0.3, color=p[-1].get_color())
 	plt.legend()
 	# plt.xlabel('dimensions')
