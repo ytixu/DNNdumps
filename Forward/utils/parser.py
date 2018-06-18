@@ -11,7 +11,7 @@ def get_log_name(model_name):
 	return '../models/%s_%d.log'%(model_name, time.time())
 
 def get_data(data_path='../data/z_L_RNN.npy'):
-	data = np.load()
+	data = np.load(data_path)
 	return data[:,1], data[:,2]
 
 def get_parse(model_name, labels=False):
@@ -25,6 +25,8 @@ def get_parse(model_name, labels=False):
 	ap.add_argument('-sp', '--save_path', required=False, help='Model save path', default=get_model_load_name(model_name))
 	ap.add_argument('-p', '--periods', required=False, help='Number of iterations of the data', default='10', type=int)
 
+	args = vars(ap.parse_args())
 	x, y = get_data(args['data_path'])
+	args['input_dim'], args['output_dim'] = x.shape[1], y.shape[1]
 
 	return x, y, args
