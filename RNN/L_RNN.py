@@ -9,6 +9,7 @@ from keras.models import Model
 from keras.optimizers import RMSprop
 
 from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines, association_evaluation
+from Forward import NN
 
 LEARNING_RATE = 0.0001
 NAME = 'L_LSTM'
@@ -148,6 +149,8 @@ class L_LSTM:
 		# embedding_plotter.see_hierarchical_embedding(self.encoder, self.decoder, data_iterator, valid_data, model_vars, self.label_dim)
 		# iter1, iter2 = tee(data_iterator)
 		# metrics.validate(valid_data, self)
+
+		nn = NN.Forward_NN()
 		metrics.plot_metrics(self, data_iterator, valid_data)
 		# association_evaluation.eval_generation(self, valid_data, data_iterator)
 		# association_evaluation.eval_center(self, valid_data, 'sitting')

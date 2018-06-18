@@ -3,6 +3,7 @@ import time
 from keras.layers import Input, Dense
 from keras.models import Model
 from sklearn import cross_validation
+from keras.optimizers import RMSprop
 
 from utils import parser
 
@@ -11,8 +12,8 @@ NAME = 'Forward_NN'
 class Forward_NN:
 
 	def __init__(self, args):
-		self.batch_size = args['batch_size']
-		self.epochs = args['epochs']
+		self.batch_size = args['batch_size'] if 'batch_size' in args else 16
+		self.epochs = args['epochs'] if 'epochs' in args else 5
 		self.output_dim = args['output_dim']
 		self.input_dim = args['input_dim']
 		self.interim_dim = (args['output_dim'] + args['input_dim'])/2
@@ -23,7 +24,7 @@ class Forward_NN:
 		self.trained = args['mode'] == 'sample'
 
 		self.load_path = args['load_path']
-		self.save_path = args['save_path']
+		self.save_path = args['save_path'] if 'save_path' in args else ''
 
 		self.model = None
 
