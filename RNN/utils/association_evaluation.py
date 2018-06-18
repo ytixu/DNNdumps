@@ -438,12 +438,14 @@ def plot_add(model, data_iterator):
 	diff1 = np.mean(embedding[:,1] - embedding[:,0], axis=0)
 	diff2 = np.mean(embedding[:,2] - embedding[:,1], axis=0)
 	diff3 = np.mean(embedding[:,2] - embedding[:,0], axis=0)
+	diff4 = diff2 + diff1
 
 	ordering = np.argsort(diff3)
 	x = range(1, ordering.shape[0]+1)
 	plt.plot(x, diff1[ordering], label='%d-%d'%(model.hierarchies[1]+1, model.hierarchies[0]+1))
 	plt.plot(x, diff2[ordering], label='%d-%d'%(model.hierarchies[2]+1, model.hierarchies[1]+1))
 	plt.plot(x, diff3[ordering], label='%d-%d'%(model.hierarchies[2]+1, model.hierarchies[0]+1))
+	plt.plot(x, diff4[ordering], label='+')
 	plt.legend()
 	plt.xlabel('dimensions')
 	plt.ylabel('mean difference')
