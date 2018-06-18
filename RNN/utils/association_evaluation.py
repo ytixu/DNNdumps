@@ -435,9 +435,9 @@ def plot_add(model, data_iterator):
 	else:
 		embedding = metrics.get_embedding(model, data_iterator)
 
-	diff1 = np.mean(np.sin(embedding[:,1]) + np.cos(embedding[:,0]), axis=0)
-	diff2 = np.mean(np.sin(embedding[:,2]) + np.cos(embedding[:,1]), axis=0)
-	diff3 = np.mean(np.sin(embedding[:,2]) + np.cos(embedding[:,0]), axis=0)
+	diff1 = np.mean(np.cos(embedding[:,1]) + np.sin(embedding[:,0]), axis=0)
+	diff2 = np.mean(np.cos(embedding[:,2]) + np.sin(embedding[:,1]), axis=0)
+	diff3 = np.mean(np.cos(embedding[:,2]) + np.sin(embedding[:,0]), axis=0)
 
 	ordering = np.argsort(diff3)
 	x = range(1, ordering.shape[0]+1)
@@ -447,7 +447,7 @@ def plot_add(model, data_iterator):
 	plt.legend()
 	plt.xlabel('dimensions')
 	plt.ylabel('mean difference')
-	plt.savefig('../new_out/plot_add-sc-'+model.NAME+'-std.png')
+	plt.savefig('../new_out/plot_add-cs-'+model.NAME+'-std.png')
 	plt.close()
 
 	pred1 = embedding[:,1] + diff2
