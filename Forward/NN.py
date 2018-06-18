@@ -40,33 +40,27 @@ class Forward_NN:
 			return True
 		return False
 
-	def run(self, data_iterator):
+	def run(self, x, y):
 		if not self.load():
 			loss_error = 10000
-			iter1, iter2 = tee(data_iterator)
 			for i in range(self.periods):
-				for x, y in iter1:
-					x_data, y_data = self.__alter_label(x, y)
-					x_train, x_test, y_train, y_test = cross_validation.train_test_split(x_data, y_data, test_size=self.cv_splits)
-					history = self.autoencoder.fit(x_train, y_train,
-								shuffle=True,
-								epochs=self.epochs,
-								batch_size=self.batch_size,
-								validation_data=(x_test, y_test))
-								# callbacks=[self.history])
+				x_train, x_test, y_train, y_test = cross_validation.train_test_split(x, y, test_size=self.cv_splits)
+				history = self.autoencoder.fit(x_train, y_train,
+							shuffle=True,
+							epochs=self.epochs,
+							batch_size=self.batch_size,
+							validation_data=(x_test, y_test))
+							# callbacks=[self.history])
 
-					new_loss = np.mean(history.history['loss'])
-					if new_loss < loss:
-						print 'Saved model - ', loss
-						loss = new_loss
-						self.model.save_weights(self.save_path, overwrite=True)
+				new_loss = np.mean(history.history['loss'])
+				if new_loss < loss:
+					print 'Saved model - ', loss
+					loss = new_loss
+					self.model.save_weights(self.save_path, overwrite=True)
 
-				iter1, iter2 = tee(iter2)
-
-			data_iterator = iter2
 
 
 if __name__ == '__main__':
-	data_iterator, config = parser.get_parse(NAME, labels=True)
+	x, y, config = parser.get_parse(NAME, labels=True)
 	nn = Forward_NN(config)
 	nn.run(data_iterator)
