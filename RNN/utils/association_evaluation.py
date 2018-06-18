@@ -435,7 +435,7 @@ def plot_add(model, data_iterator):
 	else:
 		embedding = metrics.get_embedding(model, data_iterator)
 
-	dif = embedding[:,2] - embedding[:,1]
+	diff = embedding[:,2] - embedding[:,1]
 	add = embedding[:,2] + embedding[:,1]
 
 	y = np.mean(add, axis=0)
