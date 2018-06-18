@@ -458,7 +458,6 @@ def plot_add(model, data_iterator):
 	plt.savefig('../new_out/plot_add-std-'+model.NAME+'-std.png')
 	plt.close()
 
-	pred1 = embedding[:,1] + diff2
 
 if __name__ == '__main__':
 	action_type = 'sitting'
