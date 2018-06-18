@@ -148,7 +148,7 @@ def __cuts():
 
 def __rn():
 	# return [100, 200, -1, -2, -3, -4]
-	return [100, 500, 1000, 5000, 10000, -1, -2, -3, -4]
+	return [100, 500, 1000, 5000, 10000, -1, -2, -3, -4, -5]
 
 def __common_params(n):
 	cuts = __cuts()
@@ -732,7 +732,7 @@ def gen_long_sequence(embedding, validation_data, model, l_n=60, numb=10):
 #     return e_x / e_x.sum(axis=0) # only difference
 
 
-def plot_metrics(model, data_iterator, validation_data, n_valid = 100):
+def plot_metrics(model, data_iterator, validation_data, nn, n_valid = 100):
 	cuts, rn, scores = __common_params(n_valid)
 	given_n = model.hierarchies[1]
 	new_e = None
@@ -786,6 +786,8 @@ def plot_metrics(model, data_iterator, validation_data, n_valid = 100):
 			weights, w_i = __get_weights(ls, z_ref)
 			zs = np.zeros((len(rn), z_ref.shape[-1]))
 			for i,n in enumerate(rn):
+				if n == -5:
+					new_e = nn.model.predict(z_ref)
 				if n == -4:
 					new_e_idx = __closest_partial_index(embedding[:,1], z_ref)
 					new_e = embedding[new_e_idx,cut]
@@ -811,7 +813,7 @@ def plot_metrics(model, data_iterator, validation_data, n_valid = 100):
 	ys = np.array([[np.mean(scores['score'][n][cut]) for n in rn] for cut in cuts])
 	errs = np.array([[np.std(scores['score'][n][cut]) for n in rn] for cut in cuts])
 	labels = [str(model.hierarchies[c] + 1) for c in cuts]
-	x_ticks = map(str, rn[:-4])+['all', 'CLOSEST', 'ADD', 'P_CLOSEST']
+	x_ticks = map(str, rn[:-5])+['all', 'CLOSEST', 'ADD', 'P_CLOSEST', 'FN']
 	x_label = 'Number of random latent representation'
 	y_label = 'Error'
 	title = 'Pose error'
