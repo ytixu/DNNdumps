@@ -151,6 +151,7 @@ class L_LSTM:
 		# metrics.validate(valid_data, self)
 
 		nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
+		nn.run([], [])
 		metrics.plot_metrics(self, data_iterator, valid_data, nn)
 		# association_evaluation.eval_generation(self, valid_data, data_iterator)
 		# association_evaluation.eval_center(self, valid_data, 'sitting')
