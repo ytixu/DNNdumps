@@ -430,7 +430,7 @@ def animate_poses(filename, model, save_path):
 
 def plot_add(model, data_iterator):
 	embedding = None
-	if model.MODEL_CODE == L_LSTM:
+	if model.MODEL_CODE == metrics.L_LSTM:
 		embedding = metrics.get_label_embedding(model, data_iterator, subspaces=model.hierarchies)
 	else:
 		embedding = metrics.get_embedding(model, data_iterator)
