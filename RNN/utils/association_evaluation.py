@@ -438,19 +438,19 @@ def plot_add(model, data_iterator):
 	dif = embedding[:,2] - embedding[:,1]
 	add = embedding[:,2] + embedding[:,1]
 
-	y = np.mean(dif, axis=0)
+	y = np.mean(add, axis=0)
 	ordering = np.argsort(y)
 	y = y[ordering]
-	err = np.std(dif, axis=0)[ordering]
+	err = np.std(add, axis=0)[ordering]
 	x = range(1, ordering.shape[0]+1)
 
-	p = plt.plot(x, y, label='diff')
+	p = plt.plot(x, y, label='add')
 	plt.fill_between(x, y-err, y+err, alpha=0.3, color=p[-1].get_color())
 
-	y = np.mean(add, axis=0)[ordering]
-	err = np.std(dif, axis=0)[ordering]
+	y = np.mean(diff, axis=0)[ordering]
+	err = np.std(diff, axis=0)[ordering]
 
-	plt.plot(x, y, label='add')
+	plt.plot(x, y, label='diff')
 	plt.fill_between(x, y-err, y+err, alpha=0.3, color=p[-1].get_color())
 	plt.legend()
 	# plt.xlabel('dimensions')
