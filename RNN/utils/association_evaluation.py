@@ -435,28 +435,31 @@ def plot_add(model, data_iterator):
 	else:
 		embedding = metrics.get_embedding(model, data_iterator)
 
-	diff = embedding[:,2] - embedding[:,1]
-	add = embedding[:,2] + embedding[:,1]
+	np.save('../data/z_L_RNN.npy', embedding)
 
-	y = np.mean(add, axis=0)
-	ordering = np.argsort(y)
-	y = y[ordering]
-	err = np.std(add, axis=0)[ordering]
-	x = range(1, ordering.shape[0]+1)
+	# diff = embedding[:,2] - embedding[:,1]
+	# add = embedding[:,2] + embedding[:,1]
 
-	p = plt.plot(x, y, label='add')
-	plt.fill_between(x, y-err, y+err, alpha=0.3, color=p[-1].get_color())
+	# y = np.mean(add, axis=0)
+	# ordering = np.argsort(y)
+	# y = y[ordering]
+	# err = np.std(add, axis=0)[ordering]
+	# x = range(1, ordering.shape[0]+1)
 
-	y = np.mean(diff, axis=0)[ordering]
-	err = np.std(diff, axis=0)[ordering]
+	# p = plt.plot(x, y, label='add')
+	# plt.fill_between(x, y-err, y+err, alpha=0.3, color=p[-1].get_color())
 
-	p = plt.plot(x, y, label='diff')
-	plt.fill_between(x, y-err, y+err, alpha=0.3, color=p[-1].get_color())
-	plt.legend()
-	# plt.xlabel('dimensions')
-	# plt.ylabel('mean difference')
-	plt.savefig('../new_out/plot_add-std-'+model.NAME+'-std.png')
-	plt.close()
+	# y = np.mean(diff, axis=0)[ordering]
+	# err = np.std(diff, axis=0)[ordering]
+
+	# p = plt.plot(x, y, label='diff')
+	# plt.fill_between(x, y-err, y+err, alpha=0.3, color=p[-1].get_color())
+	# plt.legend()
+	# # plt.xlabel('dimensions')
+	# # plt.ylabel('mean difference')
+	# plt.savefig('../new_out/plot_add-std-'+model.NAME+'-std.png')
+	# plt.close()
+
 
 
 if __name__ == '__main__':
