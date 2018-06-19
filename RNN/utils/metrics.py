@@ -805,9 +805,9 @@ def plot_metrics(model, data_iterator, validation_data, nn, n_valid = 100):
 			t_pose[:model.hierarchies[cut]+1] = pose[:model.hierarchies[cut]+1]
 			for i, n in enumerate(rn):
 				if model.MODEL_CODE == L_LSTM:
-					scores['score'][n][cut][k] = np.mean([np.linalg.norm(t_pose[t,:-model.label_dim]-p_poses[i,t,:-model.label_dim]) for t in range(model.timesteps)])
+					scores['score'][n][cut][k] = __pose_seq_error(t_pose[:,:-model.label_dim],p_poses[i,:,:-model.label_dim])
 				else:
-                                        scores['score'][n][cut][k] = np.mean([np.linalg.norm(t_pose[t]-p_poses[i,t]) for t in range(model.timesteps)])
+                    scores['score'][n][cut][k] = __pose_seq_error(t_pose,p_poses[i])
 
 	x = np.arange(len(rn))
 	ys = np.array([[np.mean(scores['score'][n][cut]) for n in rn] for cut in cuts])
