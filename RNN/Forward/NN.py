@@ -31,7 +31,8 @@ class Forward_NN:
 	def make_model(self):
 		inputs = Input(shape=(self.input_dim,))
 		d1 = Dense(self.interim_dim, activation='relu')(inputs)
-		outputs = Dense(self.output_dim, activation='tanh')(d1)
+		d2 = Dense(self.interim_dim, activation='relu')(d1)
+		outputs = Dense(self.output_dim, activation='tanh')(d2)
 
 		self.model = Model(inputs, outputs)
 		self.model.compile(optimizer='RMSprop', loss='mean_squared_error')
@@ -45,12 +46,20 @@ class Forward_NN:
 			return True
 		return False
 
+	def __alter_label(self, x, y):
+		idx = np.random.choice(x.shape[0], x.shape[0]/2)
+		x[idx,:,-self.label_dim:] = 0
+		y[idx,:,-self.label_dim:] = 0
+		return x, y
+
+
 	def run(self, x, y):
 		if not self.load():
 			loss = 10000
 			lr = 0.001
 			for i in range(self.periods):
-				x_train, x_test, y_train, y_test = cross_validation.train_test_split(x, y, test_size=self.cv_splits)
+				x_data, y_data = self.__alter_label(x, y)
+				x_train, x_test, y_train, y_test = cross_validation.train_test_split(x_data, y_data, test_size=self.cv_splits)
 				history = self.model.fit(x_train, y_train,
 							shuffle=True,
 							epochs=self.epochs,

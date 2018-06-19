@@ -162,7 +162,7 @@ class L_LSTM:
 		# association_evaluation.eval_generation_from_label(self, data_iterator)
 		# association_evaluation.plot_add(self, data_iterator)
 		# metrics.plot_metrics_labels(self, data_iterator, valid_data)
-		metric_baselines.compare_label_embedding(self, nn, data_iterator)
+		metric_baselines.compare_label_embedding(self, nn, data_iterator, with_label=False)
 		# association_evaluation.eval_distance(self, valid_data)
 		# evaluate.eval_pattern_reconstruction(self.encoder, self.decoder, iter2)
 
