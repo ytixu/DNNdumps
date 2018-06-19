@@ -165,10 +165,10 @@ def animate_results(from_path, predict, predict_name, baseline='1',
 					from_path+LOAD_PATH+'images/%s-%d-%s'%(basename, i, predict_name.replace('.', '').replace('/', '-').replace(' ', '-')))
 
 
-def compare_label_embedding(model, data_iterator, with_label=True):
+def compare_label_embedding(model, nn, data_iterator, with_label=True):
 	import image
-	embedding = metrics.get_label_embedding(model, data_iterator, without_label_only=(not with_label), subspaces=model.hierarchies[-2:])
-	mean_diff, diff = metrics.get_embedding_diffs(embedding[:,1], embedding[:,0])
+	# embedding = metrics.get_label_embedding(model, data_iterator, without_label_only=(not with_label), subspaces=model.hierarchies[-2:])
+	# mean_diff, diff = metrics.get_embedding_diffs(embedding[:,1], embedding[:,0])
 	cut = model.hierarchies[-2]+1
 	pred_n = model.timesteps-cut
 	for basename in iter_actions():
@@ -190,8 +190,9 @@ def compare_label_embedding(model, data_iterator, with_label=True):
 			print model.labels[basename]
 			pose_ref[:,:cut,-model.label_dim:] = model.labels[basename]
 
-		new_enc = model.encoder.predict(pose_ref)[:,cut-1] + mean_diff
-		# pose_pred = model.decoder.predict(new_enc)
+		new_enc = nn.model.predict(model.encoder.predict(pose_ref)[:,cut-1])
+		# new_enc = model.encoder.predict(pose_ref)[:,cut-1] + mean_diff
+		# # pose_pred = model.decoder.predict(new_enc)
 		pose_pred = model.decoder.predict(new_enc)[:,-pred_n:,:-model.label_dim]
 		error_bl = [metrics.__pose_seq_error(pose_gt[i], pose_pred_bl[i]) for i in range(_N)]
 		error = [metrics.__pose_seq_error(pose_gt[i], pose_pred[i]) for i in range(_N)]
