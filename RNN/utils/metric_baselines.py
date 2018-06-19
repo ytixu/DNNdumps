@@ -166,6 +166,14 @@ def animate_results(from_path, predict, predict_name, baseline='1',
 
 
 def compare_label_embedding(model, nn, data_iterator, with_label=True):
+
+	#for x, _ in data_iterator:
+	#	enc = model.encoder.predict(x[:2])[:, model.hierarchies[-2:]]
+	#	enc1 = nn.model.predict(enc[:,0])
+	#	print np.mean(np.abs(enc1-enc[:,1]))
+
+	#return
+
 	import image
 	# embedding = metrics.get_label_embedding(model, data_iterator, without_label_only=(not with_label), subspaces=model.hierarchies[-2:])
 	# mean_diff, diff = metrics.get_embedding_diffs(embedding[:,1], embedding[:,0])
@@ -186,17 +194,26 @@ def compare_label_embedding(model, nn, data_iterator, with_label=True):
 			pose_pred_bl[i] = pd[:pred_n]
 			pose_gt[i] = gtp[:pred_n]
 
+			pose_ref[i,cut:,:-model.label_dim] = gtp[:pred_n]
+
 		if with_label:
 			print model.labels[basename]
-			pose_ref[:,:cut,-model.label_dim:] = model.labels[basename]
+			pose_ref[:,:,-model.label_dim:] = model.labels[basename]
 
-		new_enc = nn.model.predict(metrics.__get_latent_reps(model.encoder, pose_ref, model.MODEL_CODE, cut-1))
+		enc = model.encoder.predict(pose_ref)
+		new_enc = nn.model.predict(enc[:,cut-1])
+		print np.mean(np.abs(new_enc - enc[:,-1]))
+
+		dec = model.decoder.predict(enc[:,-1])
+		image.plot_poses(dec, title='dec', image_dir='../new_out/')
+		continue
 		# new_enc = model.encoder.predict(pose_ref)[:,cut-1] + mean_diff
 		# # pose_pred = model.decoder.predict(new_enc)
 		pose_pred = model.decoder.predict(new_enc)[:,-pred_n:,:-model.label_dim]
 		error_bl = [metrics.__pose_seq_error(pose_gt[i], pose_pred_bl[i]) for i in range(_N)]
 		error = [metrics.__pose_seq_error(pose_gt[i], pose_pred[i]) for i in range(_N)]
-		print np.mean(error), np.mean(error_bl)
+		print error
+		print error_bl
 		# image.plot_poses(pose_pred, title='rnn', image_dir='../new_out/')
 		# image.plot_poses(pose_pred_bl, title='baseline', image_dir='../new_out/')
 		# image.plot_poses(pose_gt, title='gt', image_dir='../new_out/')
