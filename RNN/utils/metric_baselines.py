@@ -1,5 +1,5 @@
-# import matplotlib
-# matplotlib.use('Agg')
+import matplotlib
+matplotlib.use('Agg')
 
 from itertools import tee
 import numpy as np
@@ -198,17 +198,13 @@ def compare_label_embedding(model, nn, data_iterator, with_label=True):
 
 		if with_label:
 			print model.labels[basename]
-			pose_ref[:,:,-model.label_dim:] = model.labels[basename]
+			pose_ref[:,:,-model.label_dim+model.labels[basename]] = 1
 
 		enc = model.encoder.predict(pose_ref)
 		print enc.shape, pose_ref.shape
-		#new_enc = nn.model.predict(enc[:,cut-1])
-		#print np.mean(np.abs(new_enc - enc[:,-1]))
 
-		dec = model.decoder.predict(enc[:,-1])
-		print dec.shape
-		image.plot_poses(dec, title='dec', image_dir='../new_out/')
-		continue
+		new_enc = nn.model.predict(enc[:,cut-1])
+		# image.plot_poses(dec, title='dec', image_dir='../new_out/')
 		# new_enc = model.encoder.predict(pose_ref)[:,cut-1] + mean_diff
 		# # pose_pred = model.decoder.predict(new_enc)
 		pose_pred = model.decoder.predict(new_enc)[:,-pred_n:,:-model.label_dim]
@@ -219,7 +215,7 @@ def compare_label_embedding(model, nn, data_iterator, with_label=True):
 		# image.plot_poses(pose_pred, title='rnn', image_dir='../new_out/')
 		# image.plot_poses(pose_pred_bl, title='baseline', image_dir='../new_out/')
 		# image.plot_poses(pose_gt, title='gt', image_dir='../new_out/')
-		# np.save('../new_out/LRNN-%s.npy'%basename, pose_pred)
+		np.save('../new_out/LRNN-%s.npy'%basename, pose_pred)
 
 def compare_embedding(model, data_iterator):
 	import image
@@ -352,6 +348,6 @@ if __name__ == '__main__':
 	# compare_raw_closest('../', data_iterator)
 
 	# plot_results('../../results/nn_15_results.csv')
-	animate_results('../', 'nn_15', 'Nearest nei. (1/10)')
+	# animate_results('../', 'nn_15', 'Nearest nei. (1/10)')
 
-	# plot_results_npy('../', ['../../new_out/H_GRU/raw-t30-l300/HRNN-', '../../new_out/L_RNN-t30-l400/without-labels/LRNN-'], ['H-RNN', 'L-RNN'])
+	plot_results_npy('../', ['../../new_out/LRNN-'], ['L-RNN'])
