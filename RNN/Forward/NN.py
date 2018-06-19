@@ -41,6 +41,7 @@ class Forward_NN:
 		self.make_model()
 		if self.trained:
 			self.model.load_weights(self.load_path)
+			print 'loaded'
 			return True
 		return False
 

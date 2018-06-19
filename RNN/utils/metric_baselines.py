@@ -190,19 +190,17 @@ def compare_label_embedding(model, nn, data_iterator, with_label=True):
 			print model.labels[basename]
 			pose_ref[:,:cut,-model.label_dim:] = model.labels[basename]
 
-		new_enc = nn.model.predict(model.encoder.predict(pose_ref)[:,cut-1])
+		new_enc = nn.model.predict(metrics.__get_latent_reps(model.encoder, pose_ref, model.MODEL_CODE, cut-1))
 		# new_enc = model.encoder.predict(pose_ref)[:,cut-1] + mean_diff
 		# # pose_pred = model.decoder.predict(new_enc)
 		pose_pred = model.decoder.predict(new_enc)[:,-pred_n:,:-model.label_dim]
 		error_bl = [metrics.__pose_seq_error(pose_gt[i], pose_pred_bl[i]) for i in range(_N)]
 		error = [metrics.__pose_seq_error(pose_gt[i], pose_pred[i]) for i in range(_N)]
 		print np.mean(error), np.mean(error_bl)
-		# error = [metrics.__pose_seq_error(pose_ref[i], pose_pred[i]) for i in range(_N)]
-		# print np.mean(error) # , np.mean(error_bl)
-		image.plot_poses(pose_pred, title='rnn', image_dir='../new_out/')
-		image.plot_poses(pose_pred_bl, title='baseline', image_dir='../new_out/')
-		image.plot_poses(pose_gt, title='gt', image_dir='../new_out/')
-		np.save('../new_out/LRNN-%s.npy'%basename, pose_pred)
+		# image.plot_poses(pose_pred, title='rnn', image_dir='../new_out/')
+		# image.plot_poses(pose_pred_bl, title='baseline', image_dir='../new_out/')
+		# image.plot_poses(pose_gt, title='gt', image_dir='../new_out/')
+		# np.save('../new_out/LRNN-%s.npy'%basename, pose_pred)
 
 def compare_embedding(model, data_iterator):
 	import image
