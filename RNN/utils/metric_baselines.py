@@ -193,19 +193,21 @@ def compare_label_embedding(model, nn, data_iterator, with_label=True):
 			pose_ref[i,:cut,:-model.label_dim] = gt[-cut:]
 			pose_pred_bl[i] = pd[:pred_n]
 			pose_gt[i] = gtp[:pred_n]
-			#print pose_ref[i]
+
 			pose_ref[i,cut:,:-model.label_dim] = gtp[:pred_n]
 
 		if with_label:
 			print model.labels[basename]
 			pose_ref[:,:,-model.label_dim:] = model.labels[basename]
 
-		#enc = model.encoder.predict(pose_ref)
+		enc = model.encoder.predict(pose_ref)
+		print enc.shape, pose_ref.shape
 		#new_enc = nn.model.predict(enc[:,cut-1])
 		#print np.mean(np.abs(new_enc - enc[:,-1]))
 
-		#dec = model.decoder.predict(enc[:,-1])
-		image.plot_poses(pose_ref, title='dec', image_dir='../new_out/')
+		dec = model.decoder.predict(enc[:,-1])
+		print dec.shape
+		image.plot_poses(dec, title='dec', image_dir='../new_out/')
 		continue
 		# new_enc = model.encoder.predict(pose_ref)[:,cut-1] + mean_diff
 		# # pose_pred = model.decoder.predict(new_enc)
