@@ -23,7 +23,7 @@ class Forward_NN:
 		self.cv_splits = args['cv_splits'] if 'cv_splits' in args else 0.2
 		self.trained = args['mode'] == 'sample'
 
-		self.load_path = args['load_path'] if 'load_path' in args else '../models/Forward_NN_1529355253.hdf5'
+		self.load_path = args['load_path'] if 'load_path' in args else '../models/Forward_NN_1529443168.hdf5'
 		self.save_path = args['save_path'] if 'save_path' in args else ''
 
 		self.model = None
@@ -46,20 +46,13 @@ class Forward_NN:
 			return True
 		return False
 
-	def __alter_label(self, x, y):
-		idx = np.random.choice(x.shape[0], x.shape[0]/2)
-		x[idx,:,-self.label_dim:] = 0
-		y[idx,:,-self.label_dim:] = 0
-		return x, y
 
-
-	def run(self, x, y):
+	def run(self, data_iterator):
 		if not self.load():
 			loss = 10000
 			lr = 0.001
-			for i in range(self.periods):
-				x_data, y_data = self.__alter_label(x, y)
-				x_train, x_test, y_train, y_test = cross_validation.train_test_split(x_data, y_data, test_size=self.cv_splits)
+			for x, y in data_iterator:
+				x_train, x_test, y_train, y_test = cross_validation.train_test_split(x, y, test_size=self.cv_splits)
 				history = self.model.fit(x_train, y_train,
 							shuffle=True,
 							epochs=self.epochs,
@@ -72,15 +65,15 @@ class Forward_NN:
 					print 'Saved model - ', loss
 					loss = new_loss
 					self.model.save_weights(self.save_path, overwrite=True)
-				else:
-					lr = lr/2
-					opt = RMSprop(lr=lr)
-					self.model.compile(optimizer=opt, loss='mean_squared_error')
-					print 'new learning rate', lr
+				# else:
+				# 	lr = lr/2
+				# 	opt = RMSprop(lr=lr)
+				# 	self.model.compile(optimizer=opt, loss='mean_squared_error')
+				# 	print 'new learning rate', lr
 
 
 
 if __name__ == '__main__':
-	x, y, config = parser.get_parse(NAME, labels=True)
+	data_iterator, config = parser.get_parse(NAME, labels=True)
 	nn = Forward_NN(config)
-	nn.run(x, y)
+	nn.run(data_iterator)

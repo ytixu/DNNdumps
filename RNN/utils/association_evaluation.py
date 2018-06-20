@@ -431,11 +431,17 @@ def animate_poses(filename, model, save_path):
 def plot_add(model, data_iterator):
 	embedding = None
 	if model.MODEL_CODE == metrics.L_LSTM:
-		embedding = metrics.get_label_embedding(model, data_iterator, subspaces=model.hierarchies)
+		embedding = metrics.get_label_embedding(model, data_iterator, subspaces=model.hierarchies, also_without_label=True)
 	else:
 		embedding = metrics.get_embedding(model, data_iterator)
 
-	np.save('../data/z_L_RNN.npy', embedding)
+	print len(embedding), embedding[0].shape
+
+	n = 20000
+	N = embedding[0].shape[0]
+	for i in tqdm(range(0, N, n)):
+		np.save('../data/embedding/zl_L_RNN-%d.npy'%i, embedding[0][i:min(i+n,N)])
+		np.save('../data/embedding/z_L_RNN-%d.npy'%i, embedding[1][i:min(i+n,N)])
 
 	# diff = embedding[:,2] - embedding[:,1]
 	# add = embedding[:,2] + embedding[:,1]

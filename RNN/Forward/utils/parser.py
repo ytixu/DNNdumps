@@ -10,9 +10,33 @@ def get_model_load_name(model_name):
 def get_log_name(model_name):
 	return '../models/%s_%d.log'%(model_name, time.time())
 
-def get_data(data_path='../data/z_L_RNN.npy'):
-	data = np.load(data_path)
-	return data[:,1], data[:,2]
+def get_data(data_path):
+	data = np.load(glob.glob(data_path)[0])
+	return data.shape[-1]
+
+def data_generator(data_path, n):
+	files = glob.glob(data_path)
+	for i in range(n):
+		x = []
+		y = []
+		rand_f = np.random.choice(len(files), 10, replace=False)
+		for f in rand_f:
+			data = np.load(files[f])
+			N = data.shape[0]
+			rand1 = np.random.choice(N, 3000, replace=False)
+			rand2 = np.random.choice(N, 3000, replace=False)
+			new_x = np.concatenate([data[rand1,0],data[rand2,1]], axis=0)
+			new_y = np.concatenate([data[rand1,2],data[rand2,2]], axis=0)
+			if len(x) == 0:
+				x = new_x
+				y = new_y
+			else:
+				x = np.concatenate([x,new_x], axis=0)
+				y = np.concatenate([y, new_y], axis=0)
+
+		print x.shape, y.shape
+		yield x, y
+
 
 def get_parse(model_name, labels=False):
 	ap = argparse.ArgumentParser()
@@ -23,10 +47,11 @@ def get_parse(model_name, labels=False):
 	ap.add_argument('-bs', '--batch_size', required=False, help='Batch size', default='16', type=int)
 	ap.add_argument('-lp', '--load_path', required=False, help='Model path', default=get_model_load_name(model_name))
 	ap.add_argument('-sp', '--save_path', required=False, help='Model save path', default=get_model_load_name(model_name))
-	ap.add_argument('-p', '--periods', required=False, help='Number of iterations of the data', default='10', type=int)
+	ap.add_argument('-p', '--periods', required=False, help='Number of iterations of the data', default='50', type=int)
 
 	args = vars(ap.parse_args())
-	x, y = get_data(args['data_path'])
-	args['input_dim'], args['output_dim'] = x.shape[1], y.shape[1]
+	dim = get_data(args['data_path']+'*')
+	data_iterator = data_generator(args['data_path']+'*', args['periods'])
+	args['input_dim'], args['output_dim'] = dim, dim
 
-	return x, y, args
+	return data_iterator, args
