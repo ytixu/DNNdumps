@@ -7,9 +7,11 @@ from sklearn import cross_validation
 from keras.layers import Input, RepeatVector, Lambda, concatenate
 from keras.models import Model
 from keras.optimizers import RMSprop
+import keras.backend as K
 
 from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines, association_evaluation
 from Forward import NN
+
 
 LEARNING_RATE = 0.0001
 NAME = 'L_LSTM'
@@ -49,6 +51,7 @@ class L_LSTM:
 		self.NAME = NAME
 		# self.history = recorder.LossHistory()
 
+
 	def make_model(self):
 		inputs = Input(shape=(self.timesteps, self.input_dim))
 
@@ -76,11 +79,21 @@ class L_LSTM:
 		decoded_ = decode_1(z)
 		decoded_ = decode_2(decoded_)
 
+		def customLoss(yTrue, yPred):
+			yt = K.slice(yTrue, (0,0,0), (-1, self.hierarchies[0]+1, -1))
+			yp = K.slice(yPred, (0,0,0), (-1, self.hierarchies[0]+1, -1))
+			loss = K.sum(K.square(yt - yp))
+			for i in self.hierarchies[1:]:
+				yt = K.slice(yTrue, (0,0,0), (-1, i+1, -1))
+				yp = K.slice(yPred, (0,0,0), (-1, i+1, -1))
+				loss = loss + K.sum(K.square(yt - yp))
+		    return loss / len(self.hierarchies)
+
 		self.encoder = Model(inputs, encoded)
 		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
 		opt = RMSprop(lr=LEARNING_RATE)
-		self.autoencoder.compile(optimizer=opt, loss='mean_squared_error')
+		self.autoencoder.compile(optimizer=opt, loss=customLoss)
 
 		self.autoencoder.summary()
 		self.encoder.summary()
