@@ -162,7 +162,7 @@ def animate_results(from_path, predict_path, predict_name, baseline='1',
 			bpd = np.load(from_path + LOAD_PATH + basename + '_%s-%d.npy'%(baseline, i))
 
 			fk_animate.animate_compare(gt, gtp[:pds.shape[1]], pds[i], predict_name, bpd[:pds.shape[1]], baseline_name,
-					from_path+LOAD_PATH+'images/%s-%d-%s'%(basename, i, predict_name.replace('.', '').replace('/', '-').replace(' ', '-')))
+					predict_path+'images-%s-%d-%s'%(basename, i, predict_name.replace('.', '').replace('/', '-').replace(' ', '-')))
 
 
 def compare_label_embedding(model, nn, data_iterator, with_label=True):
