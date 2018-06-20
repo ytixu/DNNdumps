@@ -13,7 +13,7 @@ from utils import parser, image, embedding_plotter, recorder, metrics, metric_ba
 from Forward import NN
 
 
-LEARNING_RATE = 0.00005
+LEARNING_RATE = 0.0005
 NAME = 'L_LSTM'
 USE_GRU = True
 if USE_GRU:
@@ -82,12 +82,12 @@ class L_LSTM:
 		def customLoss(yTrue, yPred):
 			yt = yTrue[:, :self.hierarchies[0]+1]
 			yp = yPred[:, :self.hierarchies[0]+1]
-			loss = K.mean(K.square(yt - yp))
+			loss = K.mean(K.square(yt - yp)) * self.hierarchies[0]/self.timesteps
 			for i in self.hierarchies[1:]:
 				yt = yTrue[:, :i+1]
 				yp = yPred[:, :i+1]
-				loss = loss + K.mean(K.square(yt - yp))
-			return loss / len(self.hierarchies)
+				loss = loss + K.mean(K.square(yt - yp)) * i /self.timesteps
+			return loss
 
 
 		self.encoder = Model(inputs, encoded)
@@ -163,11 +163,11 @@ class L_LSTM:
 
 		# embedding_plotter.see_hierarchical_embedding(self.encoder, self.decoder, data_iterator, valid_data, model_vars, self.label_dim)
 		# iter1, iter2 = tee(data_iterator)
-		# metrics.validate(valid_data, self)
+		metrics.validate(valid_data, self)
 
 		# nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
 		# nn.run(None)
-		metrics.plot_metrics(self, data_iterator, valid_data)
+		# metrics.plot_metrics(self, data_iterator, valid_data)
 		# association_evaluation.eval_generation(self, valid_data, data_iterator)
 		# association_evaluation.eval_center(self, valid_data, 'sitting')
 		# association_evaluation.transfer_motion(self, valid_data, 'sitting', 'walking', data_iterator)

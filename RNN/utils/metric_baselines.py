@@ -161,7 +161,7 @@ def animate_results(from_path, predict_path, predict_name, baseline='1',
 			gtp = np.load(from_path + LOAD_PATH + basename + '_%s-%d.npy'%(ground_truth,i))
 			bpd = np.load(from_path + LOAD_PATH + basename + '_%s-%d.npy'%(baseline, i))
 
-			fk_animate.animate_compare(gt, gtp[:len(pd)], pds[i], predict_name, bpd[:pds.shape[1]], baseline_name,
+			fk_animate.animate_compare(gt, gtp[:pds.shape[1]], pds[i], predict_name, bpd[:pds.shape[1]], baseline_name,
 					from_path+LOAD_PATH+'images/%s-%d-%s'%(basename, i, predict_name.replace('.', '').replace('/', '-').replace(' ', '-')))
 
 
@@ -347,5 +347,5 @@ if __name__ == '__main__':
 	# plot_results('../../results/nn_15_results.csv')
 	# animate_results('../', 'nn_15', 'Nearest nei. (1/10)')
 
-	plot_results_npy('../', ['../../new_out/L_RNN-t30-l400/'+s+'/LRNN-' for s in ['partial-with-label','partial-without-label','nn-with-label','nn-without-label']], ['Part-label', 'Part', 'NN-label', 'NN'])
-	animate_results('../', '../../new_out/L_RNN-t30-l400/partial-with-label/L-RNN-')
+	# plot_results_npy('../', ['../../new_out/L_RNN-t30-l400/'+s+'/LRNN-' for s in ['partial-with-label','partial-without-label','nn-with-label','nn-without-label']], ['Part-label', 'Part', 'NN-label', 'NN'])
+	animate_results('../', '../../new_out/L_RNN-t30-l400/partial-with-label/LRNN-', 'Partial-label')
