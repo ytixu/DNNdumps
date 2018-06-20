@@ -80,14 +80,15 @@ class L_LSTM:
 		decoded_ = decode_2(decoded_)
 
 		def customLoss(yTrue, yPred):
-			yt = K.slice(yTrue, (0,0,0), (-1, self.hierarchies[0]+1, -1))
-			yp = K.slice(yPred, (0,0,0), (-1, self.hierarchies[0]+1, -1))
-			loss = K.sum(K.square(yt - yp))
+			yt = yTrue[:, :self.hierarchies[0]+1]
+			yp = yPred[:, :self.hierarchies[0]+1]
+			loss = K.mean(K.square(yt - yp))
 			for i in self.hierarchies[1:]:
-				yt = K.slice(yTrue, (0,0,0), (-1, i+1, -1))
-				yp = K.slice(yPred, (0,0,0), (-1, i+1, -1))
-				loss = loss + K.sum(K.square(yt - yp))
-		    return loss / len(self.hierarchies)
+				yt = yTrue[:, :i+1]
+				yp = yPred[:, :i+1]
+				loss = loss + K.mean(K.square(yt - yp))
+			return loss / len(self.hierarchies)
+
 
 		self.encoder = Model(inputs, encoded)
 		self.decoder = Model(z, decoded_)
@@ -146,10 +147,10 @@ class L_LSTM:
 					if new_loss < loss:
 						print 'Saved model - ', loss
 						loss = new_loss
-						# y_test_decoded = self.autoencoder.predict(x_test[:1])
-						# y_test_decoded = np.reshape(y_test_decoded, (len(self.hierarchies), self.timesteps, -1))
-						# image.plot_poses(x_test[:1,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
-						# image.plot_hierarchies(y_test_orig[:,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
+						y_test_decoded = self.autoencoder.predict(x_test[:1])
+						y_test_decoded = np.reshape(y_test_decoded, (len(self.hierarchies), self.timesteps, -1))
+						image.plot_poses(x_test[:1,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
+						#image.plot_hierarchies(y_test_orig[:,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
 						self.autoencoder.save_weights(self.save_path, overwrite=True)
 
 				iter1, iter2 = tee(iter2)
