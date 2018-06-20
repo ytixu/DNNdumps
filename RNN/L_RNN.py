@@ -13,7 +13,7 @@ from utils import parser, image, embedding_plotter, recorder, metrics, metric_ba
 from Forward import NN
 
 
-LEARNING_RATE = 0.0001
+LEARNING_RATE = 0.00005
 NAME = 'L_LSTM'
 USE_GRU = True
 if USE_GRU:
@@ -167,7 +167,7 @@ class L_LSTM:
 
 		# nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
 		# nn.run(None)
-		# metrics.plot_metrics(self, data_iterator, valid_data, nn)
+		metrics.plot_metrics(self, data_iterator, valid_data)
 		# association_evaluation.eval_generation(self, valid_data, data_iterator)
 		# association_evaluation.eval_center(self, valid_data, 'sitting')
 		# association_evaluation.transfer_motion(self, valid_data, 'sitting', 'walking', data_iterator)
