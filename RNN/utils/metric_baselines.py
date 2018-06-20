@@ -151,17 +151,17 @@ def plot_results_npy(from_path, npy_files_dirs, method_names):
 		plt.savefig('../../new_out/L-RNN-%s.png'%(basename))
 		plt.close()
 
-def animate_results(from_path, predict, predict_name, baseline='1',
+def animate_results(from_path, predict_path, predict_name, baseline='1',
 		baseline_name='Residual sup. (MA)', ground_truth='2'):
 	for basename in iter_actions(from_path):
+		pds = np.load(predict_path + basename + '.npy')
 		for i in range(_N):
 			print basename, i
 			gt = np.load(from_path + LOAD_PATH + basename + '_0-%d.npy'%i)
 			gtp = np.load(from_path + LOAD_PATH + basename + '_%s-%d.npy'%(ground_truth,i))
 			bpd = np.load(from_path + LOAD_PATH + basename + '_%s-%d.npy'%(baseline, i))
-			pd = np.load(from_path + LOAD_PATH + basename + '_%s-%d.npy'%(predict, i))
 
-			fk_animate.animate_compare(gt, gtp[:len(pd)], pd, predict_name, bpd[:len(pd)], baseline_name,
+			fk_animate.animate_compare(gt, gtp[:len(pd)], pds[i], predict_name, bpd[:pds.shape[1]], baseline_name,
 					from_path+LOAD_PATH+'images/%s-%d-%s'%(basename, i, predict_name.replace('.', '').replace('/', '-').replace(' ', '-')))
 
 
@@ -348,3 +348,4 @@ if __name__ == '__main__':
 	# animate_results('../', 'nn_15', 'Nearest nei. (1/10)')
 
 	plot_results_npy('../', ['../../new_out/L_RNN-t30-l400/'+s+'/LRNN-' for s in ['partial-with-label','partial-without-label','nn-with-label','nn-without-label']], ['Part-label', 'Part', 'NN-label', 'NN'])
+	animate_results('../', '../../new_out/L_RNN-t30-l400/partial-with-label/L-RNN-')
