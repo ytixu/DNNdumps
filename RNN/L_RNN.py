@@ -7,6 +7,7 @@ from sklearn import cross_validation
 from keras.layers import Input, RepeatVector, Lambda, concatenate
 from keras.models import Model
 from keras.optimizers import RMSprop
+import keras.backend as K
 
 from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines, association_evaluation
 from Forward import NN
