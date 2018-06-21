@@ -128,7 +128,7 @@ class L_LSTM:
 		y = np.repeat(y, len(self.hierarchies), axis=0)
 		y = np.reshape(y, (-1, len(self.hierarchies), self.timesteps, y.shape[-1]))
 		for i, h in enumerate(self.hierarchies):
-			y[:,i,h+1:-self.label_dim] = 0.0
+			y[:,i,h+1:] = 0.0
 		return np.reshape(y, (-1, self.timesteps*len(self.hierarchies), y.shape[-1]))
 
 	def run(self, data_iterator, valid_data):
