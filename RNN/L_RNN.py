@@ -11,7 +11,7 @@ from keras.optimizers import RMSprop
 from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines, association_evaluation
 from Forward import NN
 
-LEARNING_RATE = 0.0001
+LEARNING_RATE = 0.01
 NAME = 'L_LSTM'
 USE_GRU = True
 if USE_GRU:
@@ -45,6 +45,8 @@ class L_LSTM:
 		self.save_path = args['save_path']
 		self.log_path = args['log_path']
 
+		self.joint_number = args['input_dim']/3
+
 		self.MODEL_CODE = metrics.L_LSTM
 		self.NAME = NAME
 		# self.history = recorder.LossHistory()
@@ -76,11 +78,23 @@ class L_LSTM:
 		decoded_ = decode_1(z)
 		decoded_ = decode_2(decoded_)
 
+		def customLoss(yTrue, yPred):
+			yt = yTrue[:,:,-self.label_dim:]
+			yp = yPred[:,:,-self.label_dim:]
+			loss = K.mean(K.sum(K.square(yt - yp), axis=-1))
+			yTrue = K.reshape(yTrue, (-1, len(self.hierarchies), self.timesteps, self.input_dim))
+			yPred = K.reshape(yPred, (-1, len(self.hierarchies), self.timesteps, self.input_dim))
+			for i,h in enumerate(self.hierarchies):
+				yt = K.reshape(yTrue[:,i,:h+1,:-self.label_dim], (-1, self.joint_number, 3))
+				yp = K.reshape(yPred[:,i,:h+1,:-self.label_dim], (-1, self.joint_number, 3))
+				loss = loss + K.mean(K.sum(K.square(yt - yp), axis = -1))
+			return loss
+
 		self.encoder = Model(inputs, encoded)
 		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
 		opt = RMSprop(lr=LEARNING_RATE)
-		self.autoencoder.compile(optimizer=opt, loss='mean_squared_error')
+		self.autoencoder.compile(optimizer=opt, loss=customLoss) # 'mean_squared_error')
 
 		self.autoencoder.summary()
 		self.encoder.summary()
