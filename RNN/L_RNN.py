@@ -109,13 +109,18 @@ class L_LSTM:
 			return True
 		return False
 
-
 	def __alter_y(self, y):
-		y = np.repeat(y, len(self.hierarchies), axis=0)
-		y = np.reshape(y, (-1, len(self.hierarchies), self.timesteps, y.shape[-1]))
+		new_y = [None]*len(self.hierarchies)
 		for i, h in enumerate(self.hierarchies):
-			y[:,i,h+1:-self.label_dim] = 0.0
-		return np.reshape(y, (-1, self.timesteps*len(self.hierarchies), y.shape[-1]))
+			new_y[i] = np.copy(y)
+		return np.concatenate(new_y, axis=1)
+
+	#def __alter_y(self, y):
+	#	y = np.repeat(y, len(self.hierarchies), axis=0)
+	#	y = np.reshape(y, (-1, len(self.hierarchies), self.timesteps, y.shape[-1]))
+	#	for i, h in enumerate(self.hierarchies):
+	#		y[:,i,h+1:-self.label_dim] = 0.0
+	#	return np.reshape(y, (-1, self.timesteps*len(self.hierarchies), y.shape[-1]))
 
 	def __alter_label(self, x, y):
 		idx = np.random.choice(x.shape[0], x.shape[0]/2)
