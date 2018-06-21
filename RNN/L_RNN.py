@@ -163,7 +163,7 @@ class L_LSTM:
 						loss = new_loss
 						y_test_decoded = self.autoencoder.predict(x_test[:1])
 						y_test_decoded = np.reshape(y_test_decoded[0], (len(self.hierarchies), self.timesteps, -1))
-						image.plot_poses(x_test[:1,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
+						image.plot_poses([x_test[0,:,:-self.label_dim], y_test[0,:,:-self.label_dim]], y_test_decoded[:,:,:-self.label_dim])
 						#image.plot_hierarchies(y_test_orig[:,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
 						self.autoencoder.save_weights(self.save_path, overwrite=True)
 
