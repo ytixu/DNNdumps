@@ -99,7 +99,7 @@ class L_LSTM:
 		y = np.repeat(y, len(self.hierarchies), axis=0)
 		y = np.reshape(y, (-1, len(self.hierarchies), self.timesteps, y.shape[-1]))
 		for i, h in enumerate(self.hierarchies):
-			y[:,i,h+1:] = 0.0
+			y[:,i,h+1:-self.label_dim] = 0.0
 		return np.reshape(y, (-1, self.timesteps*len(self.hierarchies), y.shape[-1]))
 
 	def __alter_label(self, x, y):
@@ -133,9 +133,9 @@ class L_LSTM:
 					if new_loss < loss:
 						print 'Saved model - ', loss
 						loss = new_loss
-						# y_test_decoded = self.autoencoder.predict(x_test[:1])
-						# y_test_decoded = np.reshape(y_test_decoded, (len(self.hierarchies), self.timesteps, -1))
-						# image.plot_poses(x_test[:1,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
+						y_test_decoded = self.autoencoder.predict(x_test[:1])
+						y_test_decoded = np.reshape(y_test_decoded, (len(self.hierarchies), self.timesteps, -1))
+						image.plot_poses(x_test[:1,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
 						# image.plot_hierarchies(y_test_orig[:,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
 						self.autoencoder.save_weights(self.save_path, overwrite=True)
 
