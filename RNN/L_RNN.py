@@ -4,16 +4,14 @@ matplotlib.use('Agg')
 import numpy as np
 from itertools import tee
 from sklearn import cross_validation
-from keras.layers import Input, RepeatVector, Lambda, Reshape, concatenate
+from keras.layers import Input, RepeatVector, Lambda, concatenate
 from keras.models import Model
 from keras.optimizers import RMSprop
-import keras.backend as K
 
 from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines, association_evaluation
 from Forward import NN
 
-
-LEARNING_RATE = 0.01
+LEARNING_RATE = 0.0001
 NAME = 'L_LSTM'
 USE_GRU = True
 if USE_GRU:
@@ -47,12 +45,9 @@ class L_LSTM:
 		self.save_path = args['save_path']
 		self.log_path = args['log_path']
 
-		self.joint_number = args['input_dim']/3
-
 		self.MODEL_CODE = metrics.L_LSTM
 		self.NAME = NAME
 		# self.history = recorder.LossHistory()
-
 
 	def make_model(self):
 		inputs = Input(shape=(self.timesteps, self.input_dim))
@@ -81,18 +76,6 @@ class L_LSTM:
 		decoded_ = decode_1(z)
 		decoded_ = decode_2(decoded_)
 
-		def customLoss(yTrue, yPred):
-			yt = yTrue[:,:,-self.label_dim:]
-			yp = yPred[:,:,-self.label_dim:]
-			loss = K.mean(K.sum(K.square(yt - yp), axis=-1))
-			yTrue = K.reshape(yTrue, (-1, len(self.hierarchies), self.timesteps, self.input_dim))
-			yPred = K.reshape(yPred, (-1, len(self.hierarchies), self.timesteps, self.input_dim))
-			for i,h in enumerate(self.hierarchies):
-				yt = K.reshape(yTrue[:,i,:h+1,:-self.label_dim], (-1, self.joint_number, 3))
-				yp = K.reshape(yPred[:,i,:h+1,:-self.label_dim], (-1, self.joint_number, 3))
-				loss = loss + K.mean(K.sum(K.square(yt - yp), axis = -1))
-			return loss
-
 		self.encoder = Model(inputs, encoded)
 		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
@@ -112,24 +95,18 @@ class L_LSTM:
 		return False
 
 
-	#def __alter_y(self, y):
-	#	new_y = [None]*len(self.hierarchies)
-	#	for i, h in enumerate(self.hierarchies):
-	#		new_y[i] = np.copy(y)
-	#	return np.concatenate(new_y, axis=1)
-
-	def __alter_label(self, x, y):
-		idx = np.random.choice(x.shape[0], x.shape[0]/2)
-		x[idx,:,-self.label_dim:] = 0
-		y[idx,:,-self.label_dim:] = 0
-		return x, y
-
 	def __alter_y(self, y):
 		y = np.repeat(y, len(self.hierarchies), axis=0)
 		y = np.reshape(y, (-1, len(self.hierarchies), self.timesteps, y.shape[-1]))
 		for i, h in enumerate(self.hierarchies):
 			y[:,i,h+1:] = 0.0
 		return np.reshape(y, (-1, self.timesteps*len(self.hierarchies), y.shape[-1]))
+
+	def __alter_label(self, x, y):
+		idx = np.random.choice(x.shape[0], x.shape[0]/2)
+		x[idx,:,-self.label_dim:] = 0
+		y[idx,:,-self.label_dim:] = 0
+		return x, y
 
 	def run(self, data_iterator, valid_data):
 		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
@@ -144,11 +121,6 @@ class L_LSTM:
 					x_train, x_test, y_train, y_test = cross_validation.train_test_split(x_data, y_data, test_size=self.cv_splits)
 					y_train = self.__alter_y(y_train)
 					y_test = self.__alter_y(y_test)
-
-					y_test_decoded = np.reshape(y_test[0], (len(self.hierarchies), self.timesteps, -1))
-					image.plot_poses(x_test[:1,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
-					return
-					print x_train.shape, y_train.shape
 					# print np.sum(y_train[:,0,-self.label_dim:], axis=0)
 					history = self.autoencoder.fit(x_train, y_train,
 								shuffle=True,
@@ -161,10 +133,10 @@ class L_LSTM:
 					if new_loss < loss:
 						print 'Saved model - ', loss
 						loss = new_loss
-						y_test_decoded = self.autoencoder.predict(x_test[:1])
-						y_test_decoded = np.reshape(y_test_decoded[0], (len(self.hierarchies), self.timesteps, -1))
-						image.plot_poses([x_test[0,:,:-self.label_dim], y_test[0,:,:-self.label_dim]], y_test_decoded[:,:,:-self.label_dim])
-						#image.plot_hierarchies(y_test_orig[:,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
+						# y_test_decoded = self.autoencoder.predict(x_test[:1])
+						# y_test_decoded = np.reshape(y_test_decoded, (len(self.hierarchies), self.timesteps, -1))
+						# image.plot_poses(x_test[:1,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
+						# image.plot_hierarchies(y_test_orig[:,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
 						self.autoencoder.save_weights(self.save_path, overwrite=True)
 
 				iter1, iter2 = tee(iter2)
@@ -177,11 +149,11 @@ class L_LSTM:
 
 		# embedding_plotter.see_hierarchical_embedding(self.encoder, self.decoder, data_iterator, valid_data, model_vars, self.label_dim)
 		# iter1, iter2 = tee(data_iterator)
-		metrics.validate(valid_data, self)
+		# metrics.validate(valid_data, self)
 
 		# nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
-		# nn.run(None)
-		# metrics.plot_metrics(self, data_iterator, valid_data)
+		# nn.run([], [])
+		# metrics.plot_metrics(self, data_iterator, valid_data, nn)
 		# association_evaluation.eval_generation(self, valid_data, data_iterator)
 		# association_evaluation.eval_center(self, valid_data, 'sitting')
 		# association_evaluation.transfer_motion(self, valid_data, 'sitting', 'walking', data_iterator)
