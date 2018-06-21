@@ -145,9 +145,9 @@ class L_LSTM:
 					y_train = self.__alter_y(y_train)
 					y_test = self.__alter_y(y_test)
 
-					#y_test_decoded = np.reshape(y_test[0], (len(self.hierarchies), self.timesteps, -1))
-					#image.plot_poses(x_test[:1,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
-					#return
+					y_test_decoded = np.reshape(y_test[0], (len(self.hierarchies), self.timesteps, -1))
+					image.plot_poses(x_test[:1,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
+					return
 					print x_train.shape, y_train.shape
 					# print np.sum(y_train[:,0,-self.label_dim:], axis=0)
 					history = self.autoencoder.fit(x_train, y_train,
