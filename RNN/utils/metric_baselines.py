@@ -347,5 +347,5 @@ if __name__ == '__main__':
 	# plot_results('../../results/nn_15_results.csv')
 	# animate_results('../', 'nn_15', 'Nearest nei. (1/10)')
 
-	# plot_results_npy('../', ['../../new_out/L_RNN-t30-l400/'+s+'/LRNN-' for s in ['partial-with-label','partial-without-label','nn-with-label','nn-without-label']], ['Part-label', 'Part', 'NN-label', 'NN'])
-	animate_results('../', '../../new_out/L_RNN-t30-l400/partial-with-label/LRNN-', 'Partial-label')
+	plot_results_npy('../', ['../../new_out/L_GRU-t30-l500/LRNN-'], ['L_GRU-t30-l500'])
+	#animate_results('../', '../../new_out/L_RNN-t30-l400/partial-with-label/LRNN-', 'Partial-label')
