@@ -12,7 +12,7 @@ import keras.backend as K
 from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines, association_evaluation
 from Forward import NN
 
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.0005
 NAME = 'L_LSTM'
 USE_GRU = True
 if USE_GRU:
@@ -153,12 +153,13 @@ class L_LSTM:
 					if new_loss < loss:
 						print 'Saved model - ', loss
 						loss = new_loss
-						y_test_decoded = self.autoencoder.predict(x_test[:1])
-						y_test_decoded = np.reshape(y_test_decoded, (len(self.hierarchies), self.timesteps, -1))
-						image.plot_poses(x_test[:1,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
+						#y_test_decoded = self.autoencoder.predict(x_test[:1])
+						#y_test_decoded = np.reshape(y_test_decoded, (len(self.hierarchies), self.timesteps, -1))
+						#image.plot_poses(x_test[:1,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
 						# image.plot_hierarchies(y_test_orig[:,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
 						self.autoencoder.save_weights(self.save_path, overwrite=True)
 
+					del x_train, x_test, y_train, y_test
 				iter1, iter2 = tee(iter2)
 
 			# self.history.record(self.log_path, model_vars)
@@ -171,9 +172,9 @@ class L_LSTM:
 		# iter1, iter2 = tee(data_iterator)
 		# metrics.validate(valid_data, self)
 
-		# nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
-		# nn.run([], [])
-		# metrics.plot_metrics(self, data_iterator, valid_data, nn)
+		nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
+		nn.run(None)
+		metrics.plot_metrics(self, data_iterator, valid_data, nn)
 		# association_evaluation.eval_generation(self, valid_data, data_iterator)
 		# association_evaluation.eval_center(self, valid_data, 'sitting')
 		# association_evaluation.transfer_motion(self, valid_data, 'sitting', 'walking', data_iterator)
