@@ -39,8 +39,13 @@ def __plot(x, ys, errs, labels, x_label, y_label, x_ticks, title, model_name, ba
 	plt.close()
 
 def __get_dist(embedding, z_ref):
+	def __dist__(x, y):
+		#return np.linalg.norm(embedding[i]-z_ref) # Euclidean
+		#return np.sum(np.abs(x-y)) # Manhanttan
+		return np.amax(np.abs(x-y))
+		#return min(np.min(x-y))
 	#return [np.linalg.norm(embedding[i]-z_ref) for i in range(len(embedding))]
-	return [np.sum(np.abs(embedding[i]-z_ref)) for i in range(len(embedding))]
+	return [__dist__(embedding[i], z_ref) for i in range(len(embedding))]
 
 def __get_weights(embedding, z_ref):
 	weights = __get_dist(embedding, z_ref)
