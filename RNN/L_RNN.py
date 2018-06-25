@@ -13,7 +13,7 @@ import keras.backend as K
 from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines, association_evaluation
 from Forward import NN
 
-LEARNING_RATE = 0.00001
+LEARNING_RATE = 0.00002
 NAME = 'L_LSTM'
 USE_GRU = True
 if USE_GRU:
@@ -70,12 +70,12 @@ class L_LSTM:
 		else:
 			decode_2 = LSTM(self.output_dim, return_sequences=True)
 
-		decoded = [None]*len(self.hierarchies)
+		decoded = None # [None]*len(self.hierarchies)
 		for i, h in enumerate(self.hierarchies):
 			e = Lambda(lambda x: x[:,h], output_shape=(self.latent_dim,))(encoded)
-			decoded[i] = decode_1(e)
-			decoded[i] = decode_2(decoded[i])
-		decoded = concatenate(decoded, axis=1)
+			decoded = decode_1(e)
+			decoded = decode_2(decoded)
+		# decoded = concatenate(decoded, axis=1)
 
 		decoded_ = decode_1(z)
 		decoded_ = decode_2(decoded_)
@@ -111,6 +111,7 @@ class L_LSTM:
 		return False
 
 	def __alter_y(self, y):
+		return y
 		new_y = [None]*len(self.hierarchies)
 		for i, h in enumerate(self.hierarchies):
 			new_y[i] = np.copy(y)
