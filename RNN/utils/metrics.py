@@ -41,7 +41,7 @@ def __plot(x, ys, errs, labels, x_label, y_label, x_ticks, title, model_name, ba
 	plt.close()
 
 
-def __distance__(e1, e2, mode=0):
+def __distance__(e1, e2, mode=4):
 	if mode == 0:
 		return np.linalg.norm(e1-e2)
 	elif mode == 1:
