@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from time import gmtime, strftime
 import json
-# from scipy.spatial import distance
+from scipy.spatial import distance
 
 
 H_LSTM = 0

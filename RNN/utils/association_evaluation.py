@@ -470,7 +470,7 @@ def plot_add(model, data_iterator):
 # evaluate distance function
 from scipy.spatial import distance
 
-def __plot_best_distance_function(model, data, data_iterator, n=25):
+def plot_best_distance_function(model, data, data_iterator, n=25):
 	idx = np.random.choice(data.shape[0], n, replace=False)
 	enc = metrics.__get_latent_reps(model.encoder, data[idx], model.MODEL_CODE, n=model.hierarchies)
 	N = 5
