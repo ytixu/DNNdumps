@@ -486,6 +486,7 @@ def plot_best_distance_function(model, data, data_iterator, n=25):
 	plt.ylabel('distance')
 	plt.title('Latent variable\'s distance')
 	plt.savefig('../new_out/__plot_best_distance_function_1.png')
+	plt.close()
 
 	emb = metrics.get_label_embedding(model, data_iterator, subspaces=model.hierarchies)
 	new_e = np.zeros((N,n,model.latent_dim))
