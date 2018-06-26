@@ -87,7 +87,7 @@ def data_generator(input_dir, output_dir, timesteps, batch_size, label=False, ls
 
 		# 2D arrays
 		input_data = np.load(input_file)
-		output_data = np.load(input_file) # output_dir+name_id)
+		output_data = np.load(output_dir+name_id)
 
 		batch = batch_size-batch_count
 		for i in range(0, input_data.shape[0], batch):
@@ -169,7 +169,8 @@ def get_parse(model_name, labels=False):
 	if args['validation_input_data']:
 		vd = None
 		if labels:
-			vd = data_generator(args['validation_input_data'], args['validation_input_data'], args['timesteps'], 10000000, True, ls, ld, only_label=args['only_label'])
+			vd = data_generator_random(args['input_data'], args['output_data'], args['timesteps'], 30000, 400, True, ls, ld)
+			#vd = data_generator(args['validation_input_data'], args['validation_input_data'], args['timesteps'], 10000000, True, ls, ld, only_label=args['only_label'])
 		else:
 			vd = data_generator(args['validation_input_data'], args['validation_input_data'], args['timesteps'], 10000000, only_label=args['only_label'])
 		for v, _ in vd:
