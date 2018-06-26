@@ -491,7 +491,7 @@ def plot_best_distance_function(model, data, data_iterator, n=25):
 	new_e = np.zeros((N,n,model.latent_dim))
 	for i in range(N):
 		for j in range(n):
-			ls = embedding[:,-1]
+			ls = emb[:,-1]
 			z_ref = enc[j,-2]
 			weights, w_i = metrics.__get_weights(ls, z_ref, mode=i)
 			new_e[i,j] = ls[w_i[0]]
