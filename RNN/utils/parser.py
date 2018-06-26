@@ -26,8 +26,8 @@ def data_dimensions(input_dir, output_dir):
 		name_id = os.path.basename(input_file)
 		# 2D arrays
 		input_data = np.load(input_file)
-		output_data = np.load(output_dir+name_id)
-		return input_data.shape[1], output_data.shape[1]
+		#output_data = np.load(output_dir+name_id)
+		return input_data.shape[1], input_data.shape[1] # output_data.shape[1]
 
 def get_one_hot_labels(files):
 	labels = set(map(lambda x: os.path.basename(x).split('_')[0], files))
@@ -87,7 +87,7 @@ def data_generator(input_dir, output_dir, timesteps, batch_size, label=False, ls
 
 		# 2D arrays
 		input_data = np.load(input_file)
-		output_data = np.load(output_dir+name_id)
+		output_data = np.load(input_file) # output_dir+name_id)
 
 		batch = batch_size-batch_count
 		for i in range(0, input_data.shape[0], batch):
@@ -151,8 +151,10 @@ def get_parse(model_name, labels=False):
 	args = vars(ap.parse_args())
 	if labels:
 		ls, ld = get_one_hot_labels(glob.glob(args['input_data']+'*'))
-		args['labels'] = ls
-		args['label_dim'] = ld
+		args['labels'] = {'purchases': 0, 'walking': 1, 'takingphoto': 2, 'eating': 3, 'sitting': 4, 'discussion': 5, 'walkingdog': 6, 'greeting': 7, 'walkingtogether': 8, 'phoning': 9, 'posing': 10, 'directions': 11, 'smoking': 12, 'waiting': 13, 'sittingdown': 14}
+		args['label_dim'] = 15
+		ls = args['labels']
+		ld = args['label_dim']
 	train_data = None
 	if labels:
 		if args['mode'] == TOGGLE_MODE:
@@ -169,8 +171,8 @@ def get_parse(model_name, labels=False):
 	if args['validation_input_data']:
 		vd = None
 		if labels:
-			vd = data_generator_random(args['input_data'], args['output_data'], args['timesteps'], 30000, 400, True, ls, ld)
-			#vd = data_generator(args['validation_input_data'], args['validation_input_data'], args['timesteps'], 10000000, True, ls, ld, only_label=args['only_label'])
+			#vd = data_generator_random(args['input_data'], args['output_data'], args['timesteps'], 30000, 400, True, ls, ld)
+			vd = data_generator(args['validation_input_data'], args['validation_input_data'], args['timesteps'], 10000000, True, ls, ld, only_label=args['only_label'])
 		else:
 			vd = data_generator(args['validation_input_data'], args['validation_input_data'], args['timesteps'], 10000000, only_label=args['only_label'])
 		for v, _ in vd:
