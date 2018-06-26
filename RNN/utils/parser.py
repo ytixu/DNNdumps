@@ -87,7 +87,7 @@ def data_generator(input_dir, output_dir, timesteps, batch_size, label=False, ls
 
 		# 2D arrays
 		input_data = np.load(input_file)
-		output_data = np.load(output_dir+name_id)
+		output_data = np.load(input_file) # output_dir+name_id)
 
 		batch = batch_size-batch_count
 		for i in range(0, input_data.shape[0], batch):

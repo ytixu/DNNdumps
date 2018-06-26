@@ -70,12 +70,12 @@ class L_LSTM:
 		else:
 			decode_2 = LSTM(self.output_dim, return_sequences=True)
 
-		decoded = None # [None]*len(self.hierarchies)
+		decoded = [None]*len(self.hierarchies)
 		for i, h in enumerate(self.hierarchies):
 			e = Lambda(lambda x: x[:,h], output_shape=(self.latent_dim,))(encoded)
-			decoded = decode_1(e)
-			decoded = decode_2(decoded)
-		#decoded = concatenate(decoded, axis=1)
+			decoded[i] = decode_1(e)
+			decoded[i] = decode_2(decoded[i])
+		decoded = concatenate(decoded, axis=1)
 
 		decoded_ = decode_1(z)
 		decoded_ = decode_2(decoded_)
@@ -111,7 +111,7 @@ class L_LSTM:
 		return False
 
 	def __alter_y(self, y):
-		return y
+		# return y
 		new_y = [None]*len(self.hierarchies)
 		for i, h in enumerate(self.hierarchies):
 			new_y[i] = np.copy(y)
