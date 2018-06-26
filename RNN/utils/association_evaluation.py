@@ -481,7 +481,8 @@ def plot_best_distance_function(model, data, data_iterator, n=25):
 
 	for i in range(N):
 		plt.scatter(range(n), score[i], label=i)
-	plt.savefig('__plot_best_distance_function.png')
+	plt.legend()
+	plt.savefig('../new_out/__plot_best_distance_function.png')
 
 	# emb = metrics.get_label_embedding(model, data_iterator, subspaces=model.hierarchies)
 	# score = np.zeros((N,n))
