@@ -184,6 +184,7 @@ def __pose_error(pose_ref, pose_pred, reshaped=False):
 def __pose_seq_error(pose_ref, pose_pred, fixed=False, cumulative=False):
 	ts = pose_ref.shape[0]
 	pose_x = np.reshape(pose_ref, (ts,-1, 3))
+	print pose_x.shape
 	if fixed:
 		pose_y = np.reshape(pose_pred, (-1, 3))
 		return np.mean([__pose_error(pose_x[t], pose_y, True) for t in range(ts)])

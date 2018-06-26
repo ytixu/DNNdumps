@@ -485,13 +485,18 @@ def plot_best_distance_function(model, data, data_iterator, n=25):
 	plt.savefig('../new_out/__plot_best_distance_function.png')
 
 	# emb = metrics.get_label_embedding(model, data_iterator, subspaces=model.hierarchies)
-	# score = np.zeros((N,n))
+	# new_e = np.zeros((N,n,model.latent_dim))
 	# for i in range(N):
 	# 	for j in range(n):
 	# 		ls = embedding[:,-1]
 	# 		z_ref = enc[j,-2]
 	# 		weights, w_i = metrics.__get_weights(ls, z_ref, mode=i)
-	# 		new_e = __closest(ls, z_ref, weights)
+	# 		new_e[i,j] = ls[w_i[0]]
+	# 		score[i,j] = weights[w_i[0]]
+
+	# for i in range(N):
+	# 	pred = metrics.__get_decoded_reps(model.decoder, new_e[i], model.MODEL_CODE)
+	# 	error = metrics.__pose_seq_error(t_pose[:,:-model.label_dim],p_poses[i,:,:-model.label_dim])
 
 if __name__ == '__main__':
 	action_type = 'sitting'
