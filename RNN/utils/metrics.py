@@ -42,7 +42,7 @@ def __get_dist(embedding, z_ref):
 	def __dist__(x, y):
 		#return np.linalg.norm(embedding[i]-z_ref) # Euclidean
 		return np.sum(np.abs(x-y)) # Manhanttan
-		# return np.amax(np.abs(x-y))
+		#return np.amax(np.abs(x-y))
 		#return np.amin(np.abs(x-y))
 	#return [np.linalg.norm(embedding[i]-z_ref) for i in range(len(embedding))]
 	return [__dist__(embedding[i], z_ref) for i in range(len(embedding))]

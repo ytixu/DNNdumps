@@ -13,7 +13,7 @@ import keras.backend as K
 from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines, association_evaluation
 from Forward import NN
 
-LEARNING_RATE = 0.00005
+LEARNING_RATE = 0.00001
 NAME = 'L_LSTM'
 USE_GRU = True
 if USE_GRU:
@@ -40,7 +40,7 @@ class L_LSTM:
 		print self.labels
 		self.input_dim = args['input_dim'] + self.label_dim
 		self.output_dim = args['output_dim'] + self.label_dim
-		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [14,19,29]
+		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [9,14,24]
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
 		self.load_path = args['load_path']
@@ -75,7 +75,7 @@ class L_LSTM:
 			e = Lambda(lambda x: x[:,h], output_shape=(self.latent_dim,))(encoded)
 			decoded = decode_1(e)
 			decoded = decode_2(decoded)
-		# decoded = concatenate(decoded, axis=1)
+		#decoded = concatenate(decoded, axis=1)
 
 		decoded_ = decode_1(z)
 		decoded_ = decode_2(decoded_)
@@ -174,9 +174,9 @@ class L_LSTM:
 		# iter1, iter2 = tee(data_iterator)
 		# metrics.validate(valid_data, self)
 
-		nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
-		nn.run(None)
-		# metrics.plot_metrics(self, data_iterator, valid_data, None)
+		#nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
+		#nn.run(None)
+		metrics.plot_metrics(self, data_iterator, valid_data, None)
 		# association_evaluation.eval_generation(self, valid_data, data_iterator)
 		# association_evaluation.eval_center(self, valid_data, 'sitting')
 		# association_evaluation.transfer_motion(self, valid_data, 'sitting', 'walking', data_iterator)
@@ -185,7 +185,7 @@ class L_LSTM:
 		# association_evaluation.eval_generation_from_label(self, data_iterator)
 		# association_evaluation.plot_add(self, data_iterator)
 		# metrics.plot_metrics_labels(self, data_iterator, valid_data)
-		metric_baselines.compare_label_embedding(self, nn, data_iterator)
+		#metric_baselines.compare_label_embedding(self, nn, data_iterator)
 		# association_evaluation.eval_distance(self, valid_data)
 		# evaluate.eval_pattern_reconstruction(self.encoder, self.decoder, iter2)
 
