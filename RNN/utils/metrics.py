@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from time import gmtime, strftime
 import json
+# from scipy.spatial import distance
+
 
 H_LSTM = 0
 ML_LSTM = 1
@@ -44,6 +46,7 @@ def __get_dist(embedding, z_ref):
 		return np.sum(np.abs(x-y)) # Manhanttan
 		#return np.amax(np.abs(x-y))
 		#return np.amin(np.abs(x-y))
+		# return distance.cosine(x,y)
 	#return [np.linalg.norm(embedding[i]-z_ref) for i in range(len(embedding))]
 	return [__dist__(embedding[i], z_ref) for i in range(len(embedding))]
 

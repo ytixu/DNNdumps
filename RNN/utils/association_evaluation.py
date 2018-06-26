@@ -467,6 +467,27 @@ def plot_add(model, data_iterator):
 	# plt.close()
 
 
+# evaluate distance function
+from scipy.spatial import distance
+
+def __distance__(e1, e2, mode=0):
+	if mode == 0:
+		return np.linalg.norm(e1-e2)
+	elif mode == 1:
+		return np.sum(np.abs(e1-e2))
+	elif mode == 2:
+		return np.amax(np.abs(e1-e2))
+	elif mode == 3:
+		return np.amin(np.abs(e1-e2))
+	elif mode == 4:
+		return distance.cosine(e1,e2)
+
+def __plot_best_distance_function(model, data, n=100):
+	idx = np.random.choice(data.shape[0], n, replace=False)
+	score = np.zeros((n,2))
+	for i in range(5):
+		pass
+
 
 if __name__ == '__main__':
 	action_type = 'sitting'
