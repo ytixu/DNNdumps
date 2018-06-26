@@ -5,10 +5,10 @@ import os.path
 import numpy as np
 
 def get_model_load_name(model_name):
-	return '../models/%s_%d.hdf5'%(model_name, time.time())
+	return '../../models/%s_%d.hdf5'%(model_name, time.time())
 
 def get_log_name(model_name):
-	return '../models/%s_%d.log'%(model_name, time.time())
+	return '../../models/%s_%d.log'%(model_name, time.time())
 
 def get_data(data_path):
 	data = np.load(glob.glob(data_path)[0])
@@ -23,10 +23,12 @@ def data_generator(data_path, n):
 		for f in rand_f:
 			data = np.load(files[f])
 			N = data.shape[0]
-			rand1 = np.random.choice(N, 3000, replace=False)
+			# rand1 = np.random.choice(N, 3000, replace=False)
 			rand2 = np.random.choice(N, 3000, replace=False)
-			new_x = np.concatenate([data[rand1,0],data[rand2,1]], axis=0)
-			new_y = np.concatenate([data[rand1,2],data[rand2,2]], axis=0)
+			# new_x = np.concatenate([data[rand1,0],data[rand2,1]], axis=0)
+			# new_y = np.concatenate([data[rand1,2],data[rand2,2]], axis=0)
+			new_x = data[rand2,1]
+			new_y = data[rand2,2]
 			if len(x) == 0:
 				x = new_x
 				y = new_y
