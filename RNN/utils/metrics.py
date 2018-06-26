@@ -40,18 +40,24 @@ def __plot(x, ys, errs, labels, x_label, y_label, x_ticks, title, model_name, ba
 	plt.savefig(OUT_DIR+'%s_%s'%(title, model_name) + __get_timestamp() + '.png')
 	plt.close()
 
-def __get_dist(embedding, z_ref):
-	def __dist__(x, y):
-		#return np.linalg.norm(embedding[i]-z_ref) # Euclidean
-		return np.sum(np.abs(x-y)) # Manhanttan
-		#return np.amax(np.abs(x-y))
-		#return np.amin(np.abs(x-y))
-		# return distance.cosine(x,y)
-	#return [np.linalg.norm(embedding[i]-z_ref) for i in range(len(embedding))]
-	return [__dist__(embedding[i], z_ref) for i in range(len(embedding))]
 
-def __get_weights(embedding, z_ref):
-	weights = __get_dist(embedding, z_ref)
+def __distance__(e1, e2, mode=0):
+	if mode == 0:
+		return np.linalg.norm(e1-e2)
+	elif mode == 1:
+		return np.sum(np.abs(e1-e2))
+	elif mode == 2:
+		return np.amax(np.abs(e1-e2))
+	elif mode == 3:
+		return np.amin(np.abs(e1-e2))
+	elif mode == 4:
+		return distance.cosine(e1,e2)
+
+def __get_dist(embedding, z_ref, mode=0):
+	return [__distance__(embedding[i], z_ref, mode) for i in range(len(embedding))]
+
+def __get_weights(embedding, z_ref, mode=0):
+	weights = __get_dist(embedding, z_ref, mode)
 	w_i = np.argsort(weights)
 	return weights, w_i
 

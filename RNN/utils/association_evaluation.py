@@ -470,24 +470,27 @@ def plot_add(model, data_iterator):
 # evaluate distance function
 from scipy.spatial import distance
 
-def __distance__(e1, e2, mode=0):
-	if mode == 0:
-		return np.linalg.norm(e1-e2)
-	elif mode == 1:
-		return np.sum(np.abs(e1-e2))
-	elif mode == 2:
-		return np.amax(np.abs(e1-e2))
-	elif mode == 3:
-		return np.amin(np.abs(e1-e2))
-	elif mode == 4:
-		return distance.cosine(e1,e2)
-
-def __plot_best_distance_function(model, data, n=100):
+def __plot_best_distance_function(model, data, data_iterator, n=25):
 	idx = np.random.choice(data.shape[0], n, replace=False)
-	score = np.zeros((n,2))
-	for i in range(5):
-		pass
+	enc = metrics.__get_latent_reps(model.encoder, data[idx], model.MODEL_CODE, n=model.hierarchies)
+	N = 5
+	score = np.zeros((N,n))
+	for i in range(N):
+		for j in range(n):
+			score[i,j] = metrics.__distance__(enc[j,-2], enc[j,-1], mode=i)
 
+	for i in range(N):
+		plt.scatter(range(n), score[i], label=i)
+	plt.savefig('__plot_best_distance_function.png')
+
+	# emb = metrics.get_label_embedding(model, data_iterator, subspaces=model.hierarchies)
+	# score = np.zeros((N,n))
+	# for i in range(N):
+	# 	for j in range(n):
+	# 		ls = embedding[:,-1]
+	# 		z_ref = enc[j,-2]
+	# 		weights, w_i = metrics.__get_weights(ls, z_ref, mode=i)
+	# 		new_e = __closest(ls, z_ref, weights)
 
 if __name__ == '__main__':
 	action_type = 'sitting'
