@@ -477,54 +477,45 @@ def plot_best_distance_function(model, data, data_iterator, n=50):
 
 	avg_error_raw = np.zeros(N)
 	avg_error_lat = np.zeros(N)
-	avg_dist_part = np.zeros(N)
-	avg_dist_comp = np.zeros(N)
+	best_score = np.zeros(N)
 
-	# score = np.zeros((N,n))
-	# for i in range(N):
-	# 	for j in range(n):
-	# 		score[i,j] = metrics.__distance__(enc[j,-2], enc[j,-1], mode=i)
-	# for i in range(N):
-	# 	plt.scatter(range(n), score[i], label=i)
-	# plt.legend()
-	# plt.xlabel('sample')
-	# plt.ylabel('distance')
-	# plt.title('Latent variable\'s distance')
-	# plt.savefig('../new_out/__plot_best_distance_function_1.png')
-	# plt.close()
+	errors = np.zeros(n+1)
+	dists = np.zeros(n+1)
+	zs = np.zeros((N,model.latent_dim))
 
 	emb = metrics.get_label_embedding(model, data_iterator, subspaces=model.hierarchies)
+	cut = model.hierarchies[-2]+1
 	# new_e = np.zeros((N,n,model.latent_dim))
 	for j in tqdm(range(n)):
-		#f, axarr = plt.subplots(1, 2, sharex=True, sharey=True)
-
-		errors = np.zeros(n)
-		dists = np.zeros(n)
-		zs = np.zeros((N,model.latent_dim))
-
 		z_ref = enc[j,-2]
 		z_true = enc[j,-1]
+		p_enc_dec = metrics.__get_decoded_reps(model.decoder, np.array([z_ref, z_true]), model.MODEL_CODE)
 
 		for i in range(N):
 			dist_name = metrics.__dist_name__(i)
 			ls = emb[:,-1]
 			weights, w_i = metrics.__get_weights(ls, z_ref, mode=i)
 			zs[i] = ls[w_i[0]]
-			# new_e[i,j] = ls[w_i[0]]
-			# score[i,j] = weights[w_i[0]]
 
-			z_true = enc[j,-1]
 			preds = metrics.__get_decoded_reps(model.decoder, ls[w_i[:n]], model.MODEL_CODE)
 			for k in range(n):
 				errors[k] = metrics.__pose_seq_error(preds[k,:,:-model.label_dim],data[idx[j],:,:-model.label_dim])
 				dists[k] = metrics.__distance__(ls[w_i[k]], z_true, mode=i)
+
+			errors[-1] = metrics.__pose_seq_error(p_enc_dec[0,:cut,:-model.label_dim],data[idx[j],:cut,:-model.label_dim])
+			dists[1] = metrics.__distance__(z_ref, z_true, mode=i)
+
 			plt.scatter(dists, errors, label=dist_name, s=30)
 			if i == N-1:
 				plt.scatter(dists[:1], errors[:1], c='black', alpha='0.3', s=100, label='closest')
+				plt.scatter(dists[-1:], errors[-1:], c='red', alpha='0.3', s=100, label='dec-part')
 			else:
 				plt.scatter(dists[:1], errors[:1], c='black', alpha='0.3', s=100)
+				plt.scatter(dists[-1:], errors[-1:], c='red', alpha='0.3', s=100)
 			avg_error_raw[i] += errors[0]
-			avg_dist_comp[i] += dists[0]
+
+		error = metrics.__pose_seq_error(p_enc_dec[1,:,:-model.label_dim],data[idx[j],:,:-model.label_dim])
+		plt.scatter([0], [error], label='dec-comp')
 
 		plt.legend()
 		plt.xlabel('distance to comp. seq. rep.')
@@ -533,18 +524,16 @@ def plot_best_distance_function(model, data, data_iterator, n=50):
                 plt.savefig('../new_out/__plot_best_distance_function_%d-1.png'%(j))
                 plt.close()
 
-
 		for i in range(N):
 			dist_name = metrics.__dist_name__(i)
-			errors = [metrics.__latent_error(z, z_true) for z in [zs[i], z_true]]
-			dists = [metrics.__distance__(z, z_ref, mode=i) for z in [zs[i], z_true]]
-			plt.scatter([dists], [errors], label=dist_name, s=30)
+			error = [metrics.__latent_error(z, z_true) for z in [zs[i], z_true]]
+			dist = [metrics.__distance__(z, z_ref, mode=i) for z in [zs[i], z_true]]
+			plt.scatter(dist, error, label=dist_name, s=30)
 			if i == N-1:
-				plt.scatter(dists[-1:], errors[-1:], c='black', alpha='0.3', s=100, label='true')
+				plt.scatter(dist[-1:], error[-1:], c='black', alpha='0.3', s=100, label='true')
 			else:
-				plt.scatter(dists[-1:], errors[-1:], c='black', alpha='0.3', s=100)
-			avg_error_lat[i] += errors[0]
-			avg_dist_part[i] += dists[0]
+				plt.scatter(dist[-1:], error[-1:], c='black', alpha='0.3', s=100)
+			avg_error_lat[i] += error[0]
 
 		plt.legend()
 		plt.xlabel('distance to part. seq. rep.')
@@ -558,21 +547,15 @@ def plot_best_distance_function(model, data, data_iterator, n=50):
 	print avg_error_raw / tot
 	print 'Avg error in latent space'
 	print avg_error_lat / tot
-	print 'Avg distance to partial seq'
-	print avg_dist_part / tot
-	print 'Avg distance to complete seq'
-	print avg_dist_comp / tot
-	# error = np.zeros(n)
-	# for i in range(N):
-	# 	pred = metrics.__get_decoded_reps(model.decoder, new_e[i], model.MODEL_CODE)
-	# 	for j in range(n):
-	# 		error[j] = metrics.__pose_seq_error(pred[:,:-model.label_dim],data[idx[j],:,:-model.label_dim])
-	# 	plt.scatter(score[i], error, label=i)
-	# plt.legend()
-	# plt.xlabel('distance')
-	# plt.ylabel('error')
-	# plt.title('Predictions')
-	# plt.savefig('../new_out/__plot_best_distance_function_2.png')
+
+	# Avg error in raw space
+	# [0.01709425 0.01037308 0.01630582 0.07695643]
+	# Avg error in latent space
+	# [0.12837854 0.02598854 0.11475908 0.55662703]
+	# Avg distance to partial seq
+	# [0.44175316 3.98904945 0.05245816 0.17808499]
+	# Avg distance to complete seq
+	# [0.12837854 0.34817574 0.00442844 0.09750317]
 
 if __name__ == '__main__':
 	action_type = 'sitting'
