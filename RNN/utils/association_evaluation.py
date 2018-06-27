@@ -509,8 +509,8 @@ def plot_best_distance_function(model, data, data_iterator, n=50):
 			errors[i,-1] = -0.001
 			dists[i,-1] = metrics.__distance__(ls[w_i[0]], z_ref, mode=i)
 			plt.scatter(dists[i], errors[i], label=dist_name, s=15)
-			plt.scatter(dists[i,:1], errors[i,:1], c='black', alpha='0.3', s=30)
-			plt.scatter(dists[i,-1:], errors[i,-1:], c='black', alpha='0.3', s=30)
+			plt.scatter(dists[i,:1], errors[i,:1], c='black', alpha='0.3', s=60)
+			plt.scatter(dists[i,-1:], errors[i,-1:], c='black', alpha='0.3', s=60)
 
 		# for k in range(n):
 		# 	plt.plot(dists[:,k], errors[:,k], lw=2, alpha=0.5, color='black', ls='--')
