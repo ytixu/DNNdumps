@@ -506,8 +506,8 @@ def plot_best_distance_function(model, data, data_iterator, n=50):
 			for k in range(n):
 				errors[i,k] = metrics.__pose_seq_error(preds[k,:,:-model.label_dim],data[idx[j],:,:-model.label_dim])
 				dists[i,k] = metrics.__distance__(ls[w_i[k]], z_true, mode=i)
-			error[-1] = 0
-			dist[-1] = metrics.__distance__(ls[w_i[0]], z_ref, mode=i)
+			errors[i,-1] = 0
+			dists[i,-1] = metrics.__distance__(ls[w_i[0]], z_ref, mode=i)
 			plt.scatter(dists[i], errors[i], label=dist_name)
 			plt.scatter(dists[i,:1], errors[i,:1], c='black', alpha='0.3', s=5)
 			plt.scatter(dists[i,-1:], errors[i,-1:], c='black', alpha='0.3', s=4)
