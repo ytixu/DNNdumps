@@ -490,9 +490,9 @@ def plot_best_distance_function(model, data, data_iterator, n=25):
 
 	emb = metrics.get_label_embedding(model, data_iterator, subspaces=model.hierarchies)
 	# new_e = np.zeros((N,n,model.latent_dim))
-	for i in tqdm(range(N)):
-		dist_name = metrics.__dist_name__(i)
-		for j in range(n):
+	for j in range(n):
+		for i in tqdm(range(N)):
+			dist_name = metrics.__dist_name__(i)
 			ls = emb[:,-1]
 			z_ref = enc[j,-2]
 			weights, w_i = metrics.__get_weights(ls, z_ref, mode=i)
@@ -506,14 +506,14 @@ def plot_best_distance_function(model, data, data_iterator, n=25):
 			for k in range(n):
 				errors[k] = metrics.__pose_seq_error(preds[k,:,:-model.label_dim],data[idx[j],:,:-model.label_dim])
 				dists[k] = metrics.__distance__(ls[w_i[k]], z_true, mode=i)
-			p = plt.scatter(dists[1:], errors[1:])
-			plt.scatter(dists[:1], errors[:1], color=p[-1].get_color())
-			plt.legend()
-			plt.xlabel('distance (%s)'%dist_name)
-			plt.ylabel('error')
-			plt.title('%s distance vs error (sample %d)'%(dist_name, j))
-			plt.savefig('../new_out/__plot_best_distance_function_%s_%d.png'%(dist_name, j))
-			plt.close()
+			p = plt.scatter(dists, errors, s=1, label=dist_name)
+			plt.scatter(dists[:1], errors[:1], c=p[-1].get_color(), alpha='0.5')
+		plt.legend()
+		plt.xlabel('distance')
+		plt.ylabel('error')
+		plt.title('distance vs error (sample %d)'%(j))
+		plt.savefig('../new_out/__plot_best_distance_function_%d.png'%(j))
+		plt.close()
 
 	# error = np.zeros(n)
 	# for i in range(N):
