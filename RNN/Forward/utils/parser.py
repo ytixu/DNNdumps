@@ -49,7 +49,7 @@ def get_parse(model_name, labels=False):
 	ap.add_argument('-bs', '--batch_size', required=False, help='Batch size', default='16', type=int)
 	ap.add_argument('-lp', '--load_path', required=False, help='Model path', default=get_model_load_name(model_name))
 	ap.add_argument('-sp', '--save_path', required=False, help='Model save path', default=get_model_load_name(model_name))
-	ap.add_argument('-p', '--periods', required=False, help='Number of iterations of the data', default='50', type=int)
+	ap.add_argument('-p', '--periods', required=False, help='Number of iterations of the data', default='100', type=int)
 
 	args = vars(ap.parse_args())
 	dim = get_data(args['data_path']+'*')

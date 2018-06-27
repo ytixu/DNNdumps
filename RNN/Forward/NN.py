@@ -32,7 +32,8 @@ class Forward_NN:
 		inputs = Input(shape=(self.input_dim,))
 		d1 = Dense(self.interim_dim, activation='relu')(inputs)
 		d2 = Dense(self.interim_dim, activation='relu')(d1)
-		outputs = Dense(self.output_dim, activation='tanh')(d2)
+		d3 = Dense(self.interim_dim, activation='relu')(d2)
+		outputs = Dense(self.output_dim, activation='tanh')(d3)
 
 		self.model = Model(inputs, outputs)
 		self.model.compile(optimizer='RMSprop', loss='mean_squared_error')
@@ -51,6 +52,7 @@ class Forward_NN:
 		if not self.load():
 			loss = 10000
 			lr = 0.001
+			count = 0
 			for x, y in data_iterator:
 				x_train, x_test, y_train, y_test = cross_validation.train_test_split(x, y, test_size=self.cv_splits)
 				history = self.model.fit(x_train, y_train,
@@ -65,13 +67,16 @@ class Forward_NN:
 					print 'Saved model - ', loss
 					loss = new_loss
 					self.model.save_weights(self.save_path, overwrite=True)
-				# else:
-				# 	lr = lr/2
-				# 	opt = RMSprop(lr=lr)
-				# 	self.model.compile(optimizer=opt, loss='mean_squared_error')
-				# 	print 'new learning rate', lr
-
-
+					count = 0
+				elif count > 3:
+					lr = lr/2
+				 	opt = RMSprop(lr=lr)
+				 	self.model.compile(optimizer=opt, loss='mean_squared_error')
+				 	print 'new learning rate', lr
+					count = 0
+				else:
+					count += 3
+					print count, 'failed'
 
 if __name__ == '__main__':
 	data_iterator, config = parser.get_parse(NAME, labels=True)
