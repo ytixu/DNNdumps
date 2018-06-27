@@ -491,7 +491,7 @@ def plot_best_distance_function(model, data, data_iterator, n=50):
 	emb = metrics.get_label_embedding(model, data_iterator, subspaces=model.hierarchies)
 	# new_e = np.zeros((N,n,model.latent_dim))
 	for j in tqdm(range(n)):
-		f, axarr = plt.subplots(1, 2, sharex=True, sharey=True)
+		#f, axarr = plt.subplots(1, 2, sharex=True, sharey=True)
 
 		errors = np.zeros(n)
 		dists = np.zeros(n)
@@ -513,32 +513,35 @@ def plot_best_distance_function(model, data, data_iterator, n=50):
 			for k in range(n):
 				errors[k] = metrics.__pose_seq_error(preds[k,:,:-model.label_dim],data[idx[j],:,:-model.label_dim])
 				dists[k] = metrics.__distance__(ls[w_i[k]], z_true, mode=i)
-			axarr[0].scatter(dists, errors, label=dist_name, s=20)
+			plt.scatter(dists, errors, label=dist_name, s=20)
 			if i == N-1:
-				axarr[0].scatter(dists[:1], errors[:1], c='black', alpha='0.3', s=60, label='true')
+				plt.scatter(dists[:1], errors[:1], c='black', alpha='0.3', s=60, label='true')
 			else:
-				axarr[0].scatter(dists[:1], errors[:1], c='black', alpha='0.3', s=60)
+				plt.scatter(dists[:1], errors[:1], c='black', alpha='0.3', s=60)
 
-		axarr[0].legend()
-		axarr[0].set_xlabel('distance to comp. seq. rep.')
-		axarr[0].set_ylabel('error in raw space')
+		plt.legend()
+		plt.xlabel('distance to comp. seq. rep.')
+		plt.ylabel('error in raw space')
+		plt.title('distance vs error in raw space (sample %d)'%(j))
+                plt.savefig('../new_out/__plot_best_distance_function_%d-1.png'%(j))
+                plt.close()
+
 
 		for i in range(N):
 			dist_name = metrics.__dist_name__(i)
 			errors = [metrics.__latent_error(z, z_true) for z in [zs[i], z_true]]
 			dists = [metrics.__distance__(z, z_ref, mode=i) for z in [zs[i], z_true]]
-			axarr[1].scatter([dists], [errors], label=dist_name, s=30)
+			plt.scatter([dists], [errors], label=dist_name, s=30)
 			if i == N-1:
-				axarr[1].scatter(dists[-1:], errors[-1:], c='black', alpha='0.3', s=20, label='true')
+				plt.scatter(dists[-1:], errors[-1:], c='black', alpha='0.3', s=20, label='true')
 			else:
-				axarr[1].scatter(dists[-1:], errors[-1:], c='black', alpha='0.3', s=60)
+				plt.scatter(dists[-1:], errors[-1:], c='black', alpha='0.3', s=60)
 
-		axarr[1].legend()
-		axarr[1].set_xlabel('distance to part. seq. rep.')
-		axarr[1].set_ylabel('error in latent space')
-
-		plt.suptitle('distance vs error (sample %d)'%(j))
-		plt.savefig('../new_out/__plot_best_distance_function_%d.png'%(j))
+		plt.legend()
+		plt.xlabel('distance to part. seq. rep.')
+		plt.ylabel('error in latent space')
+		plt.title('distance vs error in latent space(sample %d)'%(j))
+		plt.savefig('../new_out/__plot_best_distance_function_%d-2.png'%(j))
 		plt.close()
 
 	# error = np.zeros(n)
