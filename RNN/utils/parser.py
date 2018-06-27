@@ -175,8 +175,8 @@ def get_parse(model_name, labels=False):
 	if args['validation_input_data']:
 		vd = None
 		if labels:
-			#vd = data_generator_random(args['input_data'], args['output_data'], args['timesteps'], 30000, 400, True, ls, ld)
-			vd = data_generator(args['validation_input_data'], args['validation_input_data'], args['timesteps'], 10000000, True, ls, ld, only_label=args['only_label'])
+			vd = data_generator_random(args['input_data'], args['output_data'], args['timesteps'], 30000, 400, True, ls, ld)
+			#vd = data_generator(args['validation_input_data'], args['validation_input_data'], args['timesteps'], 10000000, True, ls, ld, only_label=args['only_label'])
 		else:
 			vd = data_generator(args['validation_input_data'], args['validation_input_data'], args['timesteps'], 10000000, only_label=args['only_label'])
 		for v, _ in vd:
