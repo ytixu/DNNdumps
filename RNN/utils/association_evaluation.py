@@ -473,7 +473,7 @@ from scipy.spatial import distance
 def plot_best_distance_function(model, data, data_iterator, n=50):
 	idx = np.random.choice(data.shape[0], n, replace=False)
 	enc = metrics.__get_latent_reps(model.encoder, data[idx], model.MODEL_CODE, n=model.hierarchies)
-	N = 5
+	N = 4
 
 	# score = np.zeros((N,n))
 	# for i in range(N):
@@ -506,11 +506,11 @@ def plot_best_distance_function(model, data, data_iterator, n=50):
 			for k in range(n):
 				errors[i,k] = metrics.__pose_seq_error(preds[k,:,:-model.label_dim],data[idx[j],:,:-model.label_dim])
 				dists[i,k] = metrics.__distance__(ls[w_i[k]], z_true, mode=i)
-			errors[i,-1] = -0.5
+			errors[i,-1] = -0.001
 			dists[i,-1] = metrics.__distance__(ls[w_i[0]], z_ref, mode=i)
-			plt.scatter(dists[i], errors[i], label=dist_name, s=10)
-			plt.scatter(dists[i,:1], errors[i,:1], c='black', alpha='0.3', s=15)
-			plt.scatter(dists[i,-1:], errors[i,-1:], c='black', alpha='0.3', s=15)
+			plt.scatter(dists[i], errors[i], label=dist_name, s=15)
+			plt.scatter(dists[i,:1], errors[i,:1], c='black', alpha='0.3', s=30)
+			plt.scatter(dists[i,-1:], errors[i,-1:], c='black', alpha='0.3', s=30)
 
 		# for k in range(n):
 		# 	plt.plot(dists[:,k], errors[:,k], lw=2, alpha=0.5, color='black', ls='--')
