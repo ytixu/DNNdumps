@@ -41,6 +41,9 @@ def __plot(x, ys, errs, labels, x_label, y_label, x_ticks, title, model_name, ba
 	plt.close()
 
 
+def __dist_name__(mode):
+	return ['l2', 'l1', 'max', 'min', 'cos'][mode]
+
 def __distance__(e1, e2, mode=4):
 	if mode == 0:
 		return np.linalg.norm(e1-e2)

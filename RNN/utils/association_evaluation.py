@@ -474,41 +474,58 @@ def plot_best_distance_function(model, data, data_iterator, n=25):
 	idx = np.random.choice(data.shape[0], n, replace=False)
 	enc = metrics.__get_latent_reps(model.encoder, data[idx], model.MODEL_CODE, n=model.hierarchies)
 	N = 5
-	score = np.zeros((N,n))
-	for i in range(N):
-		for j in range(n):
-			score[i,j] = metrics.__distance__(enc[j,-2], enc[j,-1], mode=i)
 
-	for i in range(N):
-		plt.scatter(range(n), score[i], label=i)
-	plt.legend()
-	plt.xlabel('sample')
-	plt.ylabel('distance')
-	plt.title('Latent variable\'s distance')
-	plt.savefig('../new_out/__plot_best_distance_function_1.png')
-	plt.close()
+	# score = np.zeros((N,n))
+	# for i in range(N):
+	# 	for j in range(n):
+	# 		score[i,j] = metrics.__distance__(enc[j,-2], enc[j,-1], mode=i)
+	# for i in range(N):
+	# 	plt.scatter(range(n), score[i], label=i)
+	# plt.legend()
+	# plt.xlabel('sample')
+	# plt.ylabel('distance')
+	# plt.title('Latent variable\'s distance')
+	# plt.savefig('../new_out/__plot_best_distance_function_1.png')
+	# plt.close()
 
 	emb = metrics.get_label_embedding(model, data_iterator, subspaces=model.hierarchies)
-	new_e = np.zeros((N,n,model.latent_dim))
+	# new_e = np.zeros((N,n,model.latent_dim))
 	for i in range(N):
+		dist_name = metrics.__dist_name__(i)
 		for j in range(n):
 			ls = emb[:,-1]
 			z_ref = enc[j,-2]
 			weights, w_i = metrics.__get_weights(ls, z_ref, mode=i)
-			new_e[i,j] = ls[w_i[0]]
-			score[i,j] = weights[w_i[0]]
+			# new_e[i,j] = ls[w_i[0]]
+			# score[i,j] = weights[w_i[0]]
 
-	error = np.zeros(n)
-	for i in range(N):
-		pred = metrics.__get_decoded_reps(model.decoder, new_e[i], model.MODEL_CODE)
-		for j in range(n):
-			error[j] = metrics.__pose_seq_error(pred[:,:-model.label_dim],data[idx[j],:,:-model.label_dim])
-		plt.scatter(score[i], error, label=i)
-	plt.legend()
-	plt.xlabel('distance')
-	plt.ylabel('error')
-	plt.title('Predictions')
-	plt.savefig('../new_out/__plot_best_distance_function_2.png')
+			z_true = enc[j,-1]
+			preds = metrics.__get_decoded_reps(model.decoder, ls[w_i[:n]], model.MODEL_CODE)
+			errors = np.zeros(n)
+			dists = np.zeros(n)
+			for k in range(n):
+				errors[k] = metrics.__pose_seq_error(pred[k,:,:-model.label_dim],data[idx[j],:,:-model.label_dim])
+				dists[k] = metrics.__distance__(ls[w_i[k]], z_true, mode=i)
+			plt.scatter(dists[1:], error[1:])
+			plt.scatter(dists[:1], error[:1], label='closest')
+			plt.legend()
+			plt.xlabel('distance (%s)'%dist_name)
+			plt.ylabel('error')
+			plt.title('%s distance vs error (sample %d)'%(dist_name, j))
+			plt.savefig('../new_out/__plot_best_distance_function_%s_%d.png'%(dist_name, j))
+			plt.close()
+
+	# error = np.zeros(n)
+	# for i in range(N):
+	# 	pred = metrics.__get_decoded_reps(model.decoder, new_e[i], model.MODEL_CODE)
+	# 	for j in range(n):
+	# 		error[j] = metrics.__pose_seq_error(pred[:,:-model.label_dim],data[idx[j],:,:-model.label_dim])
+	# 	plt.scatter(score[i], error, label=i)
+	# plt.legend()
+	# plt.xlabel('distance')
+	# plt.ylabel('error')
+	# plt.title('Predictions')
+	# plt.savefig('../new_out/__plot_best_distance_function_2.png')
 
 if __name__ == '__main__':
 	action_type = 'sitting'
