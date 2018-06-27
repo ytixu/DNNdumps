@@ -13,7 +13,7 @@ import keras.backend as K
 from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines, association_evaluation
 from Forward import NN
 
-LEARNING_RATE = 0.00005
+LEARNING_RATE = 0.001
 NAME = 'L_LSTM'
 USE_GRU = True
 if USE_GRU:
@@ -96,7 +96,7 @@ class L_LSTM:
 		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
 		opt = RMSprop(lr=LEARNING_RATE)
-		self.autoencoder.compile(optimizer=opt, loss=customLoss) #'mean_squared_error')
+		self.autoencoder.compile(optimizer=opt, loss='mean_squared_error')
 
 		self.autoencoder.summary()
 		self.encoder.summary()
@@ -110,19 +110,19 @@ class L_LSTM:
 			return True
 		return False
 
-	def __alter_y(self, y):
-		# return y
-		new_y = [None]*len(self.hierarchies)
-		for i, h in enumerate(self.hierarchies):
-			new_y[i] = np.copy(y)
-		return np.concatenate(new_y, axis=1)
-
 	#def __alter_y(self, y):
-	#	y = np.repeat(y, len(self.hierarchies), axis=0)
-	#	y = np.reshape(y, (-1, len(self.hierarchies), self.timesteps, y.shape[-1]))
+	#	# return y
+	#	new_y = [None]*len(self.hierarchies)
 	#	for i, h in enumerate(self.hierarchies):
-	#		y[:,i,h+1:-self.label_dim] = 0.0
-	#	return np.reshape(y, (-1, self.timesteps*len(self.hierarchies), y.shape[-1]))
+	#		new_y[i] = np.copy(y)
+	#	return np.concatenate(new_y, axis=1)
+
+	def __alter_y(self, y):
+		y = np.repeat(y, len(self.hierarchies), axis=0)
+		y = np.reshape(y, (-1, len(self.hierarchies), self.timesteps, y.shape[-1]))
+		for i, h in enumerate(self.hierarchies):
+			y[:,i,h+1:] = 0.0
+		return np.reshape(y, (-1, self.timesteps*len(self.hierarchies), y.shape[-1]))
 
 	def __alter_label(self, x, y):
 		idx = np.random.choice(x.shape[0], x.shape[0]/2)
@@ -174,10 +174,10 @@ class L_LSTM:
 		# iter1, iter2 = tee(data_iterator)
 		# metrics.validate(valid_data, self)
 
-		nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
-		nn.run(None)
-		metrics.plot_metrics(self, data_iterator, valid_data, nn)
-		# association_evaluation.plot_best_distance_function(self, valid_data, data_iterator)
+		#nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
+		#nn.run(None)
+		#metrics.plot_metrics(self, data_iterator, valid_data, nn)
+		association_evaluation.plot_best_distance_function(self, valid_data, data_iterator)
 		# association_evaluation.eval_generation(self, valid_data, data_iterator)
 		# association_evaluation.eval_center(self, valid_data, 'sitting')
 		# association_evaluation.transfer_motion(self, valid_data, 'sitting', 'walking', data_iterator)

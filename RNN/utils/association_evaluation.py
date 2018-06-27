@@ -490,7 +490,7 @@ def plot_best_distance_function(model, data, data_iterator, n=25):
 
 	emb = metrics.get_label_embedding(model, data_iterator, subspaces=model.hierarchies)
 	# new_e = np.zeros((N,n,model.latent_dim))
-	for i in range(N):
+	for i in tqdm(range(N)):
 		dist_name = metrics.__dist_name__(i)
 		for j in range(n):
 			ls = emb[:,-1]
@@ -504,10 +504,10 @@ def plot_best_distance_function(model, data, data_iterator, n=25):
 			errors = np.zeros(n)
 			dists = np.zeros(n)
 			for k in range(n):
-				errors[k] = metrics.__pose_seq_error(pred[k,:,:-model.label_dim],data[idx[j],:,:-model.label_dim])
+				errors[k] = metrics.__pose_seq_error(preds[k,:,:-model.label_dim],data[idx[j],:,:-model.label_dim])
 				dists[k] = metrics.__distance__(ls[w_i[k]], z_true, mode=i)
-			plt.scatter(dists[1:], error[1:])
-			plt.scatter(dists[:1], error[:1], label='closest')
+			plt.scatter(dists[1:], errors[1:])
+			plt.scatter(dists[:1], errors[:1], label='closest')
 			plt.legend()
 			plt.xlabel('distance (%s)'%dist_name)
 			plt.ylabel('error')
