@@ -13,7 +13,7 @@ import keras.backend as K
 from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines, association_evaluation
 from Forward import NN
 
-LEARNING_RATE = 0.0003
+LEARNING_RATE = 0.00001
 NAME = 'L_LSTM'
 USE_GRU = True
 if USE_GRU:

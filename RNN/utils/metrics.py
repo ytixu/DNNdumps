@@ -163,13 +163,16 @@ def __cuts():
 	return np.array([0,2])
 	# return [4]
 
-def __rn():
+def __rn(with_nn):
+	if with_nn:
 	# return [100, 200, -1, -2, -3, -4]
-	return [100, 500, 1000, 5000, 10000, -1, -2, -3, -4, -5]
+		return [100, 500, 1000, 5000, 10000, -1, -2, -3, -4, -5]
+	else:
+		return [100, 500, 1000, 5000, 10000, -1, -2, -3, -4]
 
-def __common_params(n):
+def __common_params(n, with_nn=False):
 	cuts = __cuts()
-	rn =__rn()
+	rn =__rn(with_nn)
 	scores = {'score':{r:{c:[0]*n for c in cuts} for r in rn},
 			'e_score':{r:{c:[0]*n for c in cuts} for r in rn}}
 	return cuts, rn, scores
@@ -750,7 +753,7 @@ def gen_long_sequence(embedding, validation_data, model, l_n=60, numb=10):
 
 
 def plot_metrics(model, data_iterator, validation_data, nn=None, n_valid = 100):
-	cuts, rn, scores = __common_params(n_valid)
+	cuts, rn, scores = __common_params(n_valid, with_nn=nn is not None)
 	given_n = model.hierarchies[1]
 	new_e = None
 	embedding = None
@@ -831,14 +834,18 @@ def plot_metrics(model, data_iterator, validation_data, nn=None, n_valid = 100):
 	ys = np.array([[np.mean(scores['score'][n][cut]) for n in rn] for cut in cuts])
 	errs = np.array([[np.std(scores['score'][n][cut]) for n in rn] for cut in cuts])
 	labels = [str(model.hierarchies[c] + 1) for c in cuts]
-	x_ticks = map(str, rn[:-4])+['all', 'CLOSEST', 'ADD', 'P_CLOSEST', 'FN']
+	x_ticks = None
+	if nn is None:
+		x_ticks = map(str, rn[:-4])+['all', 'CLOSEST', 'ADD', 'P_CLOSEST']
+	else:
+		x_ticks = map(str, rn[:-5])+['all', 'CLOSEST', 'ADD', 'P_CLOSEST', 'FN']
 	x_label = 'Number of random latent representation'
 	y_label = 'Error'
 	title = 'Pose error'
 	__plot(x, ys, errs, labels, x_label, y_label, x_ticks, title, model.MODEL_CODE)
 
 	ys_e = np.array([[np.mean(scores['e_score'][n][cut]) for n in rn] for cut in cuts])
-	errs_e = np.array([[np.std(scores['e_score'][n][cut]) for n in rn] for cut in cuts])
+	errs_e =  np.array([[np.std(scores['e_score'][n][cut]) for n in rn] for cut in cuts])
 	title = 'Latent error'
 	__plot(x, ys_e, errs_e, labels, x_label, y_label, x_ticks, title, model.MODEL_CODE)
 
