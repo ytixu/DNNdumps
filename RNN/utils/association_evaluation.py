@@ -503,7 +503,7 @@ def plot_best_distance_function(model, data, data_iterator, n=50):
 				dists[k] = metrics.__distance__(ls[w_i[k]], z_true, mode=i)
 
 			errors[-1] = metrics.__pose_seq_error(p_enc_dec[0,:cut,:-model.label_dim],data[idx[j],:cut,:-model.label_dim])
-			dists[1] = metrics.__distance__(z_ref, z_true, mode=i)
+			dists[-1] = metrics.__distance__(z_ref, z_true, mode=i)
 
 			plt.scatter(dists, errors, label=dist_name, s=30)
 			if i == N-1:
