@@ -42,7 +42,7 @@ def __plot(x, ys, errs, labels, x_label, y_label, x_ticks, title, model_name, ba
 
 
 def __dist_name__(mode):
-	return ['l2', 'l1', 'max', 'min', 'cos'][mode]
+	return ['l2', 'l1', 'cos', 'max', 'min'][mode]
 
 def __distance__(e1, e2, mode=4):
 	if mode == 0:
@@ -50,11 +50,11 @@ def __distance__(e1, e2, mode=4):
 	elif mode == 1:
 		return np.sum(np.abs(e1-e2))
 	elif mode == 2:
-		return np.amax(np.abs(e1-e2))
-	elif mode == 3:
-		return np.amin(np.abs(e1-e2))
-	elif mode == 4:
 		return distance.cosine(e1,e2)
+	elif mode == 3:
+		return np.amax(np.abs(e1-e2))
+	elif mode == 4:
+		return np.amin(np.abs(e1-e2))
 
 def __get_dist(embedding, z_ref, mode=0):
 	return [__distance__(embedding[i], z_ref, mode) for i in range(len(embedding))]

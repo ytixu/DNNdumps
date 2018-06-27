@@ -470,7 +470,7 @@ def plot_add(model, data_iterator):
 # evaluate distance function
 from scipy.spatial import distance
 
-def plot_best_distance_function(model, data, data_iterator, n=25):
+def plot_best_distance_function(model, data, data_iterator, n=50):
 	idx = np.random.choice(data.shape[0], n, replace=False)
 	enc = metrics.__get_latent_reps(model.encoder, data[idx], model.MODEL_CODE, n=model.hierarchies)
 	N = 5
@@ -491,6 +491,8 @@ def plot_best_distance_function(model, data, data_iterator, n=25):
 	emb = metrics.get_label_embedding(model, data_iterator, subspaces=model.hierarchies)
 	# new_e = np.zeros((N,n,model.latent_dim))
 	for j in range(n):
+		errors = np.zeros((N,n+1))
+		dists = np.zeros((N,n+1))
 		for i in tqdm(range(N)):
 			dist_name = metrics.__dist_name__(i)
 			ls = emb[:,-1]
@@ -501,13 +503,18 @@ def plot_best_distance_function(model, data, data_iterator, n=25):
 
 			z_true = enc[j,-1]
 			preds = metrics.__get_decoded_reps(model.decoder, ls[w_i[:n]], model.MODEL_CODE)
-			errors = np.zeros(n)
-			dists = np.zeros(n)
 			for k in range(n):
-				errors[k] = metrics.__pose_seq_error(preds[k,:,:-model.label_dim],data[idx[j],:,:-model.label_dim])
-				dists[k] = metrics.__distance__(ls[w_i[k]], z_true, mode=i)
-			plt.scatter(dists, errors, s=1, label=dist_name)
-			plt.scatter(dists[:1], errors[:1], c='black', alpha='0.5')
+				errors[i,k] = metrics.__pose_seq_error(preds[k,:,:-model.label_dim],data[idx[j],:,:-model.label_dim])
+				dists[i,k] = metrics.__distance__(ls[w_i[k]], z_true, mode=i)
+			error[-1] = 0
+			dist[-1] = metrics.__distance__(ls[w_i[0]], z_ref, mode=i)
+			plt.scatter(dists[i], errors[i], label=dist_name)
+			plt.scatter(dists[i,:1], errors[i,:1], c='black', alpha='0.3', s=5)
+			plt.scatter(dists[i,-1:], errors[i,-1:], c='black', alpha='0.3', s=4)
+
+		# for k in range(n):
+		# 	plt.plot(dists[:,k], errors[:,k], lw=2, alpha=0.5, color='black', ls='--')
+
 		plt.legend()
 		plt.xlabel('distance')
 		plt.ylabel('error')
