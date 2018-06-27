@@ -520,8 +520,8 @@ def plot_best_distance_function(model, data, data_iterator, n=50):
 				axarr[0].scatter(dists[:1], errors[:1], c='black', alpha='0.3', s=60)
 
 		axarr[0].legend()
-		axarr[0].xlabel('distance to comp. seq. rep.')
-		axarr[0].ylabel('error in raw space')
+		axarr[0].set_xlabel('distance to comp. seq. rep.')
+		axarr[0].set_ylabel('error in raw space')
 
 		for i in range(N):
 			dist_name = metrics.__dist_name__(i)
@@ -534,12 +534,12 @@ def plot_best_distance_function(model, data, data_iterator, n=50):
 				axarr[1].scatter(dists[-1:], errors[-1:], c='black', alpha='0.3', s=60)
 
 		axarr[0].legend()
-		axarr[0].xlabel('distance to part. seq. rep.')
-		axarr[0].ylabel('error in latent space')
+		axarr[0].set_xlabel('distance to part. seq. rep.')
+		axarr[0].set_ylabel('error in latent space')
 
-		f.title('distance vs error (sample %d)'%(j))
-		f.savefig('../new_out/__plot_best_distance_function_%d.png'%(j))
-		f.close()
+		plt.title('distance vs error (sample %d)'%(j))
+		plt.savefig('../new_out/__plot_best_distance_function_%d.png'%(j))
+		plt.close()
 
 	# error = np.zeros(n)
 	# for i in range(N):
