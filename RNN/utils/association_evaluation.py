@@ -513,11 +513,11 @@ def plot_best_distance_function(model, data, data_iterator, n=50):
 			for k in range(n):
 				errors[k] = metrics.__pose_seq_error(preds[k,:,:-model.label_dim],data[idx[j],:,:-model.label_dim])
 				dists[k] = metrics.__distance__(ls[w_i[k]], z_true, mode=i)
-			plt.scatter(dists, errors, label=dist_name, s=20)
+			plt.scatter(dists, errors, label=dist_name, s=30)
 			if i == N-1:
-				plt.scatter(dists[:1], errors[:1], c='black', alpha='0.3', s=60, label='true')
+				plt.scatter(dists[:1], errors[:1], c='black', alpha='0.3', s=100, label='true')
 			else:
-				plt.scatter(dists[:1], errors[:1], c='black', alpha='0.3', s=60)
+				plt.scatter(dists[:1], errors[:1], c='black', alpha='0.3', s=100)
 
 		plt.legend()
 		plt.xlabel('distance to comp. seq. rep.')
@@ -533,9 +533,9 @@ def plot_best_distance_function(model, data, data_iterator, n=50):
 			dists = [metrics.__distance__(z, z_ref, mode=i) for z in [zs[i], z_true]]
 			plt.scatter([dists], [errors], label=dist_name, s=30)
 			if i == N-1:
-				plt.scatter(dists[-1:], errors[-1:], c='black', alpha='0.3', s=20, label='true')
+				plt.scatter(dists[-1:], errors[-1:], c='black', alpha='0.3', s=100, label='true')
 			else:
-				plt.scatter(dists[-1:], errors[-1:], c='black', alpha='0.3', s=60)
+				plt.scatter(dists[-1:], errors[-1:], c='black', alpha='0.3', s=100)
 
 		plt.legend()
 		plt.xlabel('distance to part. seq. rep.')
