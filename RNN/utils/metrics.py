@@ -314,20 +314,20 @@ def validate(validation_data, model):
 		def __r(a):
 			return a # np.around(a*100, 3).tolist()
 
-		print sample_n
-		print __r(mean)
-		print __r(std)
-		print __r(np.mean(mean))
-		print __r(np.sqrt(np.mean([s**2 for s in std])))
-		print __r(mean_sub)
-		print __r(std_sub)
-		print __r(np.mean(mean_sub))
-		print __r(np.sqrt(np.mean([s**2 for s in std_sub])))
-		if model.MODEL_CODE in [HL_LSTM, L_LSTM]:
-			print __r(mean_l)
-			print __r(std_l)
-			print __r(np.mean(mean_l))
-			print __r(np.sqrt(np.mean([s**2 for s in std_l])))
+	print sample_n
+	print __r(mean)
+	print __r(std)
+	print __r(np.mean(mean))
+	print __r(np.sqrt(np.mean([s**2 for s in std])))
+	print __r(mean_sub)
+	print __r(std_sub)
+	print __r(np.mean(mean_sub))
+	print __r(np.sqrt(np.mean([s**2 for s in std_sub])))
+	if model.MODEL_CODE in [HL_LSTM, L_LSTM]:
+		print __r(mean_l)
+		print __r(std_l)
+		print __r(np.mean(mean_l))
+		print __r(np.sqrt(np.mean([s**2 for s in std_l])))
 
 def distance_stats(embedding, model):
 	h = len(model.hierarchies)

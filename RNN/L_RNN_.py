@@ -132,7 +132,7 @@ class L_LSTM:
 
 	def run(self, data_iterator, valid_data):
 		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
-		if self.load():
+		if not self.load():
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			loss = 10000
@@ -160,7 +160,8 @@ class L_LSTM:
 						# image.plot_poses(x_test[:1,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
 						# image.plot_hierarchies(x_test[:1,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
 						self.autoencoder.save_weights(self.save_path, overwrite=True)
-						validate(x_test, self)
+						rand_idx = np.random.choice(x_test.shape[0], 25, replace=False)
+						metrics.validate(x_test[rand_idx], self)
 
 					del x_train, x_test, y_train, y_test
 				iter1, iter2 = tee(iter2)
