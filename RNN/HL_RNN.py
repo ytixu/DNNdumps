@@ -3,7 +3,7 @@ from itertools import tee
 from sklearn import cross_validation
 from keras.layers import Input, RepeatVector, Lambda, concatenate
 from keras.models import Model
-from keras.optimizers import RMSprop
+# from keras.optimizers import RMSprop
 
 from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines, association_evaluation
 
@@ -31,7 +31,7 @@ class HL_LSTM:
 		self.labels = args['labels']
 		self.input_dim = args['input_dim'] + self.label_dim
 		self.output_dim = args['output_dim'] + self.label_dim
-		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [14,19,29]
+		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
 		self.load_path = args['load_path']
@@ -48,12 +48,12 @@ class HL_LSTM:
 		encoded = None
 		if USE_GRU:
 			encoded = GRU(self.latent_dim, return_sequences=True)(inputs_1)
-		else:		
+		else:
 			encoded = LSTM(self.latent_dim, return_sequences=True)(inputs_1)
 
 		z = Input(shape=(self.latent_dim,))
 		decode_1 = RepeatVector(self.timesteps)
-		decode_2 = None 
+		decode_2 = None
 		if USE_GRU:
 			decode_2 = GRU(self.output_dim, return_sequences=True)
 		else:
@@ -68,12 +68,12 @@ class HL_LSTM:
 
 		decoded_ = decode_1(concatenate([z, inputs_2], axis=1))
 		decoded_ = decode_2(decoded_)
-		
+
 		self.encoder = Model(inputs_1, encoded)
 		self.decoder = Model([z, inputs_2], decoded_)
 		self.autoencoder = Model([inputs_1, inputs_2], decoded)
-		opt = RMSprop(lr=0.00005)
-		self.autoencoder.compile(optimizer=opt, loss='mean_squared_error')
+		# opt = RMSprop(lr=0.00005)
+		self.autoencoder.compile(optimizer='Adadelta', loss='mean_absolute_error')
 
 		self.autoencoder.summary()
 		self.encoder.summary()
@@ -86,7 +86,7 @@ class HL_LSTM:
 			return True
 		return False
 
-		
+
 	def __alter_y(self, y):
 		y = np.repeat(y, len(self.hierarchies), axis=0)
 		y = np.reshape(y, (-1, len(self.hierarchies), self.timesteps, y.shape[-1]))
@@ -98,9 +98,9 @@ class HL_LSTM:
 		idx = np.random.choice(x.shape[0], x.shape[0]/2)
 		x[idx,:,-self.label_dim:] = 0
 		y[idx,:,-self.label_dim:] = 0
-		return x, y 
+		return x, y
 
-	def run(self, data_iterator, valid_data): 
+	def run(self, data_iterator, valid_data):
 		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
 		if not self.load():
 			# from keras.utils import plot_model
@@ -115,25 +115,15 @@ class HL_LSTM:
 					y_test_orig = np.copy(y_test[:1])
 					y_test = self.__alter_y(y_test)
 					# print np.sum(y_train[:,0,-self.label_dim:], axis=0)
-					history = self.autoencoder.fit([x_train, x_train[:,0]], y_train,
+					self.autoencoder.fit([x_train, x_train[:,0]], y_train,
 								shuffle=True,
 								epochs=self.epochs,
 								batch_size=self.batch_size,
 								validation_data=([x_test, x_test[:,0]], y_test))
 								# callbacks=[self.history])
 
-					new_loss = np.mean(history.history['loss'])
-					if new_loss < loss:
-						print 'Saved model - ', loss
-						loss = new_loss
-						# y_test_decoded = self.autoencoder.predict([x_test[:1], x_test[:1,0]])
-						# y_test_decoded = np.reshape(y_test_decoded, (len(self.hierarchies), self.timesteps, -1))
-						# image.plot_poses(y_test_orig[:,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
-						# # image.plot_hierarchies(y_test_orig[:,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
-						self.autoencoder.save_weights(self.save_path, overwrite=True)
-
 				iter1, iter2 = tee(iter2)
-			
+
 			# self.history.record(self.log_path, model_vars)
 			data_iterator = iter2
 
@@ -144,7 +134,7 @@ class HL_LSTM:
 		# iter1, iter2 = tee(data_iterator)
 		# metrics.validate(valid_data, self)
 		# metrics.plot_metrics_labels(self, data_iterator, valid_data)
-		metric_baselines.compare_embedding(self, data_iterator)
+		# metric_baselines.compare_embedding(self, data_iterator)
 		# metric_baselines.compare(self, data_iterator)
 		# association_evaluation.eval_distance(self, valid_data)
 		# evaluate.eval_pattern_reconstruction(self.encoder, self.decoder, iter2)

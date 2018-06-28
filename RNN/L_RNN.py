@@ -57,6 +57,7 @@ class L_LSTM:
 		inputs = Input(shape=(self.timesteps, self.input_dim))
 
 		encoded = None
+		reduced = None
 		if USE_GRU:
 			encoded = GRU(self.latent_dim, return_sequences=True)(inputs)
 		else:
@@ -160,7 +161,7 @@ class L_LSTM:
 						#image.plot_poses(x_test[:1,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
 						# image.plot_hierarchies(y_test_orig[:,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
 						self.autoencoder.save_weights(self.save_path, overwrite=True)
-						validate(x_test, self)
+						metrics.validate(x_test, self)
 
 					del x_train, x_test, y_train, y_test
 				iter1, iter2 = tee(iter2)
