@@ -20,6 +20,11 @@ Avg error in raw space
 Avg error in latent space
 [0.0654009  0.03099964 0.06529428 0.0983147 ]
 
+Avg error in raw space
+[0.01063425 0.00760136 0.01072071]
+Avg error in latent space
+[0.0992928  0.03516193 0.10112689]
+18
 
 
 t30 l600
@@ -50,7 +55,12 @@ Avg error in raw space
 [ 0.01599362  0.01059933  0.01612499  0.08086882]
 Avg error in latent space
 [ 0.12641058  0.02938719  0.1218785   0.55856256]
-Avg distance to partial seq
-[ 0.44092173  4.01285392  0.0522879   0.17604769]
-Avg distance to complete seq
-[ 0.12641058  0.38615867  0.00469591  0.10129414]
+
+t25 l1024 full
+
+Avg error in raw space
+[0.0168869  0.01229426 0.01547447]
+Avg error in latent space
+[0.11989561 0.01943795 0.10597747]
+9
+

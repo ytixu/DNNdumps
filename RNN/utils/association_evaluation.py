@@ -6,7 +6,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import json
 
-import metrics
+import metrics, image
 
 def e_dist(ea, eb):
 	# return np.linalg.norm(ea - eb)
@@ -473,15 +473,15 @@ from scipy.spatial import distance
 def plot_best_distance_function(model, data, data_iterator, n=50):
 	idx = np.random.choice(data.shape[0], n, replace=False)
 	enc = metrics.__get_latent_reps(model.encoder, data[idx], model.MODEL_CODE, n=model.hierarchies)
-	N = 4
+	N = 3
 
 	avg_error_raw = np.zeros(N)
 	avg_error_lat = np.zeros(N)
-	best_score = np.zeros(N)
 
 	errors = np.zeros(n+1)
 	dists = np.zeros(n+1)
 	zs = np.zeros((N,model.latent_dim))
+	poses_plot = np.zeros((N+2, model.timesteps, model.input_dim-model.label_dim))
 
 	emb = metrics.get_label_embedding(model, data_iterator, subspaces=model.hierarchies)
 	cut = model.hierarchies[-2]+1
@@ -490,6 +490,7 @@ def plot_best_distance_function(model, data, data_iterator, n=50):
 		z_ref = enc[j,-2]
 		z_true = enc[j,-1]
 		p_enc_dec = metrics.__get_decoded_reps(model.decoder, np.array([z_ref, z_true]), model.MODEL_CODE)
+		poses_plot[:2] = p_enc_dec[:,:,:-model.label_dim]
 
 		for i in range(N):
 			dist_name = metrics.__dist_name__(i)
@@ -498,6 +499,7 @@ def plot_best_distance_function(model, data, data_iterator, n=50):
 			zs[i] = ls[w_i[0]]
 
 			preds = metrics.__get_decoded_reps(model.decoder, ls[w_i[:n]], model.MODEL_CODE)
+			poses_plot[2+i] = preds[0,:,:-model.label_dim]
 			for k in range(n):
 				errors[k] = metrics.__pose_seq_error(preds[k,:,:-model.label_dim],data[idx[j],:,:-model.label_dim])
 				dists[k] = metrics.__distance__(ls[w_i[k]], z_true, mode=i)
@@ -541,6 +543,8 @@ def plot_best_distance_function(model, data, data_iterator, n=50):
 		plt.title('distance vs error in latent space(sample %d)'%(j))
 		plt.savefig('../new_out/__plot_best_distance_function_%d-2.png'%(j))
 		plt.close()
+
+		image.plot_poses([data[idx[j],:,:-model.label_dim]], poses_plot, title='part-comp-l2-l1-cos (sample %d)'%j, image_dir='../new_out/')
 
 	tot = N*n
 	print 'Avg error in raw space'

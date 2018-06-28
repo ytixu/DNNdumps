@@ -56,10 +56,10 @@ def __distance__(e1, e2, mode=1):
 	elif mode == 4:
 		return np.amin(np.abs(e1-e2))
 
-def __get_dist(embedding, z_ref, mode=0):
+def __get_dist(embedding, z_ref, mode=1):
 	return [__distance__(embedding[i], z_ref, mode) for i in range(len(embedding))]
 
-def __get_weights(embedding, z_ref, mode=0):
+def __get_weights(embedding, z_ref, mode=1):
 	weights = __get_dist(embedding, z_ref, mode)
 	w_i = np.argsort(weights)
 	return weights, w_i

@@ -96,7 +96,7 @@ class L_LSTM:
 		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
 		opt = RMSprop(lr=LEARNING_RATE)
-		self.autoencoder.compile(optimizer=opt, loss='mean_squared_error')
+		self.autoencoder.compile(optimizer=opt, loss='mean_absolute_error')
 
 		self.autoencoder.summary()
 		self.encoder.summary()
@@ -176,7 +176,7 @@ class L_LSTM:
 
 		#nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
 		#nn.run(None)
-		#metrics.plot_metrics(self, data_iterator, valid_data, None)
+		# metrics.plot_metrics(self, data_iterator, valid_data, None)
 		association_evaluation.plot_best_distance_function(self, valid_data, data_iterator)
 		# association_evaluation.eval_generation(self, valid_data, data_iterator)
 		# association_evaluation.eval_center(self, valid_data, 'sitting')
