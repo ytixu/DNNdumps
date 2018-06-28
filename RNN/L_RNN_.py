@@ -160,6 +160,7 @@ class L_LSTM:
 						# image.plot_poses(x_test[:1,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
 						# image.plot_hierarchies(x_test[:1,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
 						self.autoencoder.save_weights(self.save_path, overwrite=True)
+						validate(x_test, self)
 
 					del x_train, x_test, y_train, y_test
 				iter1, iter2 = tee(iter2)
