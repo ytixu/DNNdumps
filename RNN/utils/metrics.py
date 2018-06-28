@@ -299,7 +299,7 @@ def validate(validation_data, model):
 			poses[:,:,-model.label_dim:] = validation_data[:,:,-model.label_dim:]
 			err = [__pose_error(poses[j,:,:-model.label_dim], p_poses[j,:,:-model.label_dim]) for j in range(sample_n)]
 			err_sub = [__pose_error(poses[j,:i+1,:-model.label_dim], p_poses[j,:i+1,:-model.label_dim]) for j in range(sample_n)]
-			err_label = [[np.linalg.norm(poses[j,k,-model.label_dim:] - p_poses[j,k,-model.label_dim:]) for k in range(model.timesteps)] for j in range(model.timesteps)]
+			err_label = [[np.linalg.norm(poses[j,k,-model.label_dim:] - p_poses[j,k,-model.label_dim:]) for k in range(i+1)] for j in range(sample_ns)]
 			mean_l[index] = np.mean(err_label)
 			std_l[index] = np.std(err_label)
 		else:
@@ -312,7 +312,7 @@ def validate(validation_data, model):
 		# image.plot_poses([validation_data[0,:,:-label_dim]] , [p_poses[0,:,:-label_dim]])
 
 		def __r(a):
-			return np.around(a*100, 3).tolist()
+			return a # np.around(a*100, 3).tolist()
 
 		print sample_n
 		print __r(mean)
