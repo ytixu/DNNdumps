@@ -173,7 +173,7 @@ class L_LSTM:
 
 		# embedding_plotter.see_hierarchical_embedding(self.encoder, self.decoder, data_iterator, valid_data, model_vars, self.label_dim)
 		# iter1, iter2 = tee(data_iterator)
-		# metrics.validate(valid_data, self)
+		metrics.validate(valid_data, self)
 
 		#nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
 		#nn.run(None)
