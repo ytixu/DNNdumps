@@ -55,30 +55,35 @@ class L_LSTM:
 
 	def make_model(self):
 		inputs = Input(shape=(self.timesteps, self.input_dim))
-
-		encoded = None
+		encoded_1 = None
+		encoded_2 = None
 		if USE_GRU:
-			encoded = GRU(self.latent_dim, return_sequences=True)(inputs)
+			encoded_1 = GRU(self.latent_dim*2, return_sequences=True)(inputs)
+			encoded_2 = GRU(self.latent_dim, return_sequences=True)(encoded_1)
 		else:
 			encoded = LSTM(self.latent_dim, return_sequences=True)(inputs)
 
 		z = Input(shape=(self.latent_dim,))
 		decode_1 = RepeatVector(self.timesteps)
 		decode_2 = None
+		decode_3 = None
 		if USE_GRU:
-			decode_2 = GRU(self.output_dim, return_sequences=True)
+			decode_2 = GRU(self.latent_dim*2, return_sequences=True)
+			decode_3 = GRU(self.output_dim, return_sequences=True)
 		else:
 			decode_2 = LSTM(self.output_dim, return_sequences=True)
 
 		decoded = [None]*len(self.hierarchies)
 		for i, h in enumerate(self.hierarchies):
-			e = Lambda(lambda x: x[:,h], output_shape=(self.latent_dim,))(encoded)
+			e = Lambda(lambda x: x[:,h], output_shape=(self.latent_dim,))(encoded_2)
 			decoded[i] = decode_1(e)
 			decoded[i] = decode_2(decoded[i])
+			decoded[i] = decode_3(decoded[i])
 		decoded = concatenate(decoded, axis=1)
 
 		decoded_ = decode_1(z)
 		decoded_ = decode_2(decoded_)
+		decoded_ = decode_3(decoded_)
 
 		def customLoss(yTrue, yPred):
 			yt = yTrue[:,:,-self.label_dim:]
@@ -96,7 +101,7 @@ class L_LSTM:
 		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
 		opt = RMSprop(lr=LEARNING_RATE)
-		self.autoencoder.compile(optimizer='Adadelta', loss='mean_absolute_error')
+		self.autoencoder.compile(optimizer='Adadelta', loss='mean_squared_error')
 
 		self.autoencoder.summary()
 		self.encoder.summary()
