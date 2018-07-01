@@ -153,6 +153,7 @@ def get_parse(model_name, labels=False):
 	if args['mode'] == 'cont':
 		args['mode'] = 'sample'
 		TOGGLE_MODE = 'sample'
+		print TOGGLE_MODE
 	if labels:
 		ls, ld = get_one_hot_labels(glob.glob(args['input_data']+'*'))
 		args['labels'] = {'purchases': 0, 'walking': 1, 'takingphoto': 2, 'eating': 3, 'sitting': 4, 'discussion': 5, 'walkingdog': 6, 'greeting': 7, 'walkingtogether': 8, 'phoning': 9, 'posing': 10, 'directions': 11, 'smoking': 12, 'waiting': 13, 'sittingdown': 14}

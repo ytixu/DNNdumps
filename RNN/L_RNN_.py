@@ -58,8 +58,8 @@ class L_LSTM:
 		encoded_1 = None
 		encoded_2 = None
 		if USE_GRU:
-			encoded_1 = GRU(self.latent_dim*2, return_sequences=True)(inputs)
-			encoded_2 = GRU(self.latent_dim, return_sequences=True)(encoded_1)
+			#encoded_1 = GRU(self.latent_dim/4, return_sequences=True)(inputs)
+			encoded_2 = GRU(self.latent_dim, return_sequences=True)(inputs)
 		else:
 			encoded = LSTM(self.latent_dim, return_sequences=True)(inputs)
 
@@ -68,7 +68,7 @@ class L_LSTM:
 		decode_2 = None
 		decode_3 = None
 		if USE_GRU:
-			decode_2 = GRU(self.latent_dim*2, return_sequences=True)
+			decode_2 = GRU(self.latent_dim/4, return_sequences=True)
 			decode_3 = GRU(self.output_dim, return_sequences=True)
 		else:
 			decode_2 = LSTM(self.output_dim, return_sequences=True)
@@ -97,11 +97,11 @@ class L_LSTM:
 				loss = loss + K.mean(K.sum(K.square(yt - yp), axis = -1))
 			return loss
 
-		self.encoder = Model(inputs, encoded)
+		self.encoder = Model(inputs, encoded_2)
 		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
 		opt = RMSprop(lr=LEARNING_RATE)
-		self.autoencoder.compile(optimizer='Adadelta', loss='mean_squared_error')
+		self.autoencoder.compile(optimizer=opt, loss='mean_absolute_error')
 
 		self.autoencoder.summary()
 		self.encoder.summary()
@@ -179,7 +179,7 @@ class L_LSTM:
 
 		# embedding_plotter.see_hierarchical_embedding(self.encoder, self.decoder, data_iterator, valid_data, model_vars, self.label_dim)
 		# iter1, iter2 = tee(data_iterator)
-		# metrics.validate(valid_data, self)
+		metrics.validate(valid_data, self)
 
 		#nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
 		#nn.run(None)
