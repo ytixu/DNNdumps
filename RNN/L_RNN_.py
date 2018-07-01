@@ -5,7 +5,7 @@ matplotlib.use('Agg')
 import numpy as np
 from itertools import tee
 from sklearn import cross_validation
-from keras.layers import Input, RepeatVector, Lambda, concatenate
+from keras.layers import Input, RepeatVector, Lambda, concatenate, Flatten, Reshape
 from keras.models import Model
 from keras.optimizers import RMSprop
 import keras.backend as K
@@ -40,6 +40,7 @@ class L_LSTM:
 		print self.labels, self.label_dim
 		self.input_dim = args['input_dim'] + self.label_dim
 		self.output_dim = args['output_dim'] + self.label_dim
+		self.decode_out_dim = args['input_dim'] - 17 + 2
 		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
@@ -55,15 +56,13 @@ class L_LSTM:
 
 	def make_model(self):
 		inputs = Input(shape=(self.timesteps, self.input_dim))
-		encoded_1 = GRU(self.latent_dim, return_sequences=True)(inputs)
-		encoded_2 = GRU(self.latent_dim/2, return_sequences=True)(encoded_1)
-		encoded_3 = GRU(self.latent_dim/4, return_sequences=True)(encoded_2)
+		encoded = GRU(self.latent_dim, return_sequences=True)(inputs)
 
 		z = Input(shape=(self.latent_dim,))
 		decode_1 = RepeatVector(self.timesteps)
-		decode_2 = GRU(self.latent_dim, return_sequences=True)
-		decode_3 = GRU(self.latent_dim/2, return_sequences=True)
-		decode_4 = GRU(self.output_dim/4, return_sequences=True)
+		decode_2 = GRU(self.decode_out_dim, return_sequences=True)
+		decode_3 = Flatten()
+		decode_4 = Dense(self.output_dim)
 
 		decoded = [None]*len(self.hierarchies)
 		for i, h in enumerate(self.hierarchies):
@@ -95,7 +94,7 @@ class L_LSTM:
 		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
 		opt = RMSprop(lr=LEARNING_RATE)
-		self.autoencoder.compile(optimizer=opt, loss='mean_absolute_error')
+		self.autoencoder.compile(optimizer=opt, loss='mean_squared_error')
 
 		self.autoencoder.summary()
 		self.encoder.summary()
