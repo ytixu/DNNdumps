@@ -161,7 +161,7 @@ class L_LSTM:
 						# image.plot_hierarchies(x_test[:1,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
 						self.autoencoder.save_weights(self.save_path, overwrite=True)
 						rand_idx = np.random.choice(x_test.shape[0], 25, replace=False)
-						metrics.validate(x_test[rand_idx], self)
+						metrics.validate(x_test[rand_idx], self, '../new_out/validate.txt')
 
 					del x_train, x_test, y_train, y_test
 				iter1, iter2 = tee(iter2)
