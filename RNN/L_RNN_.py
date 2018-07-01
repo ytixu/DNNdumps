@@ -62,7 +62,7 @@ class L_LSTM:
 		decode_1 = RepeatVector(self.timesteps)
 		decode_2 = GRU(self.decode_out_dim, return_sequences=True)
 		decode_3 = Flatten()
-		decode_4 = Dense(self.timesteps*self.output_dim)
+		decode_4 = Dense(self.timesteps*self.output_dim, activation='tanh')
 		decode_5 = Reshape((self.timesteps, self.output_dim))
 
 		decoded = [None]*len(self.hierarchies)
@@ -79,6 +79,7 @@ class L_LSTM:
 		decoded_ = decode_2(decoded_)
 		decoded_ = decode_3(decoded_)
 		decoded_ = decode_4(decoded_)
+		decoded_ = decode_5(decoded_)
 
 		def customLoss(yTrue, yPred):
 			yt = yTrue[:,:,-self.label_dim:]

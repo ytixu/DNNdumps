@@ -331,12 +331,12 @@ def validate(validation_data, model, save_path=None):
 		return title + ': ' + '\t'.join(map(str,x)) + '\n'
 
 	if save_path is not None:
-		with open(filename, 'a+') as f:
-		    f.write(__r(mean, 'mean'))
-		    f.write(__r(std, 'std'))
-		    f.write(__r(mean_sub, 'mean sub'))
-		    f.write(__r(std_sub, 'std sub'))
-		    if model.MODEL_CODE in [HL_LSTM, L_LSTM]:
+		with open(save_path, 'a+') as f:
+			f.write(__r(mean, 'mean'))
+			f.write(__r(std, 'std'))
+			f.write(__r(mean_sub, 'mean sub'))
+			f.write(__r(std_sub, 'std sub'))
+			if model.MODEL_CODE in [HL_LSTM, L_LSTM]:
 			    f.write(__r(mean_l, 'mean label'))
 			    f.write(__r(std_l, 'std label'))
 
