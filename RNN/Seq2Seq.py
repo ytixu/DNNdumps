@@ -40,7 +40,7 @@ class L_LSTM:
 		print self.labels, self.label_dim
 		self.input_dim = args['input_dim'] + self.label_dim
 		self.output_dim = args['output_dim'] + self.label_dim
-		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
+		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [9,14,24]
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
 		self.load_path = args['load_path']
@@ -54,30 +54,18 @@ class L_LSTM:
 		# self.history = recorder.LossHistory()
 
 	def make_model(self):
-		inputs = Input(shape=(self.timesteps, self.input_dim))
-		encoded_1 = GRU(self.latent_dim, return_sequences=True)(inputs)
-		encoded_2 = GRU(self.latent_dim/2, return_sequences=True)(encoded_1)
-		encoded_3 = GRU(self.latent_dim/4, return_sequences=True)(encoded_2)
+		encoder_inputs = Input(shape=(None, self.input_dim))
 
-		z = Input(shape=(self.latent_dim,))
-		decode_1 = RepeatVector(self.timesteps)
-		decode_2 = GRU(self.latent_dim, return_sequences=True)
-		decode_3 = GRU(self.latent_dim/2, return_sequences=True)
-		decode_4 = GRU(self.output_dim/4, return_sequences=True)
+		self.encoder_gru = GRU(self.latent_dim, return_state=True)
+		encoder_outputs, state_h = self.encoder_gru(encoder_inputs)
 
-		decoded = [None]*len(self.hierarchies)
-		for i, h in enumerate(self.hierarchies):
-			e = Lambda(lambda x: x[:,h], output_shape=(self.latent_dim,))(encoded_2)
-			decoded[i] = decode_1(e)
-			decoded[i] = decode_2(decoded[i])
-			decoded[i] = decode_3(decoded[i])
-			decoded[i] = decode_4(decoded[i])
-		decoded = concatenate(decoded, axis=1)
+		self.decoder_inputs = Input(shape=(None, self.input_dim))
+		self.decoder_gru = GRU(self.latent_dim, return_sequences=True)
+		decoder_outputs, _ = self.decoder_gru(self.decoder_inputs, return_state=True, initial_state=state_h)
+		decoder_dense = Dense(self.input_dim, activation='tanh')
+		self.decoder_outputs = decoder_dense(decoder_outputs)
+		self.autoencoder = Model([encoder_inputs, self.decoder_inputs], self.decoder_outputs)
 
-		decoded_ = decode_1(z)
-		decoded_ = decode_2(decoded_)
-		decoded_ = decode_3(decoded_)
-		decoded_ = decode_4(decoded_)
 
 		def customLoss(yTrue, yPred):
 			yt = yTrue[:,:,-self.label_dim:]
@@ -91,14 +79,21 @@ class L_LSTM:
 				loss = loss + K.mean(K.sum(K.square(yt - yp), axis = -1))
 			return loss
 
-		self.encoder = Model(inputs, encoded_2)
-		self.decoder = Model(z, decoded_)
-		self.autoencoder = Model(inputs, decoded)
 		opt = RMSprop(lr=LEARNING_RATE)
-		self.autoencoder.compile(optimizer=opt, loss='mean_absolute_error')
-
-		self.autoencoder.summary()
+		self.encoder = Model(encoder_inputs, state_h)
+		self.autoencoder = Model(inputs, decoded)
+		self.autoencoder.compile(optimizer=opt, loss='mean_squared_error')
 		self.encoder.summary()
+		self.autoencoder.summary()
+
+
+	def decode(self):
+		decoder_states_inputs = Input(shape=(self.latent_dim,))
+		decoder_outputs, state_h = self.decoder_gru(self.decoder_inputs, initial_state=decoder_states_inputs)
+		self.decoder = Model(
+					    [self.decoder_inputs, decoder_states_inputs],
+					    [self.decoder_outputs, decoder_states])
+
 		self.decoder.summary()
 
 	def load(self):
@@ -154,13 +149,12 @@ class L_LSTM:
 					if new_loss < loss:
 						print 'Saved model - ', loss
 						loss = new_loss
-						# y_test_decoded = self.autoencoder.predict(x_test[:1])
-						# y_test_decoded = np.reshape(y_test_decoded, (len(self.hierarchies), self.timesteps, -1))
-						# image.plot_poses(x_test[:1,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
-						# image.plot_hierarchies(x_test[:1,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
+						#y_test_decoded = self.autoencoder.predict(x_test[:1])
+						#y_test_decoded = np.reshape(y_test_decoded, (len(self.hierarchies), self.timesteps, -1))
+						#image.plot_poses(x_test[:1,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
+						# image.plot_hierarchies(y_test_orig[:,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
 						self.autoencoder.save_weights(self.save_path, overwrite=True)
-						rand_idx = np.random.choice(x_test.shape[0], 25, replace=False)
-						metrics.validate(x_test[rand_idx], self)
+						metrics.validate(x_test, self)
 
 					del x_train, x_test, y_train, y_test
 				iter1, iter2 = tee(iter2)
@@ -177,8 +171,8 @@ class L_LSTM:
 
 		#nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
 		#nn.run(None)
-		#metrics.plot_metrics(self, data_iterator, valid_data, nn)
-		#association_evaluation.plot_best_distance_function(self, valid_data, data_iterator)
+		metrics.plot_metrics(self, data_iterator, valid_data, None)
+		# association_evaluation.plot_best_distance_function(self, valid_data, data_iterator)
 		# association_evaluation.eval_generation(self, valid_data, data_iterator)
 		# association_evaluation.eval_center(self, valid_data, 'sitting')
 		# association_evaluation.transfer_motion(self, valid_data, 'sitting', 'walking', data_iterator)
