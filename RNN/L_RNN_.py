@@ -87,15 +87,15 @@ class L_LSTM:
 			loss = K.mean(K.sum(K.square(yt - yp), axis=-1))
 			yTrue = K.reshape(yTrue[:,:,:-self.label_dim], (-1,3))
 			yPred = K.reshape(yPred[:,:,:-self.label_dim], (-1,3))
-			n = K.int_shape(yTrue) + 1
-			loss += K.foldl(lambda acc, x: acc + K.sum(K.square(x), axis=-1), yTrue-yPred)
-			return loss/n
+			#loss += K.foldl(lambda acc, x: acc + K.sum(K.square(x), axis=-1), yTrue-yPred)
+			loss += K.mean(K.sum(K.square(yTrue-yPred), axis=-1))
+			return loss
 
 		self.encoder = Model(inputs, encoded)
 		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
 		opt = RMSprop(lr=LEARNING_RATE)
-		self.autoencoder.compile(optimizer=opt, loss='mean_squared_error')
+		self.autoencoder.compile(optimizer=opt, loss=customLoss)
 
 		self.autoencoder.summary()
 		self.encoder.summary()
