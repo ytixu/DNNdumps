@@ -85,13 +85,11 @@ class L_LSTM:
 			yt = yTrue[:,:,-self.label_dim:]
 			yp = yPred[:,:,-self.label_dim:]
 			loss = K.mean(K.sum(K.square(yt - yp), axis=-1))
-			yTrue = K.reshape(yTrue, (-1, len(self.hierarchies), self.timesteps, self.input_dim))
-			yPred = K.reshape(yPred, (-1, len(self.hierarchies), self.timesteps, self.input_dim))
-			for i,h in enumerate(self.hierarchies):
-				yt = K.reshape(yTrue[:,i,:h+1,:-self.label_dim], (-1, self.joint_number, 3))
-				yp = K.reshape(yPred[:,i,:h+1,:-self.label_dim], (-1, self.joint_number, 3))
-				loss = loss + K.mean(K.sum(K.square(yt - yp), axis = -1))
-			return loss
+			yTrue = K.reshape(yTrue[:,:,:-self.label_dim], (-1,3))
+			yPred = K.reshape(yPred[:,:,:-self.label_dim], (-1,3))
+			n = K.int_shape(yTrue) + 1
+			loss += K.foldl(lambda acc, x: acc + K.sum(K.square(x), axis=-1), yTrue-yPred)
+			return loss/n
 
 		self.encoder = Model(inputs, encoded)
 		self.decoder = Model(z, decoded_)
