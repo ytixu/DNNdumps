@@ -279,7 +279,7 @@ def get_embedding_diffs(e_sup, e_sub):
 	mean_diff = np.mean(diff, axis=0)
 	return mean_diff, diff
 
-def validate(validation_data, model):
+def validate(validation_data, model, save_path=None):
 	# import image
 	h = len(model.hierarchies)
 	mean = np.zeros(h)
@@ -311,23 +311,37 @@ def validate(validation_data, model):
 		std_sub[index] = np.std(err_sub)
 		# image.plot_poses([validation_data[0,:,:-label_dim]] , [p_poses[0,:,:-label_dim]])
 
-		def __r(a):
-			return a # np.around(a*100, 3).tolist()
 
 	print sample_n
-	print __r(mean)
-	print __r(std)
-	print __r(np.mean(mean))
-	print __r(np.sqrt(np.mean([s**2 for s in std])))
-	print __r(mean_sub)
-	print __r(std_sub)
-	print __r(np.mean(mean_sub))
-	print __r(np.sqrt(np.mean([s**2 for s in std_sub])))
+	print mean
+	print std
+	print np.mean(mean)
+	print np.sqrt(np.mean([s**2 for s in std]))
+	print mean_sub
+	print std_sub
+	print np.mean(mean_sub)
+	print np.sqrt(np.mean([s**2 for s in std_sub]))
 	if model.MODEL_CODE in [HL_LSTM, L_LSTM]:
-		print __r(mean_l)
-		print __r(std_l)
-		print __r(np.mean(mean_l))
-		print __r(np.sqrt(np.mean([s**2 for s in std_l])))
+		print mean_l
+		print std_l
+		print np.mean(mean_l)
+		print np.sqrt(np.mean([s**2 for s in std_l]))
+
+	def __r(x, title):
+		return title + ': ' + '\t'.join(map(str,x)) + '\n'
+
+	if save_path is not None:
+		with open(filename, 'a+') as f:
+		    f.write(__r(mean, 'mean'))
+		    f.write(__r(std, 'std'))
+		    f.write(__r(mean_sub, 'mean sub'))
+		    f.write(__r(std_sub, 'std sub'))
+		    if model.MODEL_CODE in [HL_LSTM, L_LSTM]:
+			    f.write(__r(mean_l, 'mean label'))
+			    f.write(__r(std_l, 'std label'))
+
+			f.write('\n')
+
 
 def distance_stats(embedding, model):
 	h = len(model.hierarchies)
