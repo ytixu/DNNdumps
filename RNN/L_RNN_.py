@@ -5,7 +5,7 @@ matplotlib.use('Agg')
 import numpy as np
 from itertools import tee
 from sklearn import cross_validation
-from keras.layers import Input, RepeatVector, Lambda, concatenate, Flatten, Reshape
+from keras.layers import Input, RepeatVector, Lambda, concatenate, Flatten, Reshape, Dense
 from keras.models import Model
 from keras.optimizers import RMSprop
 import keras.backend as K
@@ -62,15 +62,17 @@ class L_LSTM:
 		decode_1 = RepeatVector(self.timesteps)
 		decode_2 = GRU(self.decode_out_dim, return_sequences=True)
 		decode_3 = Flatten()
-		decode_4 = Dense(self.output_dim)
+		decode_4 = Dense(self.timesteps*self.output_dim)
+		decode_5 = Reshape((self.timesteps, self.output_dim))
 
 		decoded = [None]*len(self.hierarchies)
 		for i, h in enumerate(self.hierarchies):
-			e = Lambda(lambda x: x[:,h], output_shape=(self.latent_dim,))(encoded_2)
+			e = Lambda(lambda x: x[:,h], output_shape=(self.latent_dim,))(encoded)
 			decoded[i] = decode_1(e)
 			decoded[i] = decode_2(decoded[i])
 			decoded[i] = decode_3(decoded[i])
 			decoded[i] = decode_4(decoded[i])
+			decoded[i] = decode_5(decoded[i])
 		decoded = concatenate(decoded, axis=1)
 
 		decoded_ = decode_1(z)
@@ -90,7 +92,7 @@ class L_LSTM:
 				loss = loss + K.mean(K.sum(K.square(yt - yp), axis = -1))
 			return loss
 
-		self.encoder = Model(inputs, encoded_2)
+		self.encoder = Model(inputs, encoded)
 		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
 		opt = RMSprop(lr=LEARNING_RATE)
