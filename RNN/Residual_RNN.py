@@ -82,21 +82,18 @@ class L_LSTM:
 		decoded_ = Add()([decode_repete(decoded_), residual_])
 
 		def customLoss(yTrue, yPred):
-			yt = K.reshape(yTrue[0][:,:,-self.label_dim:], (-1, self.timesteps, self.timesteps, self.label_dim))
-			yp = K.reshape(yPred[0][:,:,-self.label_dim:], (-1, self.timesteps, self.timesteps, self.label_dim))
+			yt = K.reshape(yTrue[:,:,-self.label_dim:], (-1, self.timesteps, self.timesteps, self.label_dim))
+			yp = K.reshape(yPred[:,:,-self.label_dim:], (-1, self.timesteps, self.timesteps, self.label_dim))
 			loss = 0
-			yTrue[0] = K.reshape(yTrue[0][:,:,:-self.label_dim], (-1, self.timesteps, self.timesteps, self.timesteps/3, 3))
-			yPred[0] = K.reshape(yPred[0][:,:,:-self.label_dim], (-1, self.timesteps, self.timesteps, self.timesteps/3, 3))
-			for i in self.hierarchies:
-				loss += K.mean(K.sqrt(K.sum(K.square(yTrue[0][:,i,:i+1]-yPred[0][:,i,:i+1]), axis=-1)))
-				loss += K.mean(K.sqrt(K.sum(K.square(yt[:,i,:i+1] - yp[:,i,:i+1]), axis=-1)))
-				if i < self.timesteps:
-					loss += K.mean(K.abs(yPred[1][:,i,i+1:]))
-			return loss/(self.timesteps+1)
+			yTrue = K.reshape(yTrue[:,:,:-self.label_dim], (-1, self.timesteps, self.timesteps, self.timesteps/3, 3))
+			yPred = K.reshape(yPred[:,:,:-self.label_dim], (-1, self.timesteps, self.timesteps, self.timesteps/3, 3))
+			loss += K.mean(K.sqrt(K.sum(K.square(yTrue-yPred), axis=-1)))
+			loss += K.mean(K.sqrt(K.sum(K.square(yt - yp), axis=-1)))/self.timesteps
+			return loss
 
 		self.encoder = Model(inputs, encoded)
 		self.decoder = Model(z, decoded_)
-		self.autoencoder = Model(inputs, [decoded, residual])
+		self.autoencoder = Model(inputs, decoded)
 		opt = RMSprop(lr=LEARNING_RATE)
 		self.autoencoder.compile(optimizer=opt, loss=customLoss)
 
@@ -124,7 +121,8 @@ class L_LSTM:
 		y = np.repeat(y, len(self.hierarchies), axis=0)
 		y = np.reshape(y, (-1, len(self.hierarchies), self.timesteps, y.shape[-1]))
 		for i, h in enumerate(self.hierarchies):
-			y[:,i,h+1:] = 0.0
+			for j in range(h+1, self.timesteps):
+				y[:,i,j] = y[:,i,h]
 		return np.reshape(y, (-1, self.timesteps*len(self.hierarchies), y.shape[-1]))
 
 	def __alter_label(self, x, y):
