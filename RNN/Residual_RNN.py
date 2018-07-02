@@ -40,6 +40,7 @@ class L_LSTM:
 		print self.labels, self.label_dim
 		self.input_dim = args['input_dim'] + self.label_dim
 		self.output_dim = args['output_dim'] + self.label_dim
+		self.motion_dim = args['input_dim']
 		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [9,14,24]
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
@@ -54,47 +55,55 @@ class L_LSTM:
 		# self.history = recorder.LossHistory()
 
 	def make_model(self):
-		encoder_inputs = Input(shape=(None, self.input_dim))
+		inputs = Input(shape=(self.timesteps, self.input_dim))
+		encoded = GRU(self.latent_dim, return_sequences=True)(inputs)
 
-		self.encoder_gru = GRU(self.latent_dim, return_state=True)
-		encoder_outputs, state_h = self.encoder_gru(encoder_inputs)
+		z = Input(shape=(self.latent_dim,))
+		decode_pose = Dense(self.motion_dim, activation='tanh')
+		decode_name = Dense(*self.label_dim, activation='relu')
+		decode_repete = RepeatVector(self.timesteps)
+		decode_residual = GRU(self.output_dim, return_sequences=True)
 
-		self.decoder_inputs = Input(shape=(None, self.input_dim))
-		self.decoder_gru = GRU(self.latent_dim, return_sequences=True)
-		decoder_outputs, _ = self.decoder_gru(self.decoder_inputs, return_state=True, initial_state=state_h)
-		decoder_dense = Dense(self.input_dim, activation='tanh')
-		self.decoder_outputs = decoder_dense(decoder_outputs)
-		self.autoencoder = Model([encoder_inputs, self.decoder_inputs], self.decoder_outputs)
+		decoded = [None]*len(self.hierarchies)
+		residual = [None]*len(self.hierarchies)
+		for i, h in enumerate(self.hierarchies):
+			e = Lambda(lambda x: x[:,h], output_shape=(self.latent_dim,))(encoded)
+			decoded[i] = concatenate([decode_pose(e), decode_name(e)], axis=1)
+			residual[i] = decode_repete(e)
+			residual[i] = decode_residual(residual[i])
+			decoded[i] = decode_repete(decoded[i]) + residual[i]
 
+		decoded = concatenate(decoded, axis=1)
+		residual = concatenate(residual, axis=1)
+
+		decoded_ = concatenate([decode_pose(z), decode_name(z)], axis=1)
+		residual_ = decode_repete(z)
+		residual_ = decode_residual(residual_)
+		decoded_ = decode_repete(decoded_) + residual_
 
 		def customLoss(yTrue, yPred):
-			yt = yTrue[:,:,-self.label_dim:]
-			yp = yPred[:,:,-self.label_dim:]
-			loss = K.mean(K.sum(K.square(yt - yp), axis=-1))
-			yTrue = K.reshape(yTrue, (-1, len(self.hierarchies), self.timesteps, self.input_dim))
-			yPred = K.reshape(yPred, (-1, len(self.hierarchies), self.timesteps, self.input_dim))
-			for i,h in enumerate(self.hierarchies):
-				yt = K.reshape(yTrue[:,i,:h+1,:-self.label_dim], (-1, self.joint_number, 3))
-				yp = K.reshape(yPred[:,i,:h+1,:-self.label_dim], (-1, self.joint_number, 3))
-				loss = loss + K.mean(K.sum(K.square(yt - yp), axis = -1))
-			return loss
+			yt = K.reshape(yTrue[0][:,:,-self.label_dim:], (-1, self.timesteps, self.timesteps, self.label_dim))
+			yp = K.reshape(yPred[0][:,:,-self.label_dim:], (-1, self.timesteps, self.timesteps, self.label_dim))
+			loss = 0
+			yTrue[0] = K.reshape(yTrue[0][:,:,:-self.label_dim], (-1, self.timesteps, self.timesteps, self.timesteps/3, 3))
+			yPred[0] = K.reshape(yPred[0][:,:,:-self.label_dim], (-1, self.timesteps, self.timesteps, self.timesteps/3, 3))
+			for i in self.hierarchies:
+				loss += K.mean(K.sqrt(K.sum(K.square(yTrue[0][:,i,:i+1]-yPred[0][:,i,:i+1]), axis=-1)))
+				loss += K.mean(K.sqrt(K.sum(K.square(yt[:,i,:i+1] - yp[:,i,:i+1]), axis=-1)))
+				if i < self.timesteps:
+					loss += K.mean(K.abs(yPred[1][:,i,i+1:]))
+			return loss/(self.timesteps+1)
 
+		self.encoder = Model(inputs, encoded)
+		self.decoder = Model(z, decoded_)
+		self.autoencoder = Model(inputs, [decoded, residual])
 		opt = RMSprop(lr=LEARNING_RATE)
-		self.encoder = Model(encoder_inputs, state_h)
-		self.autoencoder = Model(inputs, decoded)
-		self.autoencoder.compile(optimizer=opt, loss='mean_squared_error')
-		self.encoder.summary()
+		self.autoencoder.compile(optimizer=opt, loss=customLoss)
+
 		self.autoencoder.summary()
-
-
-	def decode(self):
-		decoder_states_inputs = Input(shape=(self.latent_dim,))
-		decoder_outputs, state_h = self.decoder_gru(self.decoder_inputs, initial_state=decoder_states_inputs)
-		self.decoder = Model(
-					    [self.decoder_inputs, decoder_states_inputs],
-					    [self.decoder_outputs, decoder_states])
-
+		self.encoder.summary()
 		self.decoder.summary()
+
 
 	def load(self):
 		self.make_model()
@@ -138,11 +147,11 @@ class L_LSTM:
 					y_train = self.__alter_y(y_train)
 					y_test = self.__alter_y(y_test)
 					# print np.sum(y_train[:,0,-self.label_dim:], axis=0)
-					history = self.autoencoder.fit(x_train, y_train,
+					history = self.autoencoder.fit(x_train, [y_train, y_train],
 								shuffle=True,
 								epochs=self.epochs,
 								batch_size=self.batch_size,
-								validation_data=(x_test, y_test))
+								validation_data=(x_test, [y_test, y_test]))
 								# callbacks=[self.history])
 
 					new_loss = np.mean(history.history['loss'])
