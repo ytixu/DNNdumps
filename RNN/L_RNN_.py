@@ -13,7 +13,7 @@ import keras.backend as K
 from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines, association_evaluation
 from Forward import NN
 
-LEARNING_RATE = 0.0005
+LEARNING_RATE = 0.001
 NAME = 'L_LSTM'
 USE_GRU = True
 if USE_GRU:
@@ -89,8 +89,8 @@ class L_LSTM:
 			yPred = K.reshape(yPred[:,:,:-self.label_dim], (-1, self.timesteps, self.timesteps, self.timesteps/3, 3))
 			for i in self.hierarchies:
 				loss += K.mean(K.sqrt(K.sum(K.square(yTrue[:,i,:min(i+2, self.timesteps)]-yPred[:,i,:min(i+2, self.timesteps)]), axis=-1)))
-				loss += K.mean(K.sqrt(K.sum(K.square(yt[:,i,:min(i+2, self.timesteps)] - yp[:,i,:min(i+2, self.timesteps)]), axis=-1)))
-			return loss/(self.timesteps+1)
+				loss += K.mean(K.sqrt(K.sum(K.square(yt[:,i,:min(i+2, self.timesteps)] - yp[:,i,:min(i+2, self.timesteps)]), axis=-1)))/2
+			return loss/self.timesteps
 
 		self.encoder = Model(inputs, encoded)
 		self.decoder = Model(z, decoded_)

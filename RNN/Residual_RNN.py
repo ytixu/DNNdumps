@@ -5,7 +5,7 @@ matplotlib.use('Agg')
 import numpy as np
 from itertools import tee
 from sklearn import cross_validation
-from keras.layers import Input, RepeatVector, Lambda, concatenate
+from keras.layers import Input, RepeatVector, Lambda, concatenate, Dense, Add
 from keras.models import Model
 from keras.optimizers import RMSprop
 import keras.backend as K
@@ -60,7 +60,7 @@ class L_LSTM:
 
 		z = Input(shape=(self.latent_dim,))
 		decode_pose = Dense(self.motion_dim, activation='tanh')
-		decode_name = Dense(*self.label_dim, activation='relu')
+		decode_name = Dense(self.label_dim, activation='relu')
 		decode_repete = RepeatVector(self.timesteps)
 		decode_residual = GRU(self.output_dim, return_sequences=True)
 
@@ -71,7 +71,7 @@ class L_LSTM:
 			decoded[i] = concatenate([decode_pose(e), decode_name(e)], axis=1)
 			residual[i] = decode_repete(e)
 			residual[i] = decode_residual(residual[i])
-			decoded[i] = decode_repete(decoded[i]) + residual[i]
+			decoded[i] = Add()([decode_repete(decoded[i]), residual[i]])
 
 		decoded = concatenate(decoded, axis=1)
 		residual = concatenate(residual, axis=1)
@@ -79,7 +79,7 @@ class L_LSTM:
 		decoded_ = concatenate([decode_pose(z), decode_name(z)], axis=1)
 		residual_ = decode_repete(z)
 		residual_ = decode_residual(residual_)
-		decoded_ = decode_repete(decoded_) + residual_
+		decoded_ = Add()([decode_repete(decoded_), residual_])
 
 		def customLoss(yTrue, yPred):
 			yt = K.reshape(yTrue[0][:,:,-self.label_dim:], (-1, self.timesteps, self.timesteps, self.label_dim))
@@ -176,11 +176,11 @@ class L_LSTM:
 
 		# embedding_plotter.see_hierarchical_embedding(self.encoder, self.decoder, data_iterator, valid_data, model_vars, self.label_dim)
 		# iter1, iter2 = tee(data_iterator)
-		metrics.validate(valid_data, self)
+		# metrics.validate(valid_data, self)
 
 		#nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
 		#nn.run(None)
-		metrics.plot_metrics(self, data_iterator, valid_data, None)
+		# metrics.plot_metrics(self, data_iterator, valid_data, None)
 		# association_evaluation.plot_best_distance_function(self, valid_data, data_iterator)
 		# association_evaluation.eval_generation(self, valid_data, data_iterator)
 		# association_evaluation.eval_center(self, valid_data, 'sitting')
