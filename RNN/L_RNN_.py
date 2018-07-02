@@ -13,7 +13,7 @@ import keras.backend as K
 from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines, association_evaluation
 from Forward import NN
 
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.0005
 NAME = 'L_LSTM'
 USE_GRU = True
 if USE_GRU:
@@ -82,13 +82,14 @@ class L_LSTM:
 		decoded_ = decode_5(decoded_)
 
 		def customLoss(yTrue, yPred):
-			yt = yTrue[:,:,-self.label_dim:]
-			yp = yPred[:,:,-self.label_dim:]
-			loss = K.mean(K.sum(K.square(yt - yp), axis=-1))
-			yTrue = K.reshape(yTrue[:,:,:-self.label_dim], (-1, self.timesteps, self.timesteps/3, 3))
-			yPred = K.reshape(yPred[:,:,:-self.label_dim], (-1, self.timesteps, self.timesteps/3, 3))
-			for i in range(self.hierarchies):
-				loss += K.mean(K.sum(K.square(yTrue[:,:min(i+2, self.timesteps)]-yPred[:,:min(i+2, self.timesteps)]), axis=-1))
+			yt = K.reshape(yTrue[:,:,-self.label_dim:], (-1, self.timesteps, self.timesteps, self.label_dim))
+			yp = K.reshape(yPred[:,:,-self.label_dim:], (-1, self.timesteps, self.timesteps, self.label_dim))
+			loss = 0
+			yTrue = K.reshape(yTrue[:,:,:-self.label_dim], (-1, self.timesteps, self.timesteps, self.timesteps/3, 3))
+			yPred = K.reshape(yPred[:,:,:-self.label_dim], (-1, self.timesteps, self.timesteps, self.timesteps/3, 3))
+			for i in self.hierarchies:
+				loss += K.mean(K.sqrt(K.sum(K.square(yTrue[:,i,:min(i+2, self.timesteps)]-yPred[:,i,:min(i+2, self.timesteps)]), axis=-1)))
+				loss += K.mean(K.sqrt(K.sum(K.square(yt[:,i,:min(i+2, self.timesteps)] - yp[:,i,:min(i+2, self.timesteps)]), axis=-1)))
 			return loss/(self.timesteps+1)
 
 		self.encoder = Model(inputs, encoded)
@@ -131,7 +132,7 @@ class L_LSTM:
 
 	def run(self, data_iterator, valid_data):
 		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
-		if not self.load():
+		if self.load():
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			loss = 10000
@@ -173,7 +174,7 @@ class L_LSTM:
 
 		# embedding_plotter.see_hierarchical_embedding(self.encoder, self.decoder, data_iterator, valid_data, model_vars, self.label_dim)
 		# iter1, iter2 = tee(data_iterator)
-		metrics.validate(valid_data, self)
+		#metrics.validate(valid_data, self)
 
 		#nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
 		#nn.run(None)
