@@ -14,15 +14,15 @@ from utils import parser, image, embedding_plotter, recorder, metrics, metric_ba
 from Forward import NN
 
 LEARNING_RATE = 0.001
-NAME = 'L_LSTM'
+NAME = 'R_LSTM'
 USE_GRU = True
 if USE_GRU:
 	from keras.layers import GRU
-	NAME = 'L_GRU'
+	NAME = 'R_GRU'
 else:
 	from keras.layers import LSTM
 
-class L_LSTM:
+class R_LSTM:
 	def __init__(self, args):
 		self.autoencoder = None
 		self.encoder = None
@@ -41,7 +41,7 @@ class L_LSTM:
 		self.input_dim = args['input_dim'] + self.label_dim
 		self.output_dim = args['output_dim'] + self.label_dim
 		self.motion_dim = args['input_dim']
-		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [9,14,24]
+		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
 		self.load_path = args['load_path']
@@ -87,8 +87,9 @@ class L_LSTM:
 			loss = 0
 			yTrue = K.reshape(yTrue[:,:,:-self.label_dim], (-1, self.timesteps, self.timesteps, self.timesteps/3, 3))
 			yPred = K.reshape(yPred[:,:,:-self.label_dim], (-1, self.timesteps, self.timesteps, self.timesteps/3, 3))
-			loss += K.mean(K.sqrt(K.sum(K.square(yTrue-yPred), axis=-1)))
-			loss += K.mean(K.sqrt(K.sum(K.square(yt - yp), axis=-1)))/self.timesteps
+			# loss += K.mean(K.sqrt(K.sum(K.square(yTrue-yPred), axis=-1)))
+			# loss += K.mean(K.sqrt(K.sum(K.square(yt - yp), axis=-1)))/self.timesteps
+			loss += K.mean(K.sqrt(K.sum(K.square(yTrue-yPred), axis=-1))) + K.mean(K.abs(yt-yp))
 			return loss
 
 		self.encoder = Model(inputs, encoded)
@@ -123,6 +124,7 @@ class L_LSTM:
 		for i, h in enumerate(self.hierarchies):
 			for j in range(h+1, self.timesteps):
 				y[:,i,j] = y[:,i,h]
+		print y.shape
 		return np.reshape(y, (-1, self.timesteps*len(self.hierarchies), y.shape[-1]))
 
 	def __alter_label(self, x, y):
@@ -145,11 +147,11 @@ class L_LSTM:
 					y_train = self.__alter_y(y_train)
 					y_test = self.__alter_y(y_test)
 					# print np.sum(y_train[:,0,-self.label_dim:], axis=0)
-					history = self.autoencoder.fit(x_train, [y_train, y_train],
+					history = self.autoencoder.fit(x_train, y_train,
 								shuffle=True,
 								epochs=self.epochs,
 								batch_size=self.batch_size,
-								validation_data=(x_test, [y_test, y_test]))
+								validation_data=(x_test, y_test))
 								# callbacks=[self.history])
 
 					new_loss = np.mean(history.history['loss'])
@@ -161,7 +163,8 @@ class L_LSTM:
 						#image.plot_poses(x_test[:1,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
 						# image.plot_hierarchies(y_test_orig[:,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
 						self.autoencoder.save_weights(self.save_path, overwrite=True)
-						metrics.validate(x_test, self)
+						rand_idx = np.random.choice(x_test.shape[0], 25, replace=False)
+						metrics.validate(x_test[rand_idx], self, '../new_out/validate-residual.txt')
 
 					del x_train, x_test, y_train, y_test
 				iter1, iter2 = tee(iter2)
@@ -194,5 +197,5 @@ class L_LSTM:
 
 if __name__ == '__main__':
 	data_iterator, valid_data, config = parser.get_parse(NAME, labels=True)
-	ae = L_LSTM(config)
+	ae = R_LSTM(config)
 	ae.run(data_iterator, valid_data)
