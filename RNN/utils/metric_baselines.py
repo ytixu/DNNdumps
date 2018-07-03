@@ -165,9 +165,9 @@ def animate_results(from_path, predict_path, predict_name, baseline='1',
 					predict_path+'images-%s-%d-%s'%(basename, i, predict_name.replace('.', '').replace('/', '-').replace(' ', '-')))
 
 
-def compare_label_embedding(model, nn, data_iterator, with_label=False):
+def compare_label_embedding(model, nn, data_iterator, with_label=True):
 	import image
-	embedding = metrics.get_label_embedding(model, data_iterator, subspaces=model.hierarchies[-2:], without_label_only=True)
+	embedding = metrics.get_label_embedding(model, data_iterator, subspaces=model.hierarchies[-2:]) #, without_label_only=True)
 	print len(embedding)
 	mean_diff, diff = metrics.get_embedding_diffs(embedding[:,1], embedding[:,0])
 	cut = model.hierarchies[-2]+1
@@ -196,26 +196,27 @@ def compare_label_embedding(model, nn, data_iterator, with_label=False):
 		enc = model.encoder.predict(pose_ref)[:,cut-1]
 		new_enc_partial = np.zeros(enc.shape)
 		for i in tqdm(range(_N)):
-			new_e_idx = metrics.__closest_partial_index(embedding[:,0], enc[i])
-			new_enc_partial[i] = embedding[new_e_idx,1]
+			# new_e_idx = metrics.__closest_partial_index(embedding[:,0], enc[i])
+			new_e_idx = metrics.__closest(embedding[:,1], enc[i])
+			#new_enc_partial[i] = embedding[new_e_idx,1]
 		print enc.shape, pose_ref.shape, new_enc_partial.shape
 		pose_pred_from_part = model.decoder.predict(new_enc_partial)[:,-pred_n:,:-model.label_dim]
 
-		new_enc = nn.model.predict(enc)
+		#new_enc = nn.model.predict(enc)
 		# new_enc = enc + mean_diff
 		# # pose_pred = model.decoder.predict(new_enc)
-		pose_pred = model.decoder.predict(new_enc)[:,-pred_n:,:-model.label_dim]
+		#pose_pred = model.decoder.predict(new_enc)[:,-pred_n:,:-model.label_dim]
 		error_bl = [metrics.__pose_seq_error(pose_gt[i], pose_pred_bl[i]) for i in range(_N)]
 		error_part = [metrics.__pose_seq_error(pose_gt[i], pose_pred_from_part[i]) for i in range(_N)]
-		error = [metrics.__pose_seq_error(pose_gt[i], pose_pred[i]) for i in range(_N)]
-		print error
+		#error = [metrics.__pose_seq_error(pose_gt[i], pose_pred[i]) for i in range(_N)]
+		#print error
 		print error_part
 		print error_bl
 		# image.plot_poses(pose_pred, title='rnn', image_dir='../new_out/')
 		# image.plot_poses(pose_pred_bl, title='baseline', image_dir='../new_out/')
 		# image.plot_poses(pose_gt, title='gt', image_dir='../new_out/')
-		np.save('../new_out/R-RNN-t25-l512/npy/RRNN-nl-%s.npy'%basename, pose_pred)
-		np.save('../new_out/R-RNN-t25-l512/npy/RRNN-part-nl-%s.npy'%basename, pose_pred_from_part)
+		#np.save('../new_out/R-RNN-t25-l512/npy/RRNN-nl-%s.npy'%basename, pose_pred)
+		np.save('../new_out/R-RNN-t25-l512/npy/RRNN-closest-%s.npy'%basename, pose_pred_from_part)
 
 def compare_embedding(model, data_iterator):
 	import image
@@ -350,5 +351,5 @@ if __name__ == '__main__':
 	# plot_results('../../results/nn_15_results.csv')
 	# animate_results('../', 'nn_15', 'Nearest nei. (1/10)')
 
-	plot_results_npy('../', ['../../new_out/R-RNN-t25-l512/npy/RRNN-add-', '../../new_out/R-RNN-t25-l512/npy/RRNN-', '../../new_out/R-RNN-t25-l512/npy/RRNN-part-', '../../new_out/R-RNN-t25-l512/npy/RRNN-nl-', '../../new_out/R-RNN-t25-l512/npy/RRNN-part-nl-'], ['Add', 'FN-l', 'Part-l', 'FN', 'Part'])
+	plot_results_npy('../', ['../../new_out/R-RNN-t25-l512/npy/RRNN-' + x for x in ['add-', '', 'part-', 'closest-', 'nl-', 'part-nl-', 'closest-nl-']], ['Add', 'FN-l', 'Part-l', 'Closest-l', 'FN', 'Part', 'Closest'])
 	#animate_results('../', '../../new_out/L_RNN-t30-l400/partial-with-label/LRNN-', 'Partial-label')
