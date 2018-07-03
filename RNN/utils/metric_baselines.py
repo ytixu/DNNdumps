@@ -194,10 +194,11 @@ def compare_label_embedding(model, nn, data_iterator, with_label=True):
 			pose_ref[:,:,-model.label_dim+model.labels[basename]] = 1
 
 		enc = model.encoder.predict(pose_ref) # [:,cut-1]
-		#new_enc = np.zeros(enc.shape)
-		#for i in tqdm(range(_N)):
-		#	new_e_idx = metrics.__closest_partial_index(embedding[:,0], enc[i])
-		#	new_enc[i] = embedding[new_e_idx,1]
+		new_enc_partial = np.zeros(enc.shape)
+		for i in tqdm(range(_N)):
+			new_e_idx = metrics.__closest_partial_index(embedding[:,0], enc[i])
+			new_enc_partial[i] = embedding[new_e_idx,1]
+		pose_pred_from_part = model.decoder.predict(new_enc_partial)[:,-pred_n:,:-model.label_dim]
 
 		#print enc.shape, pose_ref.shape, new_enc.shape
 
@@ -206,13 +207,16 @@ def compare_label_embedding(model, nn, data_iterator, with_label=True):
 		# # pose_pred = model.decoder.predict(new_enc)
 		pose_pred = model.decoder.predict(new_enc)[:,-pred_n:,:-model.label_dim]
 		error_bl = [metrics.__pose_seq_error(pose_gt[i], pose_pred_bl[i]) for i in range(_N)]
+		error_part = [metrics.__pose_seq_error(pose_gt[i], pose_pred_from_part[i]) for i in range(_N)]
 		error = [metrics.__pose_seq_error(pose_gt[i], pose_pred[i]) for i in range(_N)]
 		print error
+		print error_part
 		print error_bl
 		# image.plot_poses(pose_pred, title='rnn', image_dir='../new_out/')
 		# image.plot_poses(pose_pred_bl, title='baseline', image_dir='../new_out/')
 		# image.plot_poses(pose_gt, title='gt', image_dir='../new_out/')
-		np.save('../new_out/LRNN-%s.npy'%basename, pose_pred)
+		np.save('../new_out/RRNN-%s.npy'%basename, pose_pred)
+		np.save('../new_out/RRNN-part-%s.npy'%basename, pose_pred_from_part)
 
 def compare_embedding(model, data_iterator):
 	import image
