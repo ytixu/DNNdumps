@@ -178,9 +178,9 @@ class R_LSTM:
 		# iter1, iter2 = tee(data_iterator)
 		# metrics.validate(valid_data, self)
 
-		#nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
-		#nn.run(None)
-		metrics.plot_metrics(self, data_iterator, valid_data, None)
+		nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
+		nn.run(None)
+		# metrics.plot_metrics(self, data_iterator, valid_data, nn)
 		# association_evaluation.plot_best_distance_function(self, valid_data, data_iterator)
 		# association_evaluation.eval_generation(self, valid_data, data_iterator)
 		# association_evaluation.eval_center(self, valid_data, 'sitting')
@@ -191,7 +191,7 @@ class R_LSTM:
 		# association_evaluation.plot_add(self, data_iterator)
 		# metrics.plot_metrics_labels(self, data_iterator, valid_data)
 		# metric_baselines.compare_label_embedding(self, nn, data_iterator)
-		# association_evaluation.eval_distance(self, valid_data)
+		association_evaluation.eval_distance(self, valid_data)
 		# evaluate.eval_pattern_reconstruction(self.encoder, self.decoder, iter2)
 
 if __name__ == '__main__':

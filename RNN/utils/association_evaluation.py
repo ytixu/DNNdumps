@@ -440,8 +440,8 @@ def plot_add(model, data_iterator):
 	n = 20000
 	N = embedding[0].shape[0]
 	for i in tqdm(range(0, N, n)):
-		np.save('../data/embedding/zl_L_RNN-%d.npy'%i, embedding[0][i:min(i+n,N)])
-		np.save('../data/embedding/z_L_RNN-%d.npy'%i, embedding[1][i:min(i+n,N)])
+		np.save('../data/embedding/residual-t30-l512/zl_R_RNN-%d.npy'%i, embedding[0][i:min(i+n,N)])
+		np.save('../data/embedding/residual-t30-l512/z_R_RNN-%d.npy'%i, embedding[1][i:min(i+n,N)])
 
 	# diff = embedding[:,2] - embedding[:,1]
 	# add = embedding[:,2] + embedding[:,1]
