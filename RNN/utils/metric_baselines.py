@@ -165,9 +165,9 @@ def animate_results(from_path, predict_path, predict_name, baseline='1',
 					predict_path+'images-%s-%d-%s'%(basename, i, predict_name.replace('.', '').replace('/', '-').replace(' ', '-')))
 
 
-def compare_label_embedding(model, nn, data_iterator, with_label=True):
+def compare_label_embedding(model, nn, data_iterator, with_label=False):
 	import image
-	embedding = metrics.get_label_embedding(model, data_iterator, subspaces=model.hierarchies[-2:]) #, without_label_only=True)
+	embedding = metrics.get_label_embedding(model, data_iterator, subspaces=model.hierarchies[-2:], without_label_only=True)
 	print len(embedding)
 	mean_diff, diff = metrics.get_embedding_diffs(embedding[:,1], embedding[:,0])
 	cut = model.hierarchies[-2]+1
@@ -197,7 +197,7 @@ def compare_label_embedding(model, nn, data_iterator, with_label=True):
 		new_enc_partial = np.zeros(enc.shape)
 		for i in tqdm(range(_N)):
 			# new_e_idx = metrics.__closest_partial_index(embedding[:,0], enc[i])
-			new_e_idx = metrics.__closest(embedding[:,1], enc[i])
+			new_enc_partial[i] = metrics.__closest(embedding[:,1], enc[i])
 			#new_enc_partial[i] = embedding[new_e_idx,1]
 		print enc.shape, pose_ref.shape, new_enc_partial.shape
 		pose_pred_from_part = model.decoder.predict(new_enc_partial)[:,-pred_n:,:-model.label_dim]
@@ -216,7 +216,7 @@ def compare_label_embedding(model, nn, data_iterator, with_label=True):
 		# image.plot_poses(pose_pred_bl, title='baseline', image_dir='../new_out/')
 		# image.plot_poses(pose_gt, title='gt', image_dir='../new_out/')
 		#np.save('../new_out/R-RNN-t25-l512/npy/RRNN-nl-%s.npy'%basename, pose_pred)
-		np.save('../new_out/R-RNN-t25-l512/npy/RRNN-closest-%s.npy'%basename, pose_pred_from_part)
+		np.save('../new_out/R-RNN-t25-l512/npy/RRNN-closest-nl-%s.npy'%basename, pose_pred_from_part)
 
 def compare_embedding(model, data_iterator):
 	import image
