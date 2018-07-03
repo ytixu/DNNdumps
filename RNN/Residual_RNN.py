@@ -1,4 +1,3 @@
-
 import matplotlib
 matplotlib.use('Agg')
 
@@ -13,7 +12,7 @@ import keras.backend as K
 from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines, association_evaluation
 from Forward import NN
 
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.00005
 NAME = 'R_LSTM'
 USE_GRU = True
 if USE_GRU:
@@ -89,7 +88,7 @@ class R_LSTM:
 			yPred = K.reshape(yPred[:,:,:-self.label_dim], (-1, self.timesteps, self.timesteps, self.timesteps/3, 3))
 			# loss += K.mean(K.sqrt(K.sum(K.square(yTrue-yPred), axis=-1)))
 			# loss += K.mean(K.sqrt(K.sum(K.square(yt - yp), axis=-1)))/self.timesteps
-			loss += K.mean(K.sqrt(K.sum(K.square(yTrue-yPred), axis=-1))) + K.mean(K.abs(yt-yp))
+			loss += K.mean(K.sqrt(K.sum(K.square(yTrue-yPred), axis=-1))) + K.mean(K.abs(yt-yp))/self.timesteps
 			return loss
 
 		self.encoder = Model(inputs, encoded)
@@ -181,7 +180,7 @@ class R_LSTM:
 
 		#nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
 		#nn.run(None)
-		# metrics.plot_metrics(self, data_iterator, valid_data, None)
+		metrics.plot_metrics(self, data_iterator, valid_data, None)
 		# association_evaluation.plot_best_distance_function(self, valid_data, data_iterator)
 		# association_evaluation.eval_generation(self, valid_data, data_iterator)
 		# association_evaluation.eval_center(self, valid_data, 'sitting')
@@ -199,3 +198,4 @@ if __name__ == '__main__':
 	data_iterator, valid_data, config = parser.get_parse(NAME, labels=True)
 	ae = R_LSTM(config)
 	ae.run(data_iterator, valid_data)
+
