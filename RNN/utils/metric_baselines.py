@@ -139,10 +139,12 @@ def plot_results_npy(from_path, npy_files_dirs, method_names):
 					pd_b = np.load(from_path + LOAD_PATH + basename + '_1-%d.npy'%j)[:t]
 					score_[j] = metrics.__pose_seq_error(pd_b, gt, cumulative=True)
 
-			plt.plot(range(1,t+1), np.mean(score, axis=0), label=method_names[i])
-
 			if i == 0:
 				plt.plot(range(1,t+1), np.mean(score_, axis=0), label='Residual sup. (MA)')
+			if i > len(method_names)/2:
+				plt.plot(range(1,t+1), np.mean(score, axis=0), label=method_names[i], linestyle='--')
+			else:
+				plt.plot(range(1,t+1), np.mean(score, axis=0), label=method_names[i])
 
 		plt.legend()
 		plt.xlabel('time-steps')
