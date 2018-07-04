@@ -163,8 +163,13 @@ def animate_results(from_path, predict_path, predict_name, baseline='1',
 			gtp = np.load(from_path + LOAD_PATH + basename + '_%s-%d.npy'%(ground_truth,i))
 			bpd = np.load(from_path + LOAD_PATH + basename + '_%s-%d.npy'%(baseline, i))
 
+			pd_score = metrics.__pose_seq_error(pds[i], gtp[:pds.shape[1]])
+			bl_score = metrics.__pose_seq_error(bpd[:pds.shape[1]], gtp[:pds.shape[1]])
+
+			score = bl_score/pd_score
+
 			fk_animate.animate_compare(gt, gtp[:pds.shape[1]], pds[i], predict_name, bpd[:pds.shape[1]], baseline_name,
-					predict_path+'images-%s-%d-%s'%(basename, i, predict_name.replace('.', '').replace('/', '-').replace(' ', '-')))
+					predict_path+'%6.2f-p%6.2f-b%6.2f-images-%s-%d-%s'%(score, pd_score, bl_score, basename, i, predict_name.replace('.', '').replace('/', '-').replace(' ', '-')))
 
 
 def compare_label_embedding(model, nn, data_iterator, with_label=True):
