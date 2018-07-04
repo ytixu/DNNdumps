@@ -4,7 +4,7 @@ matplotlib.use('Agg')
 import numpy as np
 from itertools import tee
 from sklearn import cross_validation
-from keras.layers import Input, RepeatVector, Lambda, concatenate, Dense, Add
+from keras.layers import Input, RepeatVector, Lambda, concatenate, Dense, Add, Reshape
 from keras.models import Model
 from keras.optimizers import RMSprop
 import keras.backend as K
@@ -40,7 +40,7 @@ class R_A_LSTM:
 		self.input_dim = args['input_dim'] + self.label_dim
 		self.output_dim = args['output_dim'] + self.label_dim
 		self.motion_dim = args['input_dim']
-		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [9,14,24]
+		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
 		self.load_path = args['load_path']
@@ -72,7 +72,7 @@ class R_A_LSTM:
 			for i in range(1,self.timesteps):
 				res_i = Lambda(lambda x: x[:,i-1], output_shape=(self.output_dim,))(res)
 				motion[i] = Add()([motion[i-1], res_i])
-			return concatenate(motion, axis=0)
+			return Reshape((self.timesteps, self.output_dim))(concatenate(motion, axis=1))
 
 		for i, h in enumerate(self.hierarchies):
 			e = Lambda(lambda x: x[:,h], output_shape=(self.latent_dim,))(encoded)
@@ -187,8 +187,8 @@ class R_A_LSTM:
 		# iter1, iter2 = tee(data_iterator)
 		# metrics.validate(valid_data, self)
 
-		nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
-		nn.run(None)
+		#nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
+		#nn.run(None)
 		# metrics.plot_metrics(self, data_iterator, valid_data, nn)
 		# association_evaluation.plot_best_distance_function(self, valid_data, data_iterator)
 		# association_evaluation.eval_generation(self, valid_data, data_iterator)
@@ -199,7 +199,7 @@ class R_A_LSTM:
 		# association_evaluation.eval_generation_from_label(self, data_iterator)
 		# association_evaluation.plot_add(self, data_iterator)
 		# metrics.plot_metrics_labels(self, data_iterator, valid_data)
-		metric_baselines.compare_label_embedding(self, nn, data_iterator)
+		# metric_baselines.compare_label_embedding(self, nn, data_iterator)
 		# association_evaluation.eval_distance(self, valid_data)
 		# evaluate.eval_pattern_reconstruction(self.encoder, self.decoder, iter2)
 
