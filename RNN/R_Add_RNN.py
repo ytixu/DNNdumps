@@ -12,7 +12,7 @@ import keras.backend as K
 from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines, association_evaluation
 from Forward import NN
 
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.0001
 NAME = 'R_A_LSTM'
 USE_GRU = True
 if USE_GRU:
@@ -95,10 +95,12 @@ class R_A_LSTM:
 			loss = 0
 			yTrue = K.reshape(yTrue[:,:,:-self.label_dim], (-1, self.timesteps, self.timesteps, self.timesteps/3, 3))
 			yPred = K.reshape(yPred[:,:,:-self.label_dim], (-1, self.timesteps, self.timesteps, self.timesteps/3, 3))
+			for h in self.hierarchies:
 			# loss += K.mean(K.sqrt(K.sum(K.square(yTrue-yPred), axis=-1)))
 			# loss += K.mean(K.sqrt(K.sum(K.square(yt - yp), axis=-1)))/self.timesteps
-			loss += K.mean(K.sqrt(K.sum(K.square(yTrue-yPred), axis=-1))) + K.mean(K.abs(yt-yp))/self.timesteps
-			return loss
+				loss += K.mean(K.sqrt(K.sum(K.square(yTrue[:,h]-yPred[:,h]), axis=-1)))*(h+1)
+				loss += K.mean(K.abs(yt[:,h]-yp[:,h]))*(h+1)/self.timesteps
+			return loss/self.timesteps
 
 		self.encoder = Model(inputs, encoded)
 		self.decoder = Model(z, decoded_)
@@ -189,7 +191,7 @@ class R_A_LSTM:
 
 		#nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
 		#nn.run(None)
-		# metrics.plot_metrics(self, data_iterator, valid_data, nn)
+		metrics.plot_metrics(self, data_iterator, valid_data)
 		# association_evaluation.plot_best_distance_function(self, valid_data, data_iterator)
 		# association_evaluation.eval_generation(self, valid_data, data_iterator)
 		# association_evaluation.eval_center(self, valid_data, 'sitting')
