@@ -470,18 +470,20 @@ def plot_add(model, data_iterator):
 # evaluate distance function
 from scipy.spatial import distance
 
-def plot_best_distance_function(model, data, data_iterator, n=50):
+def plot_best_distance_function(model, data, data_iterator, nn, n=50):
 	idx = np.random.choice(data.shape[0], n, replace=False)
 	enc = metrics.__get_latent_reps(model.encoder, data[idx], model.MODEL_CODE, n=model.hierarchies)
+	nn_pred_z = nn.model.predict(enc[:,-2])
 	N = 3
+	colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"]
 
 	avg_error_raw = np.zeros(N)
 	avg_error_lat = np.zeros(N)
 
-	errors = np.zeros(n+1)
-	dists = np.zeros(n+1)
+	errors = np.zeros(n+2)
+	dists = np.zeros(n+2)
 	zs = np.zeros((N,model.latent_dim))
-	poses_plot = np.zeros((N+2, model.timesteps, model.input_dim-model.label_dim))
+	poses_plot = np.zeros((N+3, model.timesteps, model.input_dim-model.label_dim))
 
 	emb = metrics.get_label_embedding(model, data_iterator, subspaces=model.hierarchies)
 	cut = model.hierarchies[-2]+1
@@ -489,8 +491,8 @@ def plot_best_distance_function(model, data, data_iterator, n=50):
 	for j in tqdm(range(n)):
 		z_ref = enc[j,-2]
 		z_true = enc[j,-1]
-		p_enc_dec = metrics.__get_decoded_reps(model.decoder, np.array([z_ref, z_true]), model.MODEL_CODE)
-		poses_plot[:2] = p_enc_dec[:,:,:-model.label_dim]
+		p_enc_dec = metrics.__get_decoded_reps(model.decoder, np.array([z_ref, z_true, nn_pred_z[j]]), model.MODEL_CODE)
+		poses_plot[:3] = p_enc_dec[:,:,:-model.label_dim]
 
 		for i in range(N):
 			dist_name = metrics.__dist_name__(i)
@@ -504,20 +506,24 @@ def plot_best_distance_function(model, data, data_iterator, n=50):
 				errors[k] = metrics.__pose_seq_error(preds[k,:,:-model.label_dim],data[idx[j],:,:-model.label_dim])
 				dists[k] = metrics.__distance__(ls[w_i[k]], z_true, mode=i)
 
-			errors[-1] = metrics.__pose_seq_error(p_enc_dec[0,:cut,:-model.label_dim],data[idx[j],:cut,:-model.label_dim])
-			dists[-1] = metrics.__distance__(z_ref, z_true, mode=i)
+			errors[-2] = metrics.__pose_seq_error(p_enc_dec[0,:cut,:-model.label_dim],data[idx[j],:cut,:-model.label_dim])
+			dists[-2] = metrics.__distance__(z_ref, z_true, mode=i)
+			errors[-1] = metrics.__pose_seq_error(p_enc_dec[-1,:,:-model.label_dim],data[idx[j],:,:-model.label_dim])
+			dists[-1] = metrics.__distance__(nn_pred_z[j], z_true, mode=i)
 
-			plt.scatter(dists, errors, label=dist_name, s=30)
+			plt.scatter(dists, errors, label=dist_name, s=30, c=colors[i])
 			if i == N-1:
 				plt.scatter(dists[:1], errors[:1], c='black', alpha='0.3', s=100, label='closest')
-				plt.scatter(dists[-1:], errors[-1:], c='red', alpha='0.3', s=100, label='dec-part')
+				plt.scatter(dists[-1:], errors[-1:], c=colors[-1], alpha='0.3', s=100, label='FN')
+				plt.scatter(dists[-2:-1], errors[-2:-1], c='red', alpha='0.3', s=100, label='dec-part')
 			else:
 				plt.scatter(dists[:1], errors[:1], c='black', alpha='0.3', s=100)
-				plt.scatter(dists[-1:], errors[-1:], c='red', alpha='0.3', s=100)
+				plt.scatter(dists[-1:], errors[-1:], c=colors[-1], alpha='0.3', s=100)
+				plt.scatter(dists[-2:-1], errors[-2:-1], c='red', alpha='0.3', s=100)
 			avg_error_raw[i] += errors[0]
 
 		error = metrics.__pose_seq_error(p_enc_dec[1,:,:-model.label_dim],data[idx[j],:,:-model.label_dim])
-		plt.scatter([0], [error], label='dec-comp')
+		plt.scatter([0], [error], label='dec-comp', c=colors[3])
 
 		plt.legend()
 		plt.xlabel('distance to comp. seq. rep.')
@@ -528,13 +534,15 @@ def plot_best_distance_function(model, data, data_iterator, n=50):
 
 		for i in range(N):
 			dist_name = metrics.__dist_name__(i)
-			error = [metrics.__latent_error(z, z_true) for z in [zs[i], z_true]]
-			dist = [metrics.__distance__(z, z_ref, mode=i) for z in [zs[i], z_true]]
-			plt.scatter(dist, error, label=dist_name, s=30)
+			error = [metrics.__latent_error(z, z_true) for z in [zs[i], nn_pred_z[j], z_true]]
+			dist = [metrics.__distance__(z, z_ref, mode=i) for z in [zs[i], nn_pred_z[j], z_true]]
+			plt.scatter(dist, error, label=dist_name, s=30, c=colors[i])
 			if i == N-1:
 				plt.scatter(dist[-1:], error[-1:], c='black', alpha='0.3', s=100, label='true')
+				plt.scatter(dist[-2:-1], error[-2:-1], c=colors[-1], alpha='0.3', s=100, label='FN')
 			else:
 				plt.scatter(dist[-1:], error[-1:], c='black', alpha='0.3', s=100)
+				plt.scatter(dist[-2:-1], error[-2:-1], c=colors[-1], alpha='0.3', s=100)
 			avg_error_lat[i] += error[0]
 
 		plt.legend()
