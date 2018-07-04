@@ -140,7 +140,7 @@ def plot_results_npy(from_path, npy_files_dirs, method_names):
 					score_[j] = metrics.__pose_seq_error(pd_b, gt, cumulative=True)
 
 			if i == 0:
-				plt.plot(range(1,t+1), np.mean(score_, axis=0), label='Residual sup. (MA)', linestyle=':',linewidth=3)
+				plt.plot(range(1,t+1), np.mean(score_, axis=0), linestyle=':', linewidth=3, label='Base') #Residual sup. (MA)')
 			if i > len(method_names)/2-1:
 				plt.plot(range(1,t+1), np.mean(score, axis=0), label=method_names[i], linestyle='--')
 			else:
