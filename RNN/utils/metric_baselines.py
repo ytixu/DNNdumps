@@ -353,5 +353,5 @@ if __name__ == '__main__':
 	# plot_results('../../results/nn_15_results.csv')
 	# animate_results('../', 'nn_15', 'Nearest nei. (1/10)')
 
-	plot_results_npy('../', ['../../new_out/R-RNN-t25-l512/npy/RRNN-' + x for x in ['add-', '', 'part-', 'closest-', 'closest-manh-', 'add-nl-', 'nl-', 'part-nl-', 'closest-nl-', 'closest-manh-nl-']], ['Add-l', 'FN-l', 'Part-l', 'NN-l', 'NN-l-m', 'Add', 'FN', 'Part', 'NN', 'NN-m'])
-	#animate_results('../', '../../new_out/L_RNN-t30-l400/partial-with-label/LRNN-', 'Partial-label')
+	#plot_results_npy('../', ['../../new_out/R-RNN-t25-l512/npy/RRNN-' + x for x in ['add-', '', 'part-', 'closest-', 'closest-manh-', 'add-nl-', 'nl-', 'part-nl-', 'closest-nl-', 'closest-manh-nl-']], ['Add-l', 'FN-l', 'Part-l', 'NN-l', 'NN-l-m', 'Add', 'FN', 'Part', 'NN', 'NN-m'])
+	animate_results('../', '../../new_out/R-RNN-t25-l512/npy/RRNN-', 'FN-label')
