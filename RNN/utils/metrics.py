@@ -252,7 +252,7 @@ def get_label_embedding(model, data_iterator, also_without_label=False, without_
 				embedding = e_l
 			else:
 				embedding = np.concatenate((embedding, e_l), axis=0)
-		break
+		#break
 	return np.array(embedding)
 
 def get_embedding(model, data_iterator, subspace=-1):

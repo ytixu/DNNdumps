@@ -84,6 +84,7 @@ def animate_compare(start_seq, true_seq, pred_seq, pred_name, baseline_seq, base
 		return ob_true.get_lines() + ob_pred.get_lines() + ob_pred.get_lines()
 
 	def animate(t):
+		t = t/5
 		if t >= n_start:
 			ob_true.update(true_seq[t-n_start])
 			ob_baseline.update(baseline_seq[t-n_start])

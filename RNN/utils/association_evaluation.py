@@ -501,7 +501,7 @@ def plot_best_distance_function(model, data, data_iterator, nn, n=50):
 			zs[i] = ls[w_i[0]]
 
 			preds = metrics.__get_decoded_reps(model.decoder, ls[w_i[:n]], model.MODEL_CODE)
-			poses_plot[2+i] = preds[0,:,:-model.label_dim]
+			poses_plot[3+i] = preds[0,:,:-model.label_dim]
 			for k in range(n):
 				errors[k] = metrics.__pose_seq_error(preds[k,:,:-model.label_dim],data[idx[j],:,:-model.label_dim])
 				dists[k] = metrics.__distance__(ls[w_i[k]], z_true, mode=i)
