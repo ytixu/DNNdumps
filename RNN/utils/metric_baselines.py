@@ -146,7 +146,7 @@ def plot_results_npy(from_path, npy_files_dirs, method_names):
 			else:
 				plt.plot(range(1,t+1), np.mean(score, axis=0), label=method_names[i])
 
-		plt.legend(bbox_to_anchor=(1.1, 1.05))
+		plt.legend()
 		plt.xlabel('time-steps')
 		plt.ylabel('error')
 		plt.title(basename)
