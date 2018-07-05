@@ -12,7 +12,7 @@ import keras.backend as K
 from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines, association_evaluation
 from Forward import NN
 
-LEARNING_RATE = 0.00005
+LEARNING_RATE = 0.0001
 NAME = 'R_LSTM'
 USE_GRU = True
 if USE_GRU:
@@ -40,7 +40,7 @@ class R_LSTM:
 		self.input_dim = args['input_dim'] + self.label_dim
 		self.output_dim = args['output_dim'] + self.label_dim
 		self.motion_dim = args['input_dim']
-		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [9,14,24]
+		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
 		self.load_path = args['load_path']
@@ -134,7 +134,7 @@ class R_LSTM:
 
 	def run(self, data_iterator, valid_data):
 		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
-		if not self.load():
+		if self.load():
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			loss = 10000
@@ -178,10 +178,10 @@ class R_LSTM:
 		# iter1, iter2 = tee(data_iterator)
 		# metrics.validate(valid_data, self)
 
-		nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
-		nn.run(None)
+		#nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
+		#nn.run(None)
 		# metrics.plot_metrics(self, data_iterator, valid_data, nn)
-		association_evaluation.plot_best_distance_function(self, valid_data, data_iterator, nn)
+		#association_evaluation.plot_best_distance_function(self, valid_data, data_iterator, nn)
 		# association_evaluation.eval_generation(self, valid_data, data_iterator)
 		# association_evaluation.eval_center(self, valid_data, 'sitting')
 		# association_evaluation.transfer_motion(self, valid_data, 'sitting', 'walking', data_iterator)

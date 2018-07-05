@@ -203,9 +203,9 @@ def compare_label_embedding(model, nn, data_iterator, with_label=True):
 		enc = model.encoder.predict(pose_ref)[:,cut-1]
 		new_enc_partial = np.zeros(enc.shape)
 		for i in tqdm(range(_N)):
-			# new_e_idx = metrics.__closest_partial_index(embedding[:,0], enc[i])
-			new_enc_partial[i] = metrics.__closest(embedding[:,1], enc[i])
-			#new_enc_partial[i] = embedding[new_e_idx,1]
+			new_e_idx = metrics.__closest_partial_index(embedding[:,0], enc[i])
+			#new_enc_partial[i] = metrics.__closest(embedding[:,1], enc[i])
+			new_enc_partial[i] = embedding[new_e_idx,1]
 		print enc.shape, pose_ref.shape, new_enc_partial.shape
 		pose_pred_from_part = model.decoder.predict(new_enc_partial)[:,-pred_n:,:-model.label_dim]
 
@@ -223,7 +223,7 @@ def compare_label_embedding(model, nn, data_iterator, with_label=True):
 		# image.plot_poses(pose_pred_bl, title='baseline', image_dir='../new_out/')
 		# image.plot_poses(pose_gt, title='gt', image_dir='../new_out/')
 		#np.save('../new_out/R-RNN-t25-l512/npy/RRNN-add-nl-%s.npy'%basename, pose_pred)
-		np.save('../new_out/R-RNN-t25-l512/npy/RRNN-closest-manh-%s.npy'%basename, pose_pred_from_part)
+		np.save('../new_out/t25-l512-r/LRNN-r-%s.npy'%basename, pose_pred_from_part)
 
 def compare_embedding(model, data_iterator):
 	import image
@@ -358,5 +358,6 @@ if __name__ == '__main__':
 	# plot_results('../../results/nn_15_results.csv')
 	# animate_results('../', 'nn_15', 'Nearest nei. (1/10)')
 
+	plot_results_npy('../', ['../../new_out/t25-l512-r/LRNN-r-'], ['part'])
 	#plot_results_npy('../', ['../../new_out/R-RNN-t25-l512/npy/RRNN-' + x for x in ['add-', '', 'part-', 'closest-', 'closest-manh-', 'add-nl-', 'nl-', 'part-nl-', 'closest-nl-', 'closest-manh-nl-']], ['Add-l', 'FN-l', 'Part-l', 'NN-l', 'NN-l-m', 'Add', 'FN', 'Part', 'NN', 'NN-m'])
-	animate_results('../', '../../new_out/R-RNN-t25-l512/npy/RRNN-', 'FN-label')
+	#animate_results('../', '../../new_out/R-RNN-t25-l512/npy/RRNN-', 'FN-label')
