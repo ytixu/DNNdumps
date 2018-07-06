@@ -40,7 +40,7 @@ class R_H_LSTM:
 		self.input_dim = args['input_dim'] + self.label_dim
 		self.output_dim = args['output_dim'] + self.label_dim
 		self.motion_dim = args['input_dim']
-		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [9,14,24]
+		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
 		self.load_path = args['load_path']
@@ -54,7 +54,7 @@ class R_H_LSTM:
 		# self.history = recorder.LossHistory()
 
 	def make_model(self):
-		inputs = Input(shape=(self.timesteps, self.input_dim)
+		inputs = Input(shape=(self.timesteps, self.input_dim))
 		encoded = GRU(self.latent_dim, return_sequences=True)(inputs)
 
 		z = Input(shape=(self.latent_dim,))
@@ -65,7 +65,7 @@ class R_H_LSTM:
 
 		def frame_decoded(seq):
 			motion = [None]*self.timesteps
-			for i in range(1,self.timesteps):
+			for i in self.hierarchies:
 				e = Lambda(lambda x: x[:,i], output_shape=(self.motion_dim+2,))(seq)
 				pose = decode_pose(e)
 				name = decode_name(e)
