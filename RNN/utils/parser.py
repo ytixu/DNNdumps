@@ -123,7 +123,7 @@ def get_model_load_name(model_name):
 	return '../models/%s_%d.hdf5'%(model_name, time.time())
 
 def get_log_name(model_name):
-	return '../models/%s_%d.log'%(model_name, time.time())
+	return '../new_out/%s_%d.csv'%(model_name, time.time())
 
 def get_parse(model_name, labels=False):
 	global TOGGLE_MODE

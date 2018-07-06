@@ -46,6 +46,7 @@ class R_LSTM:
 		self.load_path = args['load_path']
 		self.save_path = args['save_path']
 		self.log_path = args['log_path']
+		self.lr = LEARNING_RATE
 
 		self.joint_number = args['input_dim']/3
 
@@ -151,7 +152,6 @@ class R_LSTM:
 								epochs=self.epochs,
 								batch_size=self.batch_size,
 								validation_data=(x_test, y_test))
-								# callbacks=[self.history])
 
 					new_loss = np.mean(history.history['loss'])
 					if new_loss < loss:
@@ -163,12 +163,11 @@ class R_LSTM:
 						# image.plot_hierarchies(y_test_orig[:,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
 						self.autoencoder.save_weights(self.save_path, overwrite=True)
 						rand_idx = np.random.choice(x_test.shape[0], 25, replace=False)
-						metrics.validate(x_test[rand_idx], self, '../new_out/validate-residual.txt')
+						metrics.validate(x_test[rand_idx], self, self.log_path, history.history['loss'])
 
 					del x_train, x_test, y_train, y_test
 				iter1, iter2 = tee(iter2)
 
-			# self.history.record(self.log_path, model_vars)
 			data_iterator = iter2
 
 		# metric_baselines.compare(self)

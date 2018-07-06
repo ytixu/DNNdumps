@@ -5,6 +5,8 @@ from time import gmtime, strftime
 import json
 from scipy.spatial import distance
 
+import csv
+
 
 H_LSTM = 0
 ML_LSTM = 1
@@ -279,7 +281,7 @@ def get_embedding_diffs(e_sup, e_sub):
 	mean_diff = np.mean(diff, axis=0)
 	return mean_diff, diff
 
-def validate(validation_data, model, save_path=None):
+def validate(validation_data, model, save_path=None, args=[]):
 	# import image
 	h = len(model.hierarchies)
 	mean = np.zeros(h)
@@ -319,28 +321,21 @@ def validate(validation_data, model, save_path=None):
 	print np.sqrt(np.mean([s**2 for s in std]))
 	print mean_sub
 	print std_sub
+	mm = np.sqrt(np.mean([s**2 for s in std_sub]))
 	print np.mean(mean_sub)
 	print np.sqrt(np.mean([s**2 for s in std_sub]))
 	if model.MODEL_CODE in [HL_LSTM, L_LSTM]:
 		print mean_l
 		print std_l
 		print np.mean(mean_l)
+		ll = np.sqrt(np.mean([s**2 for s in std_l]))
 		print np.sqrt(np.mean([s**2 for s in std_l]))
 
-	def __r(x, title):
-		return title + ': ' + '\t'.join(map(str,x)) + '\n'
-
 	if save_path is not None:
-		with open(save_path, 'a+') as f:
-			f.write(__r(mean, 'mean'))
-			f.write(__r(std, 'std'))
-			f.write(__r(mean_sub, 'mean sub'))
-			f.write(__r(std_sub, 'std sub'))
-			if model.MODEL_CODE in [HL_LSTM, L_LSTM]:
-			    f.write(__r(mean_l, 'mean label'))
-			    f.write(__r(std_l, 'std label'))
 
-			f.write('\n')
+		with open(save_path, 'a+') as f:
+			spamwriter = csv.writer(f)
+			spamwriter.writerow([mean_sub[-1], np.mean(mean_sub), mm, np.mean(mean_l), ll, model.self.lr] + args)
 
 
 def distance_stats(embedding, model):

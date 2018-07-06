@@ -124,7 +124,7 @@ class H_LSTM:
 								batch_size=self.batch_size,
 								validation_data=(x_test, y_test))
 								# callbacks=[tbCallBack])
-
+					print history.history['loss']
 					new_loss = np.mean(history.history['loss'])
 					if new_loss < loss:
 						self.autoencoder.save_weights(self.save_path, overwrite=True)
