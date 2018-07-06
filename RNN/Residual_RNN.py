@@ -89,7 +89,7 @@ class R_LSTM:
 			yPred = K.reshape(yPred[:,:,:-self.label_dim], (-1, self.timesteps, self.timesteps, self.timesteps/3, 3))
 			# loss += K.mean(K.sqrt(K.sum(K.square(yTrue-yPred), axis=-1)))
 			# loss += K.mean(K.sqrt(K.sum(K.square(yt - yp), axis=-1)))/self.timesteps
-			loss += K.mean(K.sqrt(K.sum(K.square(yTrue-yPred), axis=-1))) + K.mean(K.abs(yt-yp))/self.timesteps
+			loss += K.mean(K.sqrt(K.sum(K.square(yTrue-yPred), axis=-1))) + K.mean(K.abs(yt-yp))/len(self.hierarchies)
 			return loss
 
 		self.encoder = Model(inputs, encoded)
