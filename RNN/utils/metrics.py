@@ -335,7 +335,7 @@ def validate(validation_data, model, save_path=None, args=[]):
 
 		with open(save_path, 'a+') as f:
 			spamwriter = csv.writer(f)
-			spamwriter.writerow([mean_sub[-1], np.mean(mean_sub), mm, np.mean(mean_l), ll, model.self.lr] + args)
+			spamwriter.writerow([mean_sub[-1], np.mean(mean_sub), mm, np.mean(mean_l), ll, model.lr] + args)
 
 
 def distance_stats(embedding, model):

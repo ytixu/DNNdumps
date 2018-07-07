@@ -12,7 +12,7 @@ import keras.backend as K
 from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines, association_evaluation
 from Forward import NN
 
-LEARNING_RATE = 0.00005
+LEARNING_RATE = 0.001
 NAME = 'R_LSTM'
 USE_GRU = True
 if USE_GRU:
@@ -40,7 +40,7 @@ class R_LSTM:
 		self.input_dim = args['input_dim'] + self.label_dim
 		self.output_dim = args['output_dim'] + self.label_dim
 		self.motion_dim = args['input_dim']
-		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
+		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [9, 14,24]
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
 		self.load_path = args['load_path']
@@ -63,6 +63,7 @@ class R_LSTM:
 		decode_name = Dense(self.label_dim, activation='relu')
 		decode_repete = RepeatVector(self.timesteps)
 		decode_residual = GRU(self.output_dim, return_sequences=True)
+		decode_add = Add()
 
 		decoded = [None]*len(self.hierarchies)
 		residual = [None]*len(self.hierarchies)
@@ -71,7 +72,7 @@ class R_LSTM:
 			decoded[i] = concatenate([decode_pose(e), decode_name(e)], axis=1)
 			residual[i] = decode_repete(e)
 			residual[i] = decode_residual(residual[i])
-			decoded[i] = Add()([decode_repete(decoded[i]), residual[i]])
+			decoded[i] = decode_add([decode_repete(decoded[i]), residual[i]])
 
 		decoded = concatenate(decoded, axis=1)
 		residual = concatenate(residual, axis=1)
@@ -79,14 +80,15 @@ class R_LSTM:
 		decoded_ = concatenate([decode_pose(z), decode_name(z)], axis=1)
 		residual_ = decode_repete(z)
 		residual_ = decode_residual(residual_)
-		decoded_ = Add()([decode_repete(decoded_), residual_])
+		decoded_ = decode_add([decode_repete(decoded_), residual_])
 
 		def customLoss(yTrue, yPred):
-			yt = K.reshape(yTrue[:,:,-self.label_dim:], (-1, self.timesteps, self.timesteps, self.label_dim))
-			yp = K.reshape(yPred[:,:,-self.label_dim:], (-1, self.timesteps, self.timesteps, self.label_dim))
+			yt = K.reshape(yTrue[:,:,-self.label_dim:], (-1, len(self.hierarchies), self.timesteps, self.label_dim))
+			yp = K.reshape(yPred[:,:,-self.label_dim:], (-1, len(self.hierarchies), self.timesteps, self.label_dim))
 			loss = 0
-			yTrue = K.reshape(yTrue[:,:,:-self.label_dim], (-1, self.timesteps, self.timesteps, self.timesteps/3, 3))
-			yPred = K.reshape(yPred[:,:,:-self.label_dim], (-1, self.timesteps, self.timesteps, self.timesteps/3, 3))
+			print K.int_shape(yTrue), K.int_shape(yPred)
+			yTrue = K.reshape(yTrue[:,:,:-self.label_dim], (-1, len(self.hierarchies), self.timesteps, self.motion_dim/3, 3))
+			yPred = K.reshape(yPred[:,:,:-self.label_dim], (-1, len(self.hierarchies), self.timesteps, self.motion_dim/3, 3))
 			# loss += K.mean(K.sqrt(K.sum(K.square(yTrue-yPred), axis=-1)))
 			# loss += K.mean(K.sqrt(K.sum(K.square(yt - yp), axis=-1)))/self.timesteps
 			loss += K.mean(K.sqrt(K.sum(K.square(yTrue-yPred), axis=-1))) + K.mean(K.abs(yt-yp))/len(self.hierarchies)
@@ -135,7 +137,7 @@ class R_LSTM:
 
 	def run(self, data_iterator, valid_data):
 		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
-		if self.load():
+		if not self.load():
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			loss = 10000
@@ -162,8 +164,8 @@ class R_LSTM:
 						#image.plot_poses(x_test[:1,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
 						# image.plot_hierarchies(y_test_orig[:,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
 						self.autoencoder.save_weights(self.save_path, overwrite=True)
-						rand_idx = np.random.choice(x_test.shape[0], 25, replace=False)
-						metrics.validate(x_test[rand_idx], self, self.log_path, history.history['loss'])
+					rand_idx = np.random.choice(x_test.shape[0], 25, replace=False)
+					metrics.validate(x_test[rand_idx], self, self.log_path, history.history['loss'])
 
 					del x_train, x_test, y_train, y_test
 				iter1, iter2 = tee(iter2)
@@ -179,7 +181,7 @@ class R_LSTM:
 
 		#nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
 		#nn.run(None)
-		# metrics.plot_metrics(self, data_iterator, valid_data, nn)
+		metrics.plot_metrics(self, data_iterator, valid_data, None)
 		#association_evaluation.plot_best_distance_function(self, valid_data, data_iterator, nn)
 		# association_evaluation.eval_generation(self, valid_data, data_iterator)
 		# association_evaluation.eval_center(self, valid_data, 'sitting')
