@@ -1,5 +1,5 @@
-
 import data_utils__
+import forward_kinematics__
 
 def define_actions( action ):
   """
@@ -67,3 +67,46 @@ def read_all_data( actions, seq_length, data_dir, one_hot ):
   return train_set, test_set, data_mean, data_std, dim_to_ignore, dim_to_use
 
 
+def batch_expmap2euler(batch_data, config, labels):
+
+  srnn_pred_expmap = data_utils__.revert_output_format( batch_data,
+            config['data_mean'], config['data_std'], config['dim_to_ignore'],
+            config['actions'], labels)
+
+  nframes = srnn_pred_expmap.shape[0]
+
+  # Put them together and revert the coordinate space
+  expmap_all = forward_kinematics__.revert_coordinate_space( srnn_pred_expmap, np.eye(3), np.zeros(3) )
+
+  # Compute 3d points for each frame
+  parent, offset, rotInd, expmapInd = forward_kinematics__._some_variables()
+  xyz = np.zeros((nframes, 96))
+  for i in range( nframes ):
+    xyz[i,:] = forward_kinematics__.fkl( expmap_all[i,:], parent, offset, rotInd, expmapInd )
+
+  return xyz
+
+
+  # for eulerchannels_pred in srnn_pred_expmap:
+  #   # Convert from exponential map to Euler angles
+  #   for j in np.arange( eulerchannels_pred.shape[0] ):
+  #     for k in np.arange(3,97,3):
+  #       eulerchannels_pred[j,k:k+3] = data_utils__.rotmat2euler(
+  #         data_utils__.expmap2rotmat( eulerchannels_pred[j,k:k+3] ))
+
+    # # The global translation (first 3 entries) and global rotation
+    # # (next 3 entries) are also not considered in the error, so the_key
+    # # are set to zero.
+    # # See https://github.com/asheshjain399/RNNexp/issues/6#issuecomment-249404882
+    # gt_i=np.copy(srnn_gts_euler[action][i])
+    # gt_i[:,0:6] = 0
+
+    # # Now compute the l2 error. The following is numpy port of the error
+    # # function provided by Ashesh Jain (in matlab), available at
+    # # https://github.com/asheshjain399/RNNexp/blob/srnn/structural_rnn/CRFProblems/H3.6m/dataParser/Utils/motionGenerationError.m#L40-L54
+    # idx_to_use = np.where( np.std( gt_i, 0 ) > 1e-4 )[0]
+
+    # euc_error = np.power( gt_i[:,idx_to_use] - eulerchannels_pred[:,idx_to_use], 2)
+    # euc_error = np.sum(euc_error, 1)
+    # euc_error = np.sqrt( euc_error )
+    # mean_errors[i,:] = euc_error

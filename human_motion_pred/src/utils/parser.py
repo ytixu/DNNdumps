@@ -27,7 +27,7 @@ def get_parse(model_name, labels=False):
   ap.add_argument('-t', '--timesteps', required=False, help='Timestep size', default='5', type=int)
   ap.add_argument('-p', '--periods', required=False, help='Number of iterations of the data', default='1', type=int)
   ap.add_argument('-ld', '--latent_dim', required=False, help='Embedding size', default='100', type=int)
-  ap.add_argument('-a', '--action', required=False, help='The action to train on. all means all the actions, all_periodic means walking, eating and smoking', default='all')
+  ap.add_argument('-a', '--actions', required=False, help='The action to train on. all means all the actions, all_periodic means walking, eating and smoking', default='all')
   ap.add_argument('-ls', '--hierarchies', required=False, nargs='+', help='The sequence lengths to train on. all means all the lengths', default='all')
   ap.add_argument('-te', '--test_every', required=False, help='How often to compute error on the test set.', default='10000')
 
@@ -67,13 +67,21 @@ def get_parse(model_name, labels=False):
   if args['log_path'] == '':
     args['log_path'] = get_log_name(model_signature)
 
-  actions = translate__.define_actions(args['action'])
+  actions = translate__.define_actions(args['actions'])
   number_of_actions = len(actions)
+  args['actions'] = actions
 
   train_set, test_set, data_mean, data_std, dim_to_ignore, dim_to_use = translate__.read_all_data(
     actions, args['timesteps'], args['data_dir'], labels)
 
-  return train_set, test_set, data_mean, data_std, dim_to_ignore, dim_to_use, args
+  args['data_mean'] = data_mean
+  args['data_std'] = data_std
+  args['dim_to_ignore'] = dim_to_ignore
+  args['dim_to_use'] = dim_to_use
+
+  return train_set, test_set, args
+
+
 
 if __name__ == '__main__':
   # test
