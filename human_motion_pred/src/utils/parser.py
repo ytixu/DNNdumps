@@ -82,6 +82,8 @@ if __name__ == '__main__':
   print args
   print train_set.values()[0].shape
   print test_set.values()[0].shape
+  print max(test_set.values())
+  print min(test_set.values())
   print data_mean
   print data_std
   print dim_to_ignore
