@@ -53,15 +53,15 @@ def read_all_data( actions, seq_length, data_dir, one_hot ):
   train_subject_ids = [1,6,7,8,9,11]
   test_subject_ids = [5]
 
-  train_set, complete_train = data_utils.load_data( data_dir, train_subject_ids, actions, one_hot )
-  test_set,  complete_test  = data_utils.load_data( data_dir, test_subject_ids,  actions, one_hot )
+  train_set, complete_train = data_utils__.load_data( data_dir, train_subject_ids, actions, one_hot )
+  test_set,  complete_test  = data_utils__.load_data( data_dir, test_subject_ids,  actions, one_hot )
 
   # Compute normalization stats
-  data_mean, data_std, dim_to_ignore, dim_to_use = data_utils.normalization_stats(complete_train)
+  data_mean, data_std, dim_to_ignore, dim_to_use = data_utils__.normalization_stats(complete_train)
 
   # Normalize -- subtract mean, divide by stdev
-  train_set = data_utils.normalize_data( train_set, data_mean, data_std, dim_to_use, actions, one_hot )
-  test_set  = data_utils.normalize_data( test_set,  data_mean, data_std, dim_to_use, actions, one_hot )
+  train_set = data_utils__.normalize_data( train_set, data_mean, data_std, dim_to_use, actions, one_hot )
+  test_set  = data_utils__.normalize_data( test_set,  data_mean, data_std, dim_to_use, actions, one_hot )
   print("done reading data.")
 
   return train_set, test_set, data_mean, data_std, dim_to_ignore, dim_to_use

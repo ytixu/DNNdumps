@@ -21,14 +21,14 @@ def get_parse(model_name, labels=False):
   ap.add_argument('-m', '--mode', required=False, help='Choose between training mode or sampling mode.', default='train', choices=list_of_modes)
   ap.add_argument('-ep', '--epochs', required=False, help='Number of epochs', default='1', type=int)
   ap.add_argument('-bs', '--batch_size', required=False, help='Batch size', default='16', type=int)
-  ap.add_argument('-lp', '--load_path', required=False, help='Model path', default=''))
-  ap.add_argument('-sp', '--save_path', required=False, help='Model save path', default=''))
-  ap.add_argument('-l', '--log_path', required=False, help='Log file for loss history', default='')
+  ap.add_argument('-load', '--load_path', required=False, help='Model path', default='')
+  ap.add_argument('-save', '--save_path', required=False, help='Model save path', default='')
+  ap.add_argument('-log', '--log_path', required=False, help='Log file for loss history', default='')
   ap.add_argument('-t', '--timesteps', required=False, help='Timestep size', default='5', type=int)
   ap.add_argument('-p', '--periods', required=False, help='Number of iterations of the data', default='1', type=int)
   ap.add_argument('-ld', '--latent_dim', required=False, help='Embedding size', default='100', type=int)
   ap.add_argument('-a', '--action', required=False, help='The action to train on. all means all the actions, all_periodic means walking, eating and smoking', default='all')
-  ap.add_argument('-h', '--hierarchies', required=False, nargs='+', help='The sequence lengths to train on. all means all the lengths', default='all')
+  ap.add_argument('-ls', '--hierarchies', required=False, nargs='+', help='The sequence lengths to train on. all means all the lengths', default='all')
 
   # Learning
   # tf.app.flags.DEFINE_float("learning_rate", .005, "Learning rate.")
@@ -60,7 +60,7 @@ def get_parse(model_name, labels=False):
 
 
   args = vars(ap.parse_args())
-  model_signature = '%s_t%d_l%d' % (model_name, args['timesteps'], args['']
+  model_signature = '%s_t%d_l%d' % (model_name, args['timesteps'], args['latent_dim'])
   if args['save_path'] == '':
     args['save_path'] = get_save_name(model_signature)
   if args['log_path'] == '':
@@ -76,10 +76,11 @@ def get_parse(model_name, labels=False):
 
 if __name__ == '__main__':
   # test
-  train_set, test_set, data_mean, data_std, dim_to_ignore, dim_to_use, args = get_parse()
+  train_set, test_set, data_mean, data_std, dim_to_ignore, dim_to_use, args = get_parse('TEST')
+
   print args
-  print train_set.shape
-  print test_set.shape
+  print train_set.values()[0].shape
+  print test_set.values()[0].shape
   print data_mean
   print data_std
   print dim_to_ignore

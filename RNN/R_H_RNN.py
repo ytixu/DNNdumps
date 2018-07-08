@@ -12,7 +12,7 @@ import keras.backend as K
 from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines, association_evaluation
 from Forward import NN
 
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.0001
 NAME = 'R_H_LSTM'
 USE_GRU = True
 if USE_GRU:
@@ -52,7 +52,7 @@ class R_H_LSTM:
 		self.MODEL_CODE = metrics.L_LSTM
 		self.NAME = NAME
 		# self.history = recorder.LossHistory()
-
+		self.lr = LEARNING_RATE
 	def make_model(self):
 		inputs = Input(shape=(self.timesteps, self.input_dim))
 		encoded = GRU(self.latent_dim, return_sequences=True)(inputs)
@@ -61,16 +61,18 @@ class R_H_LSTM:
 		decode_repete = RepeatVector(self.timesteps)
 		decode_rnn = GRU(self.output_dim/2, return_sequences=True)
 		decode_pose = Dense(self.motion_dim, activation='tanh')
-		decode_name = Dense(self.label_dim, activation='softmax')
+		decode_name = Dense(self.label_dim)
+		decode_reshape = Reshape((self.timesteps, self.output_dim))
+		softmax = Lambda(lambda x: K.tf.nn.softmax(x))
 
 		def frame_decoded(seq):
 			motion = [None]*self.timesteps
 			for i in self.hierarchies:
-				e = Lambda(lambda x: x[:,i], output_shape=(self.motion_dim+2,))(seq)
+				e = Lambda(lambda x: x[:,i], output_shape=(self.output_dim/2,))(seq)
 				pose = decode_pose(e)
-				name = decode_name(e)
+				name = softmax(decode_name(e))
 				motion[i] = concatenate([pose, name], axis=1)
-			return Reshape((self.timesteps, self.output_dim))(concatenate(motion, axis=1))
+			return decode_reshape(concatenate(motion, axis=1))
 
 		decoded = [None]*len(self.hierarchies)
 		for i, h in enumerate(self.hierarchies):
@@ -141,7 +143,7 @@ class R_H_LSTM:
 
 	def run(self, data_iterator, valid_data):
 		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
-		if not self.load():
+		if self.load():
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			loss = 10000
@@ -169,8 +171,8 @@ class R_H_LSTM:
 						#image.plot_poses(x_test[:1,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
 						# image.plot_hierarchies(y_test_orig[:,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
 						self.autoencoder.save_weights(self.save_path, overwrite=True)
-						rand_idx = np.random.choice(x_test.shape[0], 25, replace=False)
-						metrics.validate(x_test[rand_idx], self, '../new_out/validate-residual.txt')
+					rand_idx = np.random.choice(x_test.shape[0], 25, replace=False)
+					metrics.validate(x_test[rand_idx], self, self.log_path, history.history['loss'])
 
 					del x_train, x_test, y_train, y_test
 				iter1, iter2 = tee(iter2)
