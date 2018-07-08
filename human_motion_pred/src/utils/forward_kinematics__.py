@@ -1,22 +1,3 @@
-Skip to content
- 
-Search or jump to…
-
-Pull requests
-Issues
-Marketplace
-Explore
- @ytixu
-Sign out
- Watch 9
- Star 119  Fork 43 una-dinosauria/human-motion-prediction
- Code  Issues 6  Pull requests 0  Projects 0  Wiki  Insights
-Branch: master Find file Copy path human-motion-prediction/src/forward_kinematics.py
-3c43211  on Aug 6, 2017
-@aaronsnoswell aaronsnoswell Add short pause so figure is displayed on Windows
-2 contributors @una-dinosauria @aaronsnoswell
-RawBlameHistory    
-202 lines (163 sloc)  6.75 KB
 from __future__ import division
 
 import numpy as np
@@ -25,10 +6,10 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from mpl_toolkits.mplot3d import Axes3D
-import viz
+import viz__
 import time
 import copy
-import data_utils
+import data_utils__
 
 def fkl( angles, parent, offset, rotInd, expmapInd ):
   """
@@ -215,16 +196,3 @@ def main():
 
 if __name__ == '__main__':
   main()
-© 2018 GitHub, Inc.
-Terms
-Privacy
-Security
-Status
-Help
-Contact GitHub
-API
-Training
-Shop
-Blog
-About
-Press h to open a hovercard with more details.
