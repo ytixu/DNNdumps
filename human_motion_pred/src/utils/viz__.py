@@ -1,7 +1,6 @@
 """Functions to visualize human poses"""
 
 import matplotlib.pyplot as plt
-import data_utils
 import numpy as np
 import h5py
 import os

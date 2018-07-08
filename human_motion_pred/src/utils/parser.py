@@ -30,6 +30,7 @@ def get_parse(model_name, labels=False):
   ap.add_argument('-a', '--actions', required=False, help='The action to train on. all means all the actions, all_periodic means walking, eating and smoking', default='all')
   ap.add_argument('-ls', '--hierarchies', required=False, nargs='+', help='The sequence lengths to train on. all means all the lengths', default='all')
   ap.add_argument('-te', '--test_every', required=False, help='How often to compute error on the test set.', default='10000')
+  ap.add_argument('-lr', '--learning_rate', required=False, help='Learning rate.', default='0.005')
 
   # Learning
   # tf.app.flags.DEFINE_float("learning_rate", .005, "Learning rate.")
@@ -66,6 +67,7 @@ def get_parse(model_name, labels=False):
     args['save_path'] = get_save_name(model_signature)
   if args['log_path'] == '':
     args['log_path'] = get_log_name(model_signature)
+  args['model_signature'] = model_signature
 
   actions = translate__.define_actions(args['actions'])
   number_of_actions = len(actions)
@@ -78,6 +80,10 @@ def get_parse(model_name, labels=False):
   args['data_std'] = data_std
   args['dim_to_ignore'] = dim_to_ignore
   args['dim_to_use'] = dim_to_use
+  args['data_dim'] = len(dim_to_use)
+
+  if labels:
+    args['label_dim'] = number_of_actions
 
   return train_set, test_set, args
 

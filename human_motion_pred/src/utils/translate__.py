@@ -1,5 +1,8 @@
+import numpy as np
+
 import data_utils__
 import forward_kinematics__
+
 
 def define_actions( action ):
   """
@@ -68,12 +71,14 @@ def read_all_data( actions, seq_length, data_dir, one_hot ):
 
 
 def batch_expmap2euler(batch_data, config, labels):
+  nframes = batch_data.shape[1]
+  xyz = np.zeros((batch_data.shape[0], nframes, 96))
 
   srnn_pred_expmap = data_utils__.revert_output_format( batch_data,
             config['data_mean'], config['data_std'], config['dim_to_ignore'],
             config['actions'], labels)
 
-  nframes = srnn_pred_expmap.shape[0]
+  print 'srnn', srnn_pred_expmap
 
   # Put them together and revert the coordinate space
   expmap_all = forward_kinematics__.revert_coordinate_space( srnn_pred_expmap, np.eye(3), np.zeros(3) )

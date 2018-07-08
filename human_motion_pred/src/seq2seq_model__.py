@@ -30,7 +30,7 @@ class seq2seq_ae__:
     self.latent_dim = args['latent_dim']
     self.label_dim = args['label_dim']
     self.data_dim = args['data_dim']+args['label_dim']
-    self.labels = args['labels']
+    self.labels = args['actions']
 
     self.load_path = args['load_path']
     self.save_path = args['save_path']
@@ -41,6 +41,35 @@ class seq2seq_ae__:
   def make_model(self):
     pass
 
+  def find_indices_srnn( self, data, action ):
+    """
+    Find the same action indices as in SRNN.
+    See https://github.com/asheshjain399/RNNexp/blob/master/structural_rnn/CRFProblems/H3.6m/processdata.py#L325
+    """
+
+    # Used a fixed dummy seed, following
+    # https://github.com/asheshjain399/RNNexp/blob/srnn/structural_rnn/forecastTrajectories.py#L29
+    SEED = 1234567890
+    rng = np.random.RandomState( SEED )
+
+    subject = 5
+    subaction1 = 1
+    subaction2 = 2
+
+    T1 = data[ (subject, action, subaction1, 'even') ].shape[0]
+    T2 = data[ (subject, action, subaction2, 'even') ].shape[0]
+    prefix, suffix = 50, 100
+
+    idx = []
+    idx.append( rng.randint( 16,T1-prefix-suffix ))
+    idx.append( rng.randint( 16,T2-prefix-suffix ))
+    idx.append( rng.randint( 16,T1-prefix-suffix ))
+    idx.append( rng.randint( 16,T2-prefix-suffix ))
+    idx.append( rng.randint( 16,T1-prefix-suffix ))
+    idx.append( rng.randint( 16,T2-prefix-suffix ))
+    idx.append( rng.randint( 16,T1-prefix-suffix ))
+    idx.append( rng.randint( 16,T2-prefix-suffix ))
+    return idx
 
   def get_batch( self, data):
     """Get a random batch of data from the specified bucket, prepare for step.
@@ -67,7 +96,7 @@ class seq2seq_ae__:
       idx = np.random.randint( 16, n-self.timesteps )
 
       # Select the data around the sampled points
-      batch_data = data[ the_key ][idx:idx+self.timesteps ,:]
+      batch_data[i] = data[ the_key ][idx:idx+self.timesteps ,:]
 
     return batch_data
 
@@ -82,7 +111,7 @@ class seq2seq_ae__:
     Returns
       batch_data : the constructed batches have the proper format to call step(...) later.
     """
-
+    print action, type(action)
     actions = ["directions", "discussion", "eating", "greeting", "phoning",
               "posing", "purchases", "sitting", "sittingdown", "smoking",
               "takingphoto", "waiting", "walking", "walkingdog", "walkingtogether"]
@@ -120,15 +149,14 @@ if __name__ == '__main__':
   # test conversions
   labels=True
 
-  train_set, test_set, config = parser.get_parse(NAME, labels)
-  print train_set.values()[0].shape
-
+  train_set, test_set, config = parser.get_parse(MODEL_NAME, labels)
   ae = seq2seq_ae__(config)
   batch_data = ae.get_batch( train_set)
-  print batch_data.shape
+  print 'train batch', batch_data.shape
 
-  batch_data = ae.get_batch_srnn( test_set, config['actions'])
-  print batch_data.shape
+  for action in config['actions']:
+    batch_data = ae.get_batch_srnn( test_set, action)
+    print 'test batch', batch_data.shape
 
-  xyz = translate__.batch_expmap2euler()
-  image.plot_poses(xyz)
+    xyz = translate__.batch_expmap2euler(batch_data, config, labels)
+    image.plot_poses(xyz)
