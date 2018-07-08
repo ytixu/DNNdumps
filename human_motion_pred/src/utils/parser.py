@@ -29,6 +29,7 @@ def get_parse(model_name, labels=False):
   ap.add_argument('-ld', '--latent_dim', required=False, help='Embedding size', default='100', type=int)
   ap.add_argument('-a', '--action', required=False, help='The action to train on. all means all the actions, all_periodic means walking, eating and smoking', default='all')
   ap.add_argument('-h', '--hierarchies', required=False, nargs='+', help='The sequence lengths to train on. all means all the lengths', default='all')
+  ap.add_argument('-te', '--test_every', required=False, help='How often to compute error on the test set.', default='10000')
 
   # Learning
   # tf.app.flags.DEFINE_float("learning_rate", .005, "Learning rate.")
