@@ -43,7 +43,7 @@ def fkl( angles, parent, offset, rotInd, expmapInd ):
 
     r = angles[ expmapInd[i] ]
 
-    thisRotation = data_utils.expmap2rotmat(r)
+    thisRotation = data_utils__.expmap2rotmat(r)
     thisPosition = np.array([xangle, yangle, zangle])
 
     if parent[i] == -1: # Root node
@@ -83,10 +83,10 @@ def revert_coordinate_space(channels, R0, T0):
 
   # Loop through the passed posses
   for ii in range(n):
-    R_diff = data_utils.expmap2rotmat( channels[ii, rootRotInd] )
+    R_diff = data_utils__.expmap2rotmat( channels[ii, rootRotInd] )
     R = R_diff.dot( R_prev )
 
-    channels_rec[ii, rootRotInd] = data_utils.rotmat2expmap(R)
+    channels_rec[ii, rootRotInd] = data_utils__.rotmat2expmap(R)
     T = T_prev + ((R_prev.T).dot( np.reshape(channels[ii,:3],[3,1]))).reshape(-1)
     channels_rec[ii,:3] = T
     T_prev = T
@@ -177,7 +177,7 @@ def main():
   # === Plot and animate ===
   fig = plt.figure()
   ax = plt.gca(projection='3d')
-  ob = viz.Ax3DPose(ax)
+  ob = viz__.Ax3DPose(ax)
 
   # Plot the conditioning ground truth
   for i in range(nframes_gt):
