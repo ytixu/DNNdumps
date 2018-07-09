@@ -78,7 +78,7 @@ def batch_expmap2euler(batch_data, config, labels):
   for i, denormed in batch_convert_expmap(batch_data, config, labels):
     for j in np.arange( denormed.shape[0] ):
       for k in np.arange(3,97,3):
-        denormed[j,k:k+3] = data_utils__.rotmat2euler( data_utils.expmap2rotmat( denormed[j,k:k+3] ))
+        denormed[j,k:k+3] = data_utils__.rotmat2euler( data_utils__.expmap2rotmat( denormed[j,k:k+3] ))
     srnn_euler[i] = denormed
 
   # srnn_pred_expmap = data_utils__.revert_output_format( batch_data,
