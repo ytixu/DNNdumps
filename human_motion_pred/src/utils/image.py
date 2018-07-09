@@ -5,9 +5,8 @@ from time import gmtime, strftime
 M_POSE_LINES = {'r':[0,1,2,3],
 			'g':[0,6,7,8],
 			'b':[0,12,13,14,15],
-			'm':[8,11,12,13],
-			'k':[13,17,18,19],
-			'c':[13,25,26,27]}
+			'm':[13,17,18,19],
+			'k':[13,25,26,27]}
 
 def add_line(plt_canvas, coords, color, size):
 	plt_canvas.plot(coords[:,1], coords[:,2], color=color, linewidth=size)
