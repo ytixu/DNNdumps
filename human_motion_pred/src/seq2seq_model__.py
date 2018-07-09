@@ -165,4 +165,4 @@ if __name__ == '__main__':
   #   xyz = translate__.batch_expmap2xyz(batch_data, ae)
   #   image.plot_poses(xyz)
 
-    print translate__.euler_diff(batch_data, batch_data, model)
+    print translate__.euler_diff(batch_data, batch_data, ae)

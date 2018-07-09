@@ -76,7 +76,7 @@ def batch_convert_expmap(batch_data, model):
   '''
   for i in np.arange( batch_data.shape[0] ):
       yield i, data_utils__.unNormalizeData(batch_data[i,:,:], model.data_mean,
-        model.data_std, model.dim_to_ignore, model.labels, labels )
+        model.data_std, model.dim_to_ignore, model.labels, model.has_labels )
 
 def batch_expmap2euler(batch_data, model):
   '''
@@ -107,24 +107,25 @@ def batch_expmap2xyz(batch_data, model):
     for j in range( nframes ):
       xyz[i,j,:] = forward_kinematics__.fkl( deformed[j,:], parent, offset, rotInd, expmapInd )
 
-  print xyz.shape
+  print 'xyz', xyz.shape
   return xyz
 
 def euler_diff(batch_expmap1, batch_expmap2, model):
   '''
     Get the mean euler angle difference between two batches
   '''
-  batch_euler1 = batch_expmap2euler(batch_expmap1)
-  batch_euler2 = batch_expmap2euler(batch_expmap1)
+  batch_euler1 = batch_expmap2euler(batch_expmap1, model)
+  batch_euler2 = batch_expmap2euler(batch_expmap2, model)
 
   # Compute and save the errors here
-  mean_errors = np.zeros( (len(srnn_pred_expmap), srnn_pred_expmap[0].shape[0]) )
+  mean_errors = np.zeros( (len(batch_expmap1), batch_expmap1[0].shape[0]) )
 
   for i, srnn_euler in enumerate(batch_euler1):
     # The global translation (first 3 entries) and global rotation
     # (next 3 entries) are also not considered in the error, so the_key
     # are set to zero.
     # See https://github.com/asheshjain399/RNNexp/issues/6#issuecomment-249404882
+    srnn_euler=np.copy(srnn_euler)
     srnn_euler[:,0:6] = 0
 
     # Now compute the l2 error. The following is numpy port of the error
@@ -132,7 +133,7 @@ def euler_diff(batch_expmap1, batch_expmap2, model):
     # https://github.com/asheshjain399/RNNexp/blob/srnn/structural_rnn/CRFProblems/H3.6m/dataParser/Utils/motionGenerationError.m#L40-L54
     idx_to_use = np.where( np.std( srnn_euler, 0 ) > 1e-4 )[0]
 
-    euc_error = np.power( srnn_euler[:,idx_to_use] - batch_expmap2[i][:,idx_to_use], 2)
+    euc_error = np.power( srnn_euler[:,idx_to_use] - batch_euler2[i][:,idx_to_use], 2)
     euc_error = np.sum(euc_error, 1)
     euc_error = np.sqrt( euc_error )
     mean_errors[i,:] = euc_error
