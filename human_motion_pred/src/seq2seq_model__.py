@@ -10,7 +10,7 @@ from utils import parser
 from utils import image
 
 MODEL_NAME = 'BASE_RNN'
-HAS_LABELS = True
+HAS_LABELS = False
 
 class seq2seq_ae__:
 
@@ -19,7 +19,7 @@ class seq2seq_ae__:
     self.encoder = None
     self.decoder = None
 
-    self.epochs = args['epochs']
+    # self.epochs = args['epochs']
     self.batch_size = args['batch_size']
     self.periods = args['periods']
     self.cv_splits = args['cv_splits'] if 'cv_splits' in args else 0.2
@@ -157,15 +157,15 @@ class seq2seq_ae__:
 
 
 if __name__ == '__main__':
-  train_set, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS, create_params=True)
+  train_set, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS)
   ae = seq2seq_ae__(config)
 
   '''
   test conversions
   '''
 
-  batch_data = ae.get_batch( train_set)
-  print 'train batch', batch_data.shape
+  #batch_data = ae.get_batch( train_set)
+  #print 'train batch', batch_data.shape
 
   # for action in config['actions']:
   #   batch_data = ae.get_batch_srnn( test_set, action)
@@ -183,14 +183,18 @@ if __name__ == '__main__':
   '''
   import h5py
   # numpy implementation
-  expmap_gt = np.zeros((8, 25, 99))
-  expmap_pred = np.zeros((8, 25, 99))
+  expmap_gt = np.zeros((8, 5, 99))
+  expmap_pred = np.zeros((8, 5, 99))
   with h5py.File( '../baselines/samples.h5', 'r' ) as h5f:
     for action in config['actions']:
-      batch_data = ae.get_batch_srnn( test_set, action)
+      # batch_data = ae.get_batch_srnn( test_set, action)
       for i in range(8):
-        expmap_gt[i] = h5f['expmap/preds_gt/%s_%d'%(action, i)][:25]
-        expmap_pred[i] = h5f['expmap/preds/%s_%d'%(action, i)][:25]
+        expmap_gt[i] = h5f['expmap/preds_gt/%s_%d'%(action, i)][:5]
+        expmap_pred[i] = h5f['expmap/preds/%s_%d'%(action, i)][:5]
+
+      xyz = translate__.batch_expmap2xyz(expmap_gt, ae, normalized=False)
+      image.plot_poses(xyz)
+
       print translate__.euler_diff(expmap_gt, expmap_pred, ae)
-      print translate__.euler_diff(expmap_gt, batch_data[:,self.conditioned_pred_steps:], ae)
+      # print translate__.euler_diff(expmap_gt, batch_data[:,ae.conditioned_pred_steps:], ae)
 

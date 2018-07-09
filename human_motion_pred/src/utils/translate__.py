@@ -67,7 +67,7 @@ def read_all_data( actions, seq_length, data_dir, one_hot ):
   return train_set, test_set, data_mean, data_std, dim_to_ignore, dim_to_use
 
 def train_data_randGen( config, one_hot ):
-  for train_set in data_utils__.load_rand_data( config['data_dir'], TRAIN_SUBJECT_ID, config['actions'], one_hot, config['timesteps'], config['rand_n'], config['periods'])
+  for train_set in data_utils__.load_rand_data( config['data_dir'], TRAIN_SUBJECT_ID, config['actions'], one_hot, config['timesteps'], config['rand_n'], config['periods']):
     train_set = data_utils__.normalize_data( train_set, config['data_mean'], config['data_std'], config['dim_to_use'], config['actions'], one_hot )
     yield train_set
 
@@ -99,13 +99,17 @@ def batch_expmap2euler(batch_data, model):
   print 'srnn', len(srnn_euler), srnn_euler[0].shape
   return srnn_euler
 
-def batch_expmap2xyz(batch_data, model):
+def batch_expmap2xyz(batch_data, model, normalized=True):
   '''
     Convert a batch of exponential map to euclidean space using FK
   '''
   nSamples, nframes, _ = batch_data.shape
   xyz = np.zeros((nSamples, nframes, 96))
-  for i, denormed in batch_convert_expmap(batch_data, model):
+
+  if normalized:
+    batch_data = batch_convert_expmap(batch_data, model)
+
+  for i, denormed in enumerate(batch_data):
     # Put them together and revert the coordinate space
     deformed = forward_kinematics__.revert_coordinate_space( denormed, np.eye(3), np.zeros(3) )
 

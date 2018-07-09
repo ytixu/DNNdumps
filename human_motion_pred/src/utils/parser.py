@@ -5,6 +5,7 @@ import numpy as np
 import json
 
 import translate__
+import data_utils__
 
 MODEL_DIR = '../models/'
 OUTPUT_DIR = '../new_out/'
@@ -92,11 +93,15 @@ def get_parse(model_name, labels=False, create_params=False):
     args['data_dim'] = len(dim_to_use)
 
   else:
-    with open(args['data_param'], 'wb') as param_file
+    with open(args['data_param'], 'rb') as param_file:
       args.update(json.load(param_file))
+      args['data_std'] = np.array(args['data_std'])
+      args['data_mean'] = np.array(args['data_mean'])
 
-    train_set = translate__.train_data_randGen( args, one_hot )
-    test_set = translate__.get_test_data( args, one_hot )
+    args['data_dim'] = len(args['dim_to_use'])
+
+    train_set = translate__.train_data_randGen( args, labels )
+    test_set = data_utils__.get_test_data( args, labels )
 
   if labels:
     args['label_dim'] = number_of_actions
@@ -118,5 +123,10 @@ if __name__ == '__main__':
   print args['dim_to_use']
 
   # create data parameter file
-  with open(args['data_param'], 'wb') as param_file
-    json.dump([key: args[key] for key in ['data_mean', 'data_std', 'dim_to_ignore', 'dim_to_use'], param_file)
+  with open(args['data_param'], 'wb') as param_file:
+    json.dump({
+      'data_mean':args['data_mean'].tolist(),
+      'data_std':args['data_std'].tolist(),
+      'dim_to_ignore':args['dim_to_ignore'],
+      'dim_to_use':args['dim_to_use']
+    }, param_file)
