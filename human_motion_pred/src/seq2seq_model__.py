@@ -29,8 +29,13 @@ class seq2seq_ae__:
     self.hierarchies = args['hierarchies']
     self.conditioned_pred_steps = self.timesteps - 25
     self.latent_dim = args['latent_dim']
-    self.label_dim = args['label_dim']
-    self.data_dim = args['data_dim']+args['label_dim']
+
+    if HAS_LABELS:
+      self.label_dim = args['label_dim']
+      self.data_dim = args['data_dim']+args['label_dim']
+    else:
+      self.data_dim = args['data_dim']
+
     self.labels = args['actions']
     self.has_labels = HAS_LABELS
 
@@ -152,14 +157,15 @@ class seq2seq_ae__:
 
 
 if __name__ == '__main__':
+  train_set, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS)
+  ae = seq2seq_ae__(config)
+
   '''
   test conversions
   '''
 
-  # train_set, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS)
-  # ae = seq2seq_ae__(config)
-  # batch_data = ae.get_batch( train_set)
-  # print 'train batch', batch_data.shape
+  batch_data = ae.get_batch( train_set)
+  print 'train batch', batch_data.shape
 
   # for action in config['actions']:
   #   batch_data = ae.get_batch_srnn( test_set, action)
@@ -183,8 +189,8 @@ if __name__ == '__main__':
     for action in config['actions']:
       batch_data = ae.get_batch_srnn( test_set, action)
       for i in range(8):
-        expmap_gt[i] = h5f['expmap/gt/%s_%d'%(action, i)]
-        expmap_pred[i] = h5f['expmap/preds/%s_%d'%(action, i)]
+        expmap_gt[i] = h5f['expmap/gt/%s_%d'%(action, i)][:25]
+        expmap_pred[i] = h5f['expmap/preds/%s_%d'%(action, i)][:25]
 
       print translate__.euler_diff(expmap_gt, expmap_pred, ae)
       print translate__.euler_diff(expmap_gt, batch_data[:,self.conditioned_pred_steps:], ae)
