@@ -2,6 +2,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 from time import gmtime, strftime
 
+M_POSE_LINES = {'r':[0,1,2,3],
+			'g':[0,4,5,6],
+			'b':[0,7,8,9,10],
+			'm':[8,11,12,13],
+			'k':[9,14,15,16]}
+
+def add_line(plt_canvas, coords, color, size):
+	plt_canvas.plot(coords[:,1], coords[:,2], color=color, linewidth=size)
+
 def plot_poses(batch, batch2=[], title='Poses', args='', image_dir=None):
 	timesteps = len(batch[0])
 	n = len(batch)
