@@ -302,9 +302,9 @@ def load_rand_data(path_to_dataset, subjects, actions, one_hot, timesteps, rand_
       iter_n -= 1
       yield data_sequences
 
-def get_test_data(config, one_hot, n=8 ):
+def get_test_data(actions, data_dir, one_hot, n=8 ):
   data_dim = 99
-  action_n = len(config['actions'])
+  action_n = len(actions)
 
   if one_hot:
     data_dim += action_n
@@ -312,9 +312,9 @@ def get_test_data(config, one_hot, n=8 ):
   expmap_gt = np.zeros((n, 100, data_dim))
   expmap_pred_gt = np.zeros((n, 100, data_dim))
 
-  with h5py.File( '../baselines/samples.h5', 'r' ) as h5f:
+  with h5py.File( data_dir, 'r' ) as h5f:
     for action_idx in np.arange(action_n):
-      action = config['actions'][ action_idx ]
+      action = actions[ action_idx ]
       for i in range(n):
         # conditioned sequences
         expmap_gt[i,:,:99] = h5f['expmap/gt/%s_%d'%(action, i)][:]

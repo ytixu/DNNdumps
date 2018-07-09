@@ -159,6 +159,8 @@ class seq2seq_ae__:
 if __name__ == '__main__':
   train_set, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS)
   ae = seq2seq_ae__(config)
+  expmap_gt, expmap_pred_gt = test_set
+
 
   '''
   test conversions
@@ -183,18 +185,17 @@ if __name__ == '__main__':
   '''
   import h5py
   # numpy implementation
-  expmap_gt = np.zeros((8, 5, 99))
-  expmap_pred = np.zeros((8, 5, 99))
+  expmap_gt = np.zeros((8, ae.timesteps-ae.conditioned_pred_steps, 99))
+  expmap_pred = np.zeros((8, ae.timesteps-ae.conditioned_pred_steps, 99))
   with h5py.File( '../baselines/samples.h5', 'r' ) as h5f:
     for action in config['actions']:
-      # batch_data = ae.get_batch_srnn( test_set, action)
       for i in range(8):
-        expmap_gt[i] = h5f['expmap/preds_gt/%s_%d'%(action, i)][:5]
-        expmap_pred[i] = h5f['expmap/preds/%s_%d'%(action, i)][:5]
+        expmap_gt[i] = h5f['expmap/preds_gt/%s_%d'%(action, i)]
+        expmap_pred[i] = h5f['expmap/preds/%s_%d'%(action, i)]
 
-      xyz = translate__.batch_expmap2xyz(expmap_gt, ae, normalized=False)
-      image.plot_poses(xyz)
+      # xyz = translate__.batch_expmap2xyz(expmap_gt, ae, normalized=False)
+      # image.plot_poses(xyz[:,:5])
 
-      print translate__.euler_diff(expmap_gt, expmap_pred, ae)
-      # print translate__.euler_diff(expmap_gt, batch_data[:,ae.conditioned_pred_steps:], ae)
+      print translate__.euler_diff(expmap_gt, expmap_pred, ae, normalized=[False, False])
+      print translate__.euler_diff(expmap_gt, expmap_gt[:,ae.conditioned_pred_steps:], ae, normalized=[False, True])
 

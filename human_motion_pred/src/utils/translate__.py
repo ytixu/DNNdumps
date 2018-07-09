@@ -71,10 +71,11 @@ def train_data_randGen( config, one_hot ):
     train_set = data_utils__.normalize_data( train_set, config['data_mean'], config['data_std'], config['dim_to_use'], config['actions'], one_hot )
     yield train_set
 
-# def test_data( actions, config, one_hot ):
-#   test_set = data_utils__.load_rand_data( config['data_dir'], TRAIN_SUBJECT_ID, config['actions'], one_hot, config['timesteps'], rand_n=-1)
-#   train_set = data_utils__.normalize_data( train_set, config['data_mean'], config['data_std'], config['dim_to_use'], config['actions'], one_hot )
-#   return train_set
+def get_test_data( config, one_hot ):
+  expmap_gt, expmap_pred_gt = data_utils__.get_test_data( config['actions'], '../baselines/samples.h5', one_hot )
+  expmap_gt = data_utils__.normalize_data( expmap_gt, config['data_mean'], config['data_std'], config['dim_to_use'], config['actions'], one_hot )
+  expmap_pred_gt = data_utils__.normalize_data( expmap_pred_gt, config['data_mean'], config['data_std'], config['dim_to_use'], config['actions'], one_hot )
+  return expmap_gt, expmap_pred_gt
 
 def batch_convert_expmap(batch_data, model):
   '''
@@ -85,12 +86,16 @@ def batch_convert_expmap(batch_data, model):
       yield i, data_utils__.unNormalizeData(batch_data[i,:,:], model.data_mean,
         model.data_std, model.dim_to_ignore, model.labels, model.has_labels )
 
-def batch_expmap2euler(batch_data, model):
+def batch_expmap2euler(batch_data, model, normalized=True):
   '''
     Convert a batch of exponential map to euler angle
   '''
   srnn_euler = [None]*batch_data.shape[0]
-  for i, denormed in batch_convert_expmap(batch_data, model):
+
+  if normalized:
+    batch_data = batch_convert_expmap(batch_data, model)
+
+  for i, denormed in enumerate(batch_data):
     for j in np.arange( denormed.shape[0] ):
       for k in np.arange(3,97,3):
         denormed[j,k:k+3] = data_utils__.rotmat2euler( data_utils__.expmap2rotmat( denormed[j,k:k+3] ))
@@ -121,12 +126,12 @@ def batch_expmap2xyz(batch_data, model, normalized=True):
   print 'xyz', xyz.shape
   return xyz
 
-def euler_diff(batch_expmap1, batch_expmap2, model):
+def euler_diff(batch_expmap1, batch_expmap2, model, normalized=[True, True]):
   '''
     Get the mean euler angle difference between two batches
   '''
-  batch_euler1 = batch_expmap2euler(batch_expmap1, model)
-  batch_euler2 = batch_expmap2euler(batch_expmap2, model)
+  batch_euler1 = batch_expmap2euler(batch_expmap1, model, normalized[0])
+  batch_euler2 = batch_expmap2euler(batch_expmap2, model, normalized[1])
 
   # Compute and save the errors here
   mean_errors = np.zeros( (len(batch_expmap1), batch_expmap1[0].shape[0]) )
