@@ -78,7 +78,8 @@ def batch_expmap2euler(batch_data, config, labels):
             config['data_mean'], config['data_std'], config['dim_to_ignore'],
             config['actions'], labels)
 
-  print 'srnn', srnn_pred_expmap
+  for s in srnn_pred_expmap:
+   print s.shape
 
   # Put them together and revert the coordinate space
   expmap_all = forward_kinematics__.revert_coordinate_space( srnn_pred_expmap, np.eye(3), np.zeros(3) )
