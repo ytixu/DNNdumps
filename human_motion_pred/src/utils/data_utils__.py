@@ -209,7 +209,8 @@ def readCSVasFloat_randLines(filename, timesteps, rand_n, one_hot, action_n):
   with open(filename, 'r') as csvfile:
     spamreader = csv.reader(csvfile, delimiter=',', quoting=csv.QUOTE_NONNUMERIC)
     lines = open(filename).readlines()
-    line_idx = np.random.choice(len(lines)-2*timesteps, rand_n, replace=False)
+    # Sample somewherein the middle (from seq2seq_model.get_batch)
+    line_idx = np.random.choice(len(lines)-2*timesteps-16, rand_n, replace=False)+16
     line_length = lines[0].shape
     if one_hot:
       returnArray = np.zeros((rand_n, timesteps, line_length+action_n))
@@ -309,6 +310,7 @@ def get_test_data(config, one_hot, n=8 ):
 
   expmap_gt = np.zeros((n, 100, data_dim))
   expmap_pred_gt = np.zeros((n, 100, data_dim))
+
   with h5py.File( '../baselines/samples.h5', 'r' ) as h5f:
     for action_idx in np.arange(action_n):
       action = config['actions'][ action_idx ]

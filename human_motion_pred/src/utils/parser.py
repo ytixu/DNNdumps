@@ -20,20 +20,23 @@ def get_parse(model_name, labels=False, create_params=False):
   list_of_modes = ['train', 'sample', 'cont']
   ap.add_argument('-dd', '--data_dir', required=False, help='Data directory', default='../../data/h3.6/raw/h3.6m/dataset')
   ap.add_argument('-dp', '--data_param', required=False, help='Data parameter file path (the mean, std and used dims)', default='../../data/h3.6/raw/h3.6m/params.json')
-  ap.add_argument('-m', '--mode', required=False, help='Choose between training mode or sampling mode.', default='train', choices=list_of_modes)
-  ap.add_argument('-ep', '--epochs', required=False, help='Number of epochs', default='1', type=int)
-  ap.add_argument('-bs', '--batch_size', required=False, help='Batch size', default='16', type=int)
+
   ap.add_argument('-load', '--load_path', required=False, help='Model path', default='')
   ap.add_argument('-save', '--save_path', required=False, help='Model save path', default='')
   ap.add_argument('-log', '--log_path', required=False, help='Log file for loss history', default='')
-  ap.add_argument('-t', '--timesteps', required=False, help='Timestep size', default='75', type=int)
+
+  ap.add_argument('-m', '--mode', required=False, help='Choose between training mode or sampling mode.', default='train', choices=list_of_modes)
+  ap.add_argument('-bs', '--batch_size', required=False, help='Batch size', default='16', type=int)
+  # ap.add_argument('-ep', '--epochs', required=False, help='Number of epochs', default='1', type=int)
   ap.add_argument('-p', '--periods', required=False, help='Number of iterations of the data', default='100000', type=int)
   ap.add_argument('-rn', '--rand_n', required=False, help='Number of data per iteration', default='10000', type=int)
-  ap.add_argument('-ld', '--latent_dim', required=False, help='Embedding size', default='1024', type=int)
-  ap.add_argument('-a', '--actions', required=False, help='The action to train on. all means all the actions, all_periodic means walking, eating and smoking', default='all')
+  ap.add_argument('-t', '--timesteps', required=False, help='Timestep size', default='75', type=int)
   ap.add_argument('-ls', '--hierarchies', required=False, nargs='+', help='The sequence lengths to train on. all means all the lengths', default='all')
-  ap.add_argument('-te', '--test_every', required=False, help='How often to compute error on the test set.', default='10000')
+  ap.add_argument('-ld', '--latent_dim', required=False, help='Embedding size', default='1024', type=int)
   ap.add_argument('-lr', '--learning_rate', required=False, help='Learning rate.', default='0.005')
+  ap.add_argument('-te', '--test_every', required=False, help='How often to compute error on the test set.', default='10')
+
+  ap.add_argument('-a', '--actions', required=False, help='The action to train on. all means all the actions, all_periodic means walking, eating and smoking', default='all')
 
   # Learning
   # tf.app.flags.DEFINE_float("learning_rate", .005, "Learning rate.")
@@ -66,6 +69,8 @@ def get_parse(model_name, labels=False, create_params=False):
 
   args = vars(ap.parse_args())
   model_signature = '%s_t%d_l%d' % (model_name, args['timesteps'], args['latent_dim'])
+
+  # set up log and save paths
   if args['save_path'] == '':
     args['save_path'] = get_save_name(model_signature)
   if args['log_path'] == '':

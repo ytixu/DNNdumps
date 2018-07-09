@@ -157,7 +157,7 @@ class seq2seq_ae__:
 
 
 if __name__ == '__main__':
-  train_set, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS)
+  train_set, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS, create_params=True)
   ae = seq2seq_ae__(config)
 
   '''
