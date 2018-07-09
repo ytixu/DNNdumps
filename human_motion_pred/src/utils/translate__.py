@@ -69,26 +69,78 @@ def read_all_data( actions, seq_length, data_dir, one_hot ):
 
   return train_set, test_set, data_mean, data_std, dim_to_ignore, dim_to_use
 
+def get_srnn_gts( actions, model, test_set, data_mean, data_std, dim_to_ignore, one_hot, to_euler=True ):
+  """
+  Get the ground truths for srnn's sequences, and convert to Euler angles.
+  (the error is always computed in Euler angles).
+  Args
+    actions: a list of actions to get ground truths for.
+    model: training model we are using (we only use the "get_batch" method).
+    test_set: dictionary with normalized training data.
+    data_mean: d-long vector with the mean of the training data.
+    data_std: d-long vector with the standard deviation of the training data.
+    dim_to_ignore: dimensions that we are not using to train/predict.
+    one_hot: whether the data comes with one-hot encoding indicating action.
+    to_euler: whether to convert the angles to Euler format or keep thm in exponential map
+  Returns
+    srnn_gts_euler: a dictionary where the keys are actions, and the values
+      are the ground_truth, denormalized expected outputs of srnns's seeds.
+  """
+  srnn_gts_euler = {}
+
+  for action in actions:
+
+    srnn_gt_euler = []
+    _, _, srnn_expmap = model.get_batch_srnn( test_set, action )
+
+    # expmap -> rotmat -> euler
+    for i in np.arange( srnn_expmap.shape[0] ):
+      denormed = data_utils.unNormalizeData(srnn_expmap[i,:,:], data_mean, data_std, dim_to_ignore, actions, one_hot )
+
+      if to_euler:
+        for j in np.arange( denormed.shape[0] ):
+          for k in np.arange(3,97,3):
+            denormed[j,k:k+3] = data_utils.rotmat2euler( data_utils.expmap2rotmat( denormed[j,k:k+3] ))
+
+      srnn_gt_euler.append( denormed );
+
+    # Put back in the dictionary
+    srnn_gts_euler[action] = srnn_gt_euler
+
+  return srnn_gts_euler
+
+def batch_convert_expmap(batch_data, config, labels):
+  for i in np.arange( batch_data.shape[0] ):
+      yield i, data_utils__.unNormalizeData(batch_data[i,:,:], config['data_mean'], config['data_std'], config['dim_to_ignore'], config['actions'], labels )
 
 def batch_expmap2euler(batch_data, config, labels):
-  nframes = batch_data.shape[1]
-  xyz = np.zeros((batch_data.shape[0], nframes, 96))
+  srnn_euler = [None]*batch_data.shape[0]
+  for i, denormed in batch_convert_expmap(batch_data, config, labels):
+    for j in np.arange( denormed.shape[0] ):
+      for k in np.arange(3,97,3):
+        denormed[j,k:k+3] = data_utils__.rotmat2euler( data_utils.expmap2rotmat( denormed[j,k:k+3] ))
+    srnn_euler[i] = denormed
 
-  srnn_pred_expmap = data_utils__.revert_output_format( batch_data,
-            config['data_mean'], config['data_std'], config['dim_to_ignore'],
-            config['actions'], labels)
+  # srnn_pred_expmap = data_utils__.revert_output_format( batch_data,
+  #           config['data_mean'], config['data_std'], config['dim_to_ignore'],
+  #           config['actions'], labels)
 
-  print 'srnn', srnn_pred_expmap
+  print 'srnn', len(srnn_euler), srnn_euler[0].shape
+  return srnn_euler
 
-  # Put them together and revert the coordinate space
-  expmap_all = forward_kinematics__.revert_coordinate_space( srnn_pred_expmap, np.eye(3), np.zeros(3) )
+def batch_expmap2xyz(batch_data, config, labels):
+  nSamples, nframes, _ = batch_data.shape
+  xyz = np.zeros((nSamples, nframes, 96))
+  for i, denormed in batch_convert_expmap(batch_data, config, labels):
+    # Put them together and revert the coordinate space
+    deformed = forward_kinematics__.revert_coordinate_space( denormed, np.eye(3), np.zeros(3) )
 
-  # Compute 3d points for each frame
-  parent, offset, rotInd, expmapInd = forward_kinematics__._some_variables()
-  xyz = np.zeros((nframes, 96))
-  for i in range( nframes ):
-    xyz[i,:] = forward_kinematics__.fkl( expmap_all[i,:], parent, offset, rotInd, expmapInd )
+    # Compute 3d points for each frame
+    parent, offset, rotInd, expmapInd = forward_kinematics__._some_variables()
+    for j in range( nframes ):
+      xyz[i,j,:] = forward_kinematics__.fkl( deformed[j,:], parent, offset, rotInd, expmapInd )
 
+  print xyz.shape
   return xyz
 
 
