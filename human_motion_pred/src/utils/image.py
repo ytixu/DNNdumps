@@ -36,6 +36,6 @@ def plot_poses(batch, batch2=[], title='Poses', args='', image_dir=None):
 	plt.suptitle(title)
 	# plt.show()
 	if image_dir == None:
-		image_dir = '../out/'
+		image_dir = '../new_out/'
 	f.savefig(image_dir + title.lower().replace(' ', '_')+args+ strftime("%a-%d-%b-%Y-%H_%M_%S", gmtime()) + '.png', dpi=192)
 	plt.close(f)

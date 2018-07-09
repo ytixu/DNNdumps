@@ -158,5 +158,5 @@ if __name__ == '__main__':
     batch_data = ae.get_batch_srnn( test_set, action)
     print 'test batch', batch_data.shape
 
-    xyz = translate__.batch_expmap2euler(batch_data, config, labels)
+    xyz = translate__.batch_expmap2xyz(batch_data, config, labels)
     image.plot_poses(xyz)
