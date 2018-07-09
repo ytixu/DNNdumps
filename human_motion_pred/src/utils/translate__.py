@@ -69,29 +69,36 @@ def read_all_data( actions, seq_length, data_dir, one_hot ):
 
   return train_set, test_set, data_mean, data_std, dim_to_ignore, dim_to_use
 
-def batch_convert_expmap(batch_data, config, labels):
+def batch_convert_expmap(batch_data, model):
+  '''
+    Unormalize a batch of exponential map for later conversions
+    (to euler angles or to euclidean space)
+  '''
   for i in np.arange( batch_data.shape[0] ):
-      yield i, data_utils__.unNormalizeData(batch_data[i,:,:], config['data_mean'], config['data_std'], config['dim_to_ignore'], config['actions'], labels )
+      yield i, data_utils__.unNormalizeData(batch_data[i,:,:], model.data_mean,
+        model.data_std, model.dim_to_ignore, model.labels, labels )
 
-def batch_expmap2euler(batch_data, config, labels):
+def batch_expmap2euler(batch_data, model):
+  '''
+    Convert a batch of exponential map to euler angle
+  '''
   srnn_euler = [None]*batch_data.shape[0]
-  for i, denormed in batch_convert_expmap(batch_data, config, labels):
+  for i, denormed in batch_convert_expmap(batch_data, model):
     for j in np.arange( denormed.shape[0] ):
       for k in np.arange(3,97,3):
         denormed[j,k:k+3] = data_utils__.rotmat2euler( data_utils__.expmap2rotmat( denormed[j,k:k+3] ))
     srnn_euler[i] = denormed
 
-  # srnn_pred_expmap = data_utils__.revert_output_format( batch_data,
-  #           config['data_mean'], config['data_std'], config['dim_to_ignore'],
-  #           config['actions'], labels)
-
   print 'srnn', len(srnn_euler), srnn_euler[0].shape
   return srnn_euler
 
-def batch_expmap2xyz(batch_data, config, labels):
+def batch_expmap2xyz(batch_data, model):
+  '''
+    Convert a batch of exponential map to euclidean space using FK
+  '''
   nSamples, nframes, _ = batch_data.shape
   xyz = np.zeros((nSamples, nframes, 96))
-  for i, denormed in batch_convert_expmap(batch_data, config, labels):
+  for i, denormed in batch_convert_expmap(batch_data, model):
     # Put them together and revert the coordinate space
     deformed = forward_kinematics__.revert_coordinate_space( denormed, np.eye(3), np.zeros(3) )
 
@@ -103,27 +110,33 @@ def batch_expmap2xyz(batch_data, config, labels):
   print xyz.shape
   return xyz
 
+def euler_diff(batch_expmap1, batch_expmap2, model):
+  '''
+    Get the mean euler angle difference between two batches
+  '''
+  batch_euler1 = batch_expmap2euler(batch_expmap1)
+  batch_euler2 = batch_expmap2euler(batch_expmap1)
 
-  # for eulerchannels_pred in srnn_pred_expmap:
-  #   # Convert from exponential map to Euler angles
-  #   for j in np.arange( eulerchannels_pred.shape[0] ):
-  #     for k in np.arange(3,97,3):
-  #       eulerchannels_pred[j,k:k+3] = data_utils__.rotmat2euler(
-  #         data_utils__.expmap2rotmat( eulerchannels_pred[j,k:k+3] ))
+  # Compute and save the errors here
+  mean_errors = np.zeros( (len(srnn_pred_expmap), srnn_pred_expmap[0].shape[0]) )
 
-    # # The global translation (first 3 entries) and global rotation
-    # # (next 3 entries) are also not considered in the error, so the_key
-    # # are set to zero.
-    # # See https://github.com/asheshjain399/RNNexp/issues/6#issuecomment-249404882
-    # gt_i=np.copy(srnn_gts_euler[action][i])
-    # gt_i[:,0:6] = 0
+  for i, srnn_euler in enumerate(batch_euler1):
+    # The global translation (first 3 entries) and global rotation
+    # (next 3 entries) are also not considered in the error, so the_key
+    # are set to zero.
+    # See https://github.com/asheshjain399/RNNexp/issues/6#issuecomment-249404882
+    srnn_euler[:,0:6] = 0
 
-    # # Now compute the l2 error. The following is numpy port of the error
-    # # function provided by Ashesh Jain (in matlab), available at
-    # # https://github.com/asheshjain399/RNNexp/blob/srnn/structural_rnn/CRFProblems/H3.6m/dataParser/Utils/motionGenerationError.m#L40-L54
-    # idx_to_use = np.where( np.std( gt_i, 0 ) > 1e-4 )[0]
+    # Now compute the l2 error. The following is numpy port of the error
+    # function provided by Ashesh Jain (in matlab), available at
+    # https://github.com/asheshjain399/RNNexp/blob/srnn/structural_rnn/CRFProblems/H3.6m/dataParser/Utils/motionGenerationError.m#L40-L54
+    idx_to_use = np.where( np.std( srnn_euler, 0 ) > 1e-4 )[0]
 
-    # euc_error = np.power( gt_i[:,idx_to_use] - eulerchannels_pred[:,idx_to_use], 2)
-    # euc_error = np.sum(euc_error, 1)
-    # euc_error = np.sqrt( euc_error )
-    # mean_errors[i,:] = euc_error
+    euc_error = np.power( srnn_euler[:,idx_to_use] - batch_expmap2[i][:,idx_to_use], 2)
+    euc_error = np.sum(euc_error, 1)
+    euc_error = np.sqrt( euc_error )
+    mean_errors[i,:] = euc_error
+
+    mean_mean_errors = np.mean( mean_errors, 0 )
+
+  return mean_mean_errors, mean_errors

@@ -10,6 +10,7 @@ from utils import parser
 from utils import image
 
 MODEL_NAME = 'BASE_RNN'
+HAS_LABELS = True
 
 class seq2seq_ae__:
 
@@ -31,11 +32,16 @@ class seq2seq_ae__:
     self.label_dim = args['label_dim']
     self.data_dim = args['data_dim']+args['label_dim']
     self.labels = args['actions']
+    self.has_labels = HAS_LABELS
 
     self.load_path = args['load_path']
     self.save_path = args['save_path']
     self.log_path = args['log_path']
     self.model_signature = args['model_signature']
+
+    self.data_mean = args['data_mean']
+    self.data_std = args['data_std']
+    self.dim_to_ignore = args['dim_to_ignore']
 
 
   def make_model(self):
@@ -147,9 +153,7 @@ class seq2seq_ae__:
 
 if __name__ == '__main__':
   # test conversions
-  labels=True
-
-  train_set, test_set, config = parser.get_parse(MODEL_NAME, labels)
+  train_set, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS)
   ae = seq2seq_ae__(config)
   batch_data = ae.get_batch( train_set)
   print 'train batch', batch_data.shape
@@ -158,5 +162,7 @@ if __name__ == '__main__':
     batch_data = ae.get_batch_srnn( test_set, action)
     print 'test batch', batch_data.shape
 
-    xyz = translate__.batch_expmap2xyz(batch_data, config, labels)
-    image.plot_poses(xyz)
+  #   xyz = translate__.batch_expmap2xyz(batch_data, ae)
+  #   image.plot_poses(xyz)
+
+    print translate__.euler_diff(batch_data, batch_data, model)
