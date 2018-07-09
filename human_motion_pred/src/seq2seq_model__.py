@@ -189,9 +189,8 @@ if __name__ == '__main__':
     for action in config['actions']:
       batch_data = ae.get_batch_srnn( test_set, action)
       for i in range(8):
-        expmap_gt[i] = h5f['expmap/gt/%s_%d'%(action, i)][:25]
+        expmap_gt[i] = h5f['expmap/preds_gt/%s_%d'%(action, i)][:25]
         expmap_pred[i] = h5f['expmap/preds/%s_%d'%(action, i)][:25]
-
       print translate__.euler_diff(expmap_gt, expmap_pred, ae)
       print translate__.euler_diff(expmap_gt, batch_data[:,self.conditioned_pred_steps:], ae)
 

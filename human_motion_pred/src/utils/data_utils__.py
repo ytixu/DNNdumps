@@ -7,6 +7,7 @@ from __future__ import print_function
 import numpy as np
 from six.moves import xrange # pylint: disable=redefined-builtin
 import copy
+import csv
 
 def rotmat2euler( R ):
   """
@@ -204,6 +205,23 @@ def readCSVasFloat(filename):
   returnArray = np.array(returnArray)
   return returnArray
 
+def readCSVasFloat_randLines(filename, timesteps, rand_n, one_hot, action_n):
+  with open(filename, 'r') as csvfile:
+    spamreader = csv.reader(csvfile, delimiter=',', quoting=csv.QUOTE_NONNUMERIC)
+    lines = open(filename).readlines()
+    line_idx = np.random.choice(len(lines)-2*timesteps, rand_n, replace=False)
+    line_length = lines[0].shape
+    if one_hot:
+      returnArray = np.zeros((rand_n, timesteps, line_length+action_n))
+    else:
+      returnArray = np.zeros((rand_n, timesteps, line_length))
+
+    for i, idx in enumerate(line_idx):
+      # skip every second image
+      returnArray[i,:,:line_length] = lines[range(idx,idx+2*timesteps,2)][:]
+
+  return returnArray
+
 
 def load_data(path_to_dataset, subjects, actions, one_hot):
   """
@@ -255,6 +273,56 @@ def load_data(path_to_dataset, subjects, actions, one_hot):
 
   return trainData, completeData
 
+def load_rand_data(path_to_dataset, subjects, actions, one_hot, timesteps, rand_n, iter_n):
+  action_n = len(actions)
+  rand_n = rand_n/action_n/2/len(subjects)
+
+  while iter_n > 0:
+    data_sequences = []
+    for subj in subjects:
+      for action_idx in np.arange(action_n):
+        action = actions[ action_idx ]
+        for subact in [1, 2]:  # subactions
+          # print("Reading subject {0}, action {1}, subaction {2}".format(subj, action, subact))
+          filename = '{0}/S{1}/{2}_{3}.txt'.format( path_to_dataset, subj, action, subact)
+
+          action_sequences = readCSVasFloat_randLines(filename, timesteps, rand_n, one_hot, action_n)
+
+          if one_hot:
+            # Add a one-hot encoding at the end of the representation
+            action_sequences[ :, :, action_idx-action_n ] = 1
+
+          if len(data_sequences) == 0:
+            data_sequences = action_sequences
+          else:
+            data_sequences = np.stack(data_sequences, action_sequences, axis=0)
+
+      iter_n -= 1
+      yield data_sequences
+
+def get_test_data(config, one_hot, n=8 ):
+  data_dim = 99
+  action_n = len(config['actions'])
+
+  if one_hot:
+    data_dim += action_n
+
+  expmap_gt = np.zeros((n, 100, data_dim))
+  expmap_pred_gt = np.zeros((n, 100, data_dim))
+  with h5py.File( '../baselines/samples.h5', 'r' ) as h5f:
+    for action_idx in np.arange(action_n):
+      action = config['actions'][ action_idx ]
+      for i in range(n):
+        # conditioned sequences
+        expmap_gt[i,:,:99] = h5f['expmap/gt/%s_%d'%(action, i)][:]
+        # ground truth for the prediction
+        expmap_pred_gt[i,:,:99] = h5f['expmap/preds_gt/%s_%d'%(action, i)][:]
+
+        if one_hot:
+          expmap_gt[i,:,99+action_idx:] = 1
+          expmap_pred_gt[i,:,99+action_idx:] = 1
+
+  return expmap_gt, expmap_pred_gt
 
 def normalize_data( data, data_mean, data_std, dim_to_use, actions, one_hot ):
   """

@@ -3,6 +3,8 @@ import numpy as np
 import data_utils__
 import forward_kinematics__
 
+TRAIN_SUBJECT_ID = [1,6,7,8,9,11]
+TEST_SUBJECT_ID = [5]
 
 def define_actions( action ):
   """
@@ -31,8 +33,6 @@ def define_actions( action ):
 
   raise( ValueError, "Unrecognized action: %d" % action )
 
-
-
 def read_all_data( actions, seq_length, data_dir, one_hot ):
   """
   Loads data for training/testing and normalizes it.
@@ -53,11 +53,8 @@ def read_all_data( actions, seq_length, data_dir, one_hot ):
   # === Read training data ===
   print "Reading training data (seq_len: %d)" % (seq_length)
 
-  train_subject_ids = [1,6,7,8,9,11]
-  test_subject_ids = [5]
-
-  train_set, complete_train = data_utils__.load_data( data_dir, train_subject_ids, actions, one_hot )
-  test_set,  complete_test  = data_utils__.load_data( data_dir, test_subject_ids,  actions, one_hot )
+  train_set, complete_train = data_utils__.load_data( data_dir, TRAIN_SUBJECT_ID, actions, one_hot )
+  test_set,  complete_test  = data_utils__.load_data( data_dir, TEST_SUBJECT_ID,  actions, one_hot )
 
   # Compute normalization stats
   data_mean, data_std, dim_to_ignore, dim_to_use = data_utils__.normalization_stats(complete_train)
@@ -68,6 +65,16 @@ def read_all_data( actions, seq_length, data_dir, one_hot ):
   print("done reading data.")
 
   return train_set, test_set, data_mean, data_std, dim_to_ignore, dim_to_use
+
+def train_data_randGen( config, one_hot ):
+  for train_set in data_utils__.load_rand_data( config['data_dir'], TRAIN_SUBJECT_ID, config['actions'], one_hot, config['timesteps'], config['rand_n'], config['periods'])
+    train_set = data_utils__.normalize_data( train_set, config['data_mean'], config['data_std'], config['dim_to_use'], config['actions'], one_hot )
+    yield train_set
+
+# def test_data( actions, config, one_hot ):
+#   test_set = data_utils__.load_rand_data( config['data_dir'], TRAIN_SUBJECT_ID, config['actions'], one_hot, config['timesteps'], rand_n=-1)
+#   train_set = data_utils__.normalize_data( train_set, config['data_mean'], config['data_std'], config['dim_to_use'], config['actions'], one_hot )
+#   return train_set
 
 def batch_convert_expmap(batch_data, model):
   '''
