@@ -8,29 +8,29 @@ from keras.layers import Input, RepeatVector, Lambda, concatenate
 from keras.models import Model
 from keras.optimizers import RMSprop
 
-import seq2seq_model
-import parser
+import seq2seq_model__
+from utils import parser
+from utils import translate__
 
-NAME = 'H_GRU'
+MODEL_NAME = 'H_GRU'
+HAS_LABELS = False
 USE_GRU = True
-RNN_UNIT = GRU
 
 if USE_GRU:
-	from keras.layers import GRU
+	from keras.layers import GRU as RNN_UNIT
 else:
-	from keras.layers import LSTM
-	NAME = 'H_LSTM'
-	RNN_UNIT = LSTM
+	from keras.layers import LSTM as RNN_UNIT
+	MODEL_NAME = 'H_LSTM'
 
-class H_RNN(seq2seq_model.seq2seq_ae__):
+class H_RNN(seq2seq_model__.seq2seq_ae__):
 
 	def make_model(self):
-		inputs = Input(shape=(self.timesteps, self.input_dim))
+		inputs = Input(shape=(self.timesteps, self.data_dim))
 		encoded = RNN_UNIT(self.latent_dim, return_sequences=True)(inputs)
 
 		z = Input(shape=(self.latent_dim,))
 		decode_1 = RepeatVector(self.timesteps)
-		decode_2 = RNN_UNIT(self.output_dim, return_sequences=True)
+		decode_2 = RNN_UNIT(self.data_dim, return_sequences=True)
 
 		decoded = [None]*len(self.hierarchies)
 		if len(self.hierarchies) == 1:
@@ -74,16 +74,16 @@ class H_RNN(seq2seq_model.seq2seq_ae__):
 			y[:,i,h+1:,:] = 0.0
 		return np.reshape(y, (-1, self.timesteps*len(self.hierarchies), y.shape[-1]))
 
-	def run(self, data_iterator, valid_data):
-		if self.load():
+	def run(self, data_iterator, n=25):
+		if not self.load():
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			loss = 10000
 			# iter1, iter2 = tee(data_iterator)
-			for x, y in data_iterator:
-				x_train, x_test, y_train, y_test = cross_validation.train_test_split(x, y, test_size=self.cv_splits)
+			iterations = 0
+			for x in data_iterator:
+				x_train, x_test, y_train, y_test = cross_validation.train_test_split(x, x, test_size=self.cv_splits)
 				y_train = self.__alter_y(y_train)
-				y_test_orig = np.copy(y_test[:1])
 				y_test = self.__alter_y(y_test)
 				history = self.autoencoder.fit(x_train, y_train,
 							shuffle=True,
@@ -94,7 +94,7 @@ class H_RNN(seq2seq_model.seq2seq_ae__):
 				print history.history['loss']
 				new_loss = np.mean(history.history['loss'])
 				if new_loss < loss:
-					self.autoencoder.save_weights(self.save_path, overwrite=True)
+					#self.autoencoder.save_weights(self.save_path, overwrite=True)
 					loss = new_loss
 					print 'Saved model - ', loss
 
@@ -103,6 +103,14 @@ class H_RNN(seq2seq_model.seq2seq_ae__):
 				y_test_decoded = np.reshape(y_test_decoded, (len(self.hierarchies), self.timesteps, -1))
 				self.training_images_plotter(y_test_decoded, x_test[:1])
 
+				if iterations % self.test_every == 0:
+					idx = np.random.choice(x_test.shape[0], n, replace=False)
+					y_test_encoded = self.encoder.predict(x_test[idx])[:,-1]
+					y_test_decoded = self.decoder.predict(y_test_encoded)
+					print translate__.euler_diff(x_test[idx], y_test_decoded, self)[0]
+
+				iterations += 1
+
 			# iter1, iter2 = tee(iter2)
 
 			# data_iterator = iter2
@@ -110,5 +118,5 @@ class H_RNN(seq2seq_model.seq2seq_ae__):
 if __name__ == '__main__':
 	train_set_gen, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS)
 	ae = H_RNN(config)
-	test_gt, test_pred_gt = test_set
+	#test_gt, test_pred_gt = test_set
 	ae.run(train_set_gen)

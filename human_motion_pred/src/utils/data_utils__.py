@@ -217,8 +217,8 @@ def readCSVasFloat(filename):
 def readCSVasFloat_randLines(filename, timesteps, rand_n, one_hot, action_n):
   with open(filename, 'r') as csvfile:
     lines = np.array(list(csv.reader(csvfile, delimiter=',', quoting=csv.QUOTE_NONNUMERIC)))
-    print ('readCSVasFloat_randLines', lines.shape)
     line_n = lines.shape[0]
+    rand_n = max(int(math.floor(line_n/2-16)),rand_n)
     # Sample somewherein the middle (from seq2seq_model.get_batch)
     line_idx = np.random.choice(line_n-2*timesteps-16, rand_n, replace=False)+16
     data_dim = lines[0].shape[-1]
@@ -356,13 +356,12 @@ def load_data_(path_to_dataset, subjects, actions, action_n, one_hot, func):
 
 def load_rand_data(path_to_dataset, subjects, actions, one_hot, timesteps, rand_n, iter_n):
   action_n = len(actions)
-  rand_n = rand_n/action_n/2/len(subjects)
+  rand_n = int(rand_n/action_n/2/len(subjects))
   func = lambda filename, action, subact : readCSVasFloat_randLines(filename, timesteps, rand_n, one_hot, action_n)
 
   while iter_n > 0:
     data_sequences = load_data_(path_to_dataset, subjects, actions, action_n, one_hot, func)
     iter_n -= 1
-    print ('iteration', iter_n)
     yield data_sequences
 
 def get_test_data(path_to_dataset, subjects, actions, one_hot):

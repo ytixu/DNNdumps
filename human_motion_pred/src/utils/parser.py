@@ -30,10 +30,10 @@ def get_parse(model_name, labels=False, create_params=False):
   ap.add_argument('-bs', '--batch_size', required=False, help='Batch size', default='16', type=int)
   ap.add_argument('-ep', '--epochs', required=False, help='Number of epochs', default='1', type=int)
   ap.add_argument('-p', '--periods', required=False, help='Number of iterations of the data', default='100000', type=int)
-  ap.add_argument('-rn', '--rand_n', required=False, help='Number of data per iteration', default='10000', type=int)
+  ap.add_argument('-rn', '--rand_n', required=False, help='Number of data per iteration', default='5000', type=int)
   ap.add_argument('-ld', '--latent_dim', required=False, help='Embedding size', default='1024', type=int)
-  ap.add_argument('-lr', '--learning_rate', required=False, help='Learning rate.', default='0.005')
-  ap.add_argument('-te', '--test_every', required=False, help='How often to compute error on the test set.', default='10')
+  ap.add_argument('-lr', '--learning_rate', required=False, help='Learning rate.', default='0.005', type=float)
+  ap.add_argument('-te', '--test_every', required=False, help='How often to compute error on the test set.', default='10', type=int)
 
   ap.add_argument('-t', '--timesteps', required=False, help='Timestep size', default='75', type=int)
   ap.add_argument('-ls', '--hierarchies', required=False, nargs='+', help='The sequence lengths to train on. all means all the lengths', default='all')
