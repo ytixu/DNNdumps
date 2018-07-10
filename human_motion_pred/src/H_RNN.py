@@ -82,9 +82,15 @@ class H_RNN(seq2seq_model__.seq2seq_ae__):
 			# iter1, iter2 = tee(data_iterator)
 			iterations = 0
 			for x in data_iterator:
+				print 'iteration', iterations
+				from utils import image
+				xyz = translate__.batch_expmap2xyz(x[:5,:5], self)
+				image.plot_poses(xyz)
+
 				x_train, x_test, y_train, y_test = cross_validation.train_test_split(x, x, test_size=self.cv_splits)
 				y_train = self.__alter_y(y_train)
 				y_test = self.__alter_y(y_test)
+				print x_train.shape, x_test.shape, y_train.shape, y_test.shape
 				history = self.autoencoder.fit(x_train, y_train,
 							shuffle=True,
 							epochs=self.epochs,
