@@ -196,8 +196,9 @@ if __name__ == '__main__':
 
       # batch_data = ae.get_batch_srnn( test_set, action)
       # print batch_data.shape
-
-      xyz = translate__.batch_expmap2xyz(test_pred_gt[i*8:(i+1)*8,:n], ae)
+      print [i*8+k for k in [0,4,1,5,2,6,3,7]]
+      loaded_batch = test_pred_gt[[i*8+k for k in [0,4,1,5,2,6,3,7]],:n]
+      xyz = translate__.batch_expmap2xyz(loaded_batch, ae)
       image.plot_poses(xyz[:,:5])
       #xyz_p = translate__.batch_expmap2xyz(expmap_gt[:,:5], ae, normalized=False)
       #image.plot_poses(xyz[:,:5])
@@ -205,6 +206,6 @@ if __name__ == '__main__':
       print action, n
       print translate__.euler_diff(expmap_gt, expmap_pred, ae, normalized=[False, False])
       #print translate__.euler_diff(expmap_gt, batch_data[:,-n:], ae, normalized=[False, True])
-      print translate__.euler_diff(expmap_gt, test_pred_gt[i*8:(i+1)*8,:n], ae, normalized=[False, True])
+      print translate__.euler_diff(expmap_gt, loaded_batch, ae, normalized=[False, True])
       break
 

@@ -358,6 +358,9 @@ def load_rand_data(path_to_dataset, subjects, actions, one_hot, timesteps, rand_
     yield data_sequences
 
 def get_test_data(path_to_dataset, subjects, actions, one_hot):
+  '''
+  beware that the ordering of the motion sequence for each action is different
+  '''
   action_n = len(actions)
   func = lambda filename, action, subact : readCSVasFloat_for_validation(filename, action, subact, one_hot)
   data_sequences = load_data_(path_to_dataset, subjects, actions, action_n, one_hot, func)
