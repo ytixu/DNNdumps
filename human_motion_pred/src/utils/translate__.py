@@ -120,11 +120,13 @@ def batch_expmap2xyz(batch_data, model, normalized=True):
   '''
     Convert a batch of exponential map to euclidean space using FK
   '''
-  nSamples, nframes, _ = batch_data.shape
+  data_copy = np.copy(batch_data)
+
+  nSamples, nframes, _ = data_copy.shape
   xyz = np.zeros((nSamples, nframes, 96))
 
   if normalized:
-    batch_data = batch_convert_expmap(batch_data, model)
+    batch_data = batch_convert_expmap(data_copy, model)
 
   for i, denormed in enumerate(batch_data):
     # Put them together and revert the coordinate space
