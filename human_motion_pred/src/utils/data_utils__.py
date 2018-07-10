@@ -134,8 +134,8 @@ def unNormalizeData(normalizedData, data_mean, data_std, dimensions_to_ignore, a
   Returns
     origData: data originally used to
   """
+  # redo normalization between -1 and 1
   if data_max > 0:
-    # redo normalization between -1 and 1
     if one_hot:
       normalizedData[:,:-len(actions)] = (normalizedData[:,:-len(actions)] + 1)/2*(data_max-data_min)+data_min
     else:
@@ -362,6 +362,7 @@ def load_rand_data(path_to_dataset, subjects, actions, one_hot, timesteps, rand_
   while iter_n > 0:
     data_sequences = load_data_(path_to_dataset, subjects, actions, action_n, one_hot, func)
     iter_n -= 1
+    print ('iteration', iter_n)
     yield data_sequences
 
 def get_test_data(path_to_dataset, subjects, actions, one_hot):
