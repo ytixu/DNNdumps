@@ -121,12 +121,13 @@ if __name__ == '__main__':
   print args['dim_to_use']
 
   # create data parameter file
+  import math
   with open(args['data_param'], 'wb') as param_file:
     json.dump({
       'data_mean':args['data_mean'].tolist(),
       'data_std':args['data_std'].tolist(),
       'dim_to_ignore':args['dim_to_ignore'],
       'dim_to_use':args['dim_to_use'],
-      'max':1.*max([np.max(v) for v in train_set.values()] + [np.max(v) for v in test_set.values()]),
-      'min':1.*min([np.min(v) for v in train_set.values()] + [np.min(v) for v in test_set.values()])
+      'data_max':math.ceil(max([np.max(v) for v in train_set.values()] + [np.max(v) for v in test_set.values()])),
+      'data_min':math.floor(*min([np.min(v) for v in train_set.values()] + [np.min(v) for v in test_set.values()]))
     }, param_file)

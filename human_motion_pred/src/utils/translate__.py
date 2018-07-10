@@ -67,14 +67,26 @@ def read_all_data( actions, seq_length, data_dir, one_hot ):
   return train_set, test_set, data_mean, data_std, dim_to_ignore, dim_to_use
 
 def train_data_randGen( config, one_hot ):
-  for train_set in data_utils__.load_rand_data( config['data_dir'], TRAIN_SUBJECT_ID, config['actions'], one_hot, config['timesteps'], config['rand_n'], config['periods']):
-    train_set = data_utils__.normalize_data( train_set, config['data_mean'], config['data_std'], config['dim_to_use'], config['actions'], one_hot )
+  for train_set in data_utils__.load_rand_data( config['data_dir'],
+      TRAIN_SUBJECT_ID, config['actions'], one_hot, config['timesteps'],
+      config['rand_n'], config['periods']):
+
+    train_set = data_utils__.normalize_data( train_set, config['data_mean'],
+      config['data_std'], config['dim_to_use'], config['actions'], one_hot,
+      config['data_max'], config['data_mean'] )
     yield train_set
 
 def get_test_data( config, one_hot ):
-  expmap_gt, expmap_pred_gt = data_utils__.get_test_data( config['data_dir'], TEST_SUBJECT_ID, config['actions'], one_hot )
-  expmap_gt = data_utils__.normalize_data( expmap_gt, config['data_mean'], config['data_std'], config['dim_to_use'], config['actions'], one_hot )
-  expmap_pred_gt = data_utils__.normalize_data( expmap_pred_gt, config['data_mean'], config['data_std'], config['dim_to_use'], config['actions'], one_hot )
+  expmap_gt, expmap_pred_gt = data_utils__.get_test_data( config['data_dir'],
+    TEST_SUBJECT_ID, config['actions'], one_hot )
+
+  expmap_gt = data_utils__.normalize_data( expmap_gt, config['data_mean'],
+    config['data_std'], config['dim_to_use'], config['actions'], one_hot,
+    config['data_max'], config['data_mean'] )
+
+  expmap_pred_gt = data_utils__.normalize_data( expmap_pred_gt,
+    config['data_mean'], config['data_std'], config['dim_to_use'],
+    config['actions'], one_hot, config['data_max'], config['data_mean'] )
   return expmap_gt, expmap_pred_gt
 
 def batch_convert_expmap(batch_data, model):
@@ -84,7 +96,8 @@ def batch_convert_expmap(batch_data, model):
   '''
   for i in np.arange( batch_data.shape[0] ):
       yield data_utils__.unNormalizeData(batch_data[i,:,:], model.data_mean,
-        model.data_std, model.dim_to_ignore, model.labels, model.has_labels )
+        model.data_std, model.dim_to_ignore, model.labels, model.has_labels,
+        config['data_max'], config['data_mean'] )
 
 def batch_expmap2euler(batch_data, model, normalized=True):
   '''

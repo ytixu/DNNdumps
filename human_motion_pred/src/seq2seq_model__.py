@@ -47,6 +47,8 @@ class seq2seq_ae__:
     self.data_mean = args['data_mean']
     self.data_std = args['data_std']
     self.dim_to_ignore = args['dim_to_ignore']
+    self.data_max = args['data_max']
+    self.data_min = args['data_min']
 
 
   def make_model(self):

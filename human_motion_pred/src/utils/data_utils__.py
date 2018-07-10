@@ -121,7 +121,7 @@ def expmap2rotmat(r):
   return R
 
 
-def unNormalizeData(normalizedData, data_mean, data_std, dimensions_to_ignore, actions, one_hot ):
+def unNormalizeData(normalizedData, data_mean, data_std, dimensions_to_ignore, actions, one_hot, data_max=0, data_min=0):
   """Borrowed from SRNN code. Reads a csv file and returns a float32 matrix.
   https://github.com/asheshjain399/RNNexp/blob/srnn/structural_rnn/CRFProblems/H3.6m/generateMotionData.py#L12
   Args
@@ -134,6 +134,13 @@ def unNormalizeData(normalizedData, data_mean, data_std, dimensions_to_ignore, a
   Returns
     origData: data originally used to
   """
+  if data_max > 0:
+    # redo normalization between -1 and 1
+    if one_hot:
+      normalizedData[:,:-len(actions)] = (normalizedData[:,:-len(actions)] + 1)/2*(data_max-data_min)+data_min
+    else:
+      normalizedData = (normalizedData+1)/2*(data_max-data_min) + data_min
+
   T = normalizedData.shape[0]
   D = data_mean.shape[0]
 
@@ -159,33 +166,33 @@ def unNormalizeData(normalizedData, data_mean, data_std, dimensions_to_ignore, a
   return origData
 
 
-def revert_output_format(poses, data_mean, data_std, dim_to_ignore, actions, one_hot):
-  """
-  Converts the output of the neural network to a format that is more easy to
-  manipulate for, e.g. conversion to other format or visualization
-  Args
-    poses: The output from the TF model. A list with (seq_length) entries,
-    each with a (batch_size, dim) output
-  Returns
-    poses_out: A tensor of size (batch_size, seq_length, dim) output. Each
-    batch is an n-by-d sequence of poses.
-  """
-  seq_len = len(poses)
-  if seq_len == 0:
-    return []
+# def revert_output_format(poses, data_mean, data_std, dim_to_ignore, actions, one_hot):
+#   """
+#   Converts the output of the neural network to a format that is more easy to
+#   manipulate for, e.g. conversion to other format or visualization
+#   Args
+#     poses: The output from the TF model. A list with (seq_length) entries,
+#     each with a (batch_size, dim) output
+#   Returns
+#     poses_out: A tensor of size (batch_size, seq_length, dim) output. Each
+#     batch is an n-by-d sequence of poses.
+#   """
+#   seq_len = len(poses)
+#   if seq_len == 0:
+#     return []
 
-  batch_size, dim = poses[0].shape
+#   batch_size, dim = poses[0].shape
 
-  poses_out = np.concatenate(poses)
-  poses_out = np.reshape(poses_out, (seq_len, batch_size, dim))
-  poses_out = np.transpose(poses_out, [1, 0, 2])
+#   poses_out = np.concatenate(poses)
+#   poses_out = np.reshape(poses_out, (seq_len, batch_size, dim))
+#   poses_out = np.transpose(poses_out, [1, 0, 2])
 
-  poses_out_list = []
-  for i in xrange(poses_out.shape[0]):
-    poses_out_list.append(
-      unNormalizeData(poses_out[i, :, :], data_mean, data_std, dim_to_ignore, actions, one_hot))
+#   poses_out_list = []
+#   for i in xrange(poses_out.shape[0]):
+#     poses_out_list.append(
+#       unNormalizeData(poses_out[i, :, :], data_mean, data_std, dim_to_ignore, actions, one_hot))
 
-  return poses_out_list
+#   return poses_out_list
 
 
 def readCSVasFloat(filename):
@@ -366,7 +373,7 @@ def get_test_data(path_to_dataset, subjects, actions, one_hot):
   data_sequences = load_data_(path_to_dataset, subjects, actions, action_n, one_hot, func)
   return data_sequences[:,:50], data_sequences[:,50:]
 
-def normalize_data( data, data_mean, data_std, dim_to_use, actions, one_hot ):
+def normalize_data( data, data_mean, data_std, dim_to_use, actions, one_hot, data_max=0, data_min=0 ):
   """
   Normalize input data by removing unused dimensions, subtracting the mean and
   dividing by the standard deviation
@@ -403,6 +410,8 @@ def normalize_data( data, data_mean, data_std, dim_to_use, actions, one_hot ):
     if one_hot:
       dim_to_use = dim_to_use + range(99,99+nactions)
     data[:,:,:99] = np.divide( (data[:,:,:99] - data_mean), data_std )
+    # normalize between -1 and 1
+    data[:,:,:99] = 2*(data[:,:,:99]-data_min)/(data_max-data_min) - 1
     return data[ :,:,dim_to_use ]
 
 def normalization_stats(completeData):
