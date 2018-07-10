@@ -129,8 +129,11 @@ def euler_diff(batch_expmap1, batch_expmap2, model, normalized=[True, True]):
   '''
     Get the mean euler angle difference between two batches
   '''
-  batch_euler1 = batch_expmap2euler(batch_expmap1, model, normalized[0])
-  batch_euler2 = batch_expmap2euler(batch_expmap2, model, normalized[1])
+  copy1 = np.copy(batch_expmap1)
+  copy2 = np.copy(batch_expmap2)
+
+  batch_euler1 = batch_expmap2euler(copy1, model, normalized[0])
+  batch_euler2 = batch_expmap2euler(copy2, model, normalized[1])
 
   # Compute and save the errors here
   mean_errors = np.zeros( (len(batch_expmap1), batch_expmap1[0].shape[0]) )
@@ -140,15 +143,14 @@ def euler_diff(batch_expmap1, batch_expmap2, model, normalized=[True, True]):
     # (next 3 entries) are also not considered in the error, so the_key
     # are set to zero.
     # See https://github.com/asheshjain399/RNNexp/issues/6#issuecomment-249404882
-    new_euler = np.copy(srnn_euler)
-    new_euler[:,0:6] = 0
+    srnn_euler[:,0:6] = 0
 
     # Now compute the l2 error. The following is numpy port of the error
     # function provided by Ashesh Jain (in matlab), available at
     # https://github.com/asheshjain399/RNNexp/blob/srnn/structural_rnn/CRFProblems/H3.6m/dataParser/Utils/motionGenerationError.m#L40-L54
-    idx_to_use = np.where( np.std( new_euler, 0 ) > 1e-4 )[0]
+    idx_to_use = np.where( np.std( srnn_euler, 0 ) > 1e-4 )[0]
 
-    euc_error = np.power( new_euler[:,idx_to_use] - batch_euler2[i][:,idx_to_use], 2)
+    euc_error = np.power( srnn_euler[:,idx_to_use] - batch_euler2[i][:,idx_to_use], 2)
     euc_error = np.sum(euc_error, 1)
     euc_error = np.sqrt( euc_error )
     mean_errors[i,:] = euc_error

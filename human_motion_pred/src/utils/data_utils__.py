@@ -227,47 +227,38 @@ def readCSVasFloat_randLines(filename, timesteps, rand_n, one_hot, action_n):
   return returnArray
 
 # (from seq2seq_model.find_indices_srnn)
-def find_indices_srnn(T_n): # data, action ):
+def find_indices_srnn( action, subj ):
     """
     Find the same action indices as in SRNN.
     See https://github.com/asheshjain399/RNNexp/blob/master/structural_rnn/CRFProblems/H3.6m/processdata.py#L325
     """
+    '''
+    Hard copy of the indices as produced in seq2seq_model.find_indices_srnn
+    '''
+    return {'walking' : [[1087, 1145, 660, 201],[955, 332, 304, 54]],
+    'eating' : [[1426, 1087, 1329, 1145],[374, 156, 955, 332]],
+    'smoking' : [[1426, 1087, 1329, 1145],[1398, 1180, 955, 332]],
+    'discussion' : [[1426, 1398, 1180, 332],[2063, 1087, 1145, 1438]],
+    'directions' : [[1426, 1087, 1145, 1438],[374, 156, 332, 665]],
+    'greeting' : [[402, 63, 305, 121],[1398, 1180, 955, 332]],
+    'phoning' : [[1426, 1087, 1329, 332],[374, 156, 121, 414]],
+    'posing' : [[402, 63, 835, 955],[374, 156, 305, 121]],
+    'purchases' : [[1087, 955, 332, 304],[1180, 1145, 660, 201]],
+    'sitting' : [[1426, 1087, 1329, 1145],[1398, 1180, 955, 332]],
+    'sittingdown' : [[1426, 1087, 1145, 1438],[1398, 1180, 332, 1689]],
+    'takingphoto' : [[1426, 1180, 1145, 1438],[1087, 955, 332, 660]],
+    'waiting' : [[1426, 1398, 1180, 332],[2063, 1087, 1145, 1438]],
+    'walkingdog' : [[402, 63, 305, 332],[374, 156, 121, 414]],
+    'walkingtogether' : [[1087, 1329, 1145, 660],[1180, 955, 332, 304]]}[action][subj-1]
 
-    # Used a fixed dummy seed, following
-    # https://github.com/asheshjain399/RNNexp/blob/srnn/structural_rnn/forecastTrajectories.py#L29
-    SEED = 1234567890
-    rng = np.random.RandomState( SEED )
-
-    subject = 5
-    subaction1 = 1
-    subaction2 = 2
-
-    # T1 = data[ (subject, action, subaction1, 'even') ].shape[0]
-    # T2 = data[ (subject, action, subaction2, 'even') ].shape[0]
-    prefix, suffix = 50, 100
-
-    idx = [rng.randint( 16,T_n-prefix-suffix ) for i in range(8)]
-    # idx.append( rng.randint( 16,T1-prefix-suffix ))
-    # idx.append( rng.randint( 16,T2-prefix-suffix ))
-    # idx.append( rng.randint( 16,T1-prefix-suffix ))
-    # idx.append( rng.randint( 16,T2-prefix-suffix ))
-    # idx.append( rng.randint( 16,T1-prefix-suffix ))
-    # idx.append( rng.randint( 16,T2-prefix-suffix ))
-    # idx.append( rng.randint( 16,T1-prefix-suffix ))
-    # idx.append( rng.randint( 16,T2-prefix-suffix ))
-    print (idx, T_n)
-    return idx
-
-def readCSVasFloat_for_validation(filename, action, subj, one_hot):
+def readCSVasFloat_for_validation(filename, action, subact, one_hot):
 
   with open(filename, 'r') as csvfile:
-    lines = list(csv.reader(csvfile, delimiter=',', quoting=csv.QUOTE_NONNUMERIC))
-    line_n = int(math.ceil(len(lines)/2.0))
-    data_dim = len(lines[0])
+    lines = np.array(list(csv.reader(csvfile, delimiter=',', quoting=csv.QUOTE_NONNUMERIC)))
+    data_dim = lines.shape[-1]
 
     # (from seq2seq_model.get_batch_srnn)
-    frames = find_indices_srnn( line_n )
-    line_idx = []
+    frames = find_indices_srnn( action, subact )
 
     if one_hot:
       returnArray = np.zeros((len(frames), 150, data_dim+action_n))
@@ -275,7 +266,7 @@ def readCSVasFloat_for_validation(filename, action, subj, one_hot):
       returnArray = np.zeros((len(frames), 150, data_dim))
 
     # 150 frames (as in seq2seq_model.get_batch_srnn)
-    for i, idx in enumerate(line_idx):
+    for i, idx in enumerate(frames):
       # skip every second image
       returnArray[i,:,:data_dim] = lines[range(idx*2,idx*2+2*150,2)][:]
 
@@ -344,7 +335,7 @@ def load_data_(path_to_dataset, subjects, actions, action_n, one_hot, func):
         # print("Reading subject {0}, action {1}, subaction {2}".format(subj, action, subact))
         filename = '{0}/S{1}/{2}_{3}.txt'.format( path_to_dataset, subj, action, subact)
 
-        action_sequences = func(filename, action, subj)
+        action_sequences = func(filename, action, subact)
 
         if one_hot:
           # Add a one-hot encoding at the end of the representation
@@ -359,7 +350,7 @@ def load_data_(path_to_dataset, subjects, actions, action_n, one_hot, func):
 def load_rand_data(path_to_dataset, subjects, actions, one_hot, timesteps, rand_n, iter_n):
   action_n = len(actions)
   rand_n = rand_n/action_n/2/len(subjects)
-  func = lambda filename, action, subj : readCSVasFloat_randLines(filename, timesteps, rand_n, one_hot, action_n)
+  func = lambda filename, action, subact : readCSVasFloat_randLines(filename, timesteps, rand_n, one_hot, action_n)
 
   while iter_n > 0:
     data_sequences = load_data_(path_to_dataset, subjects, actions, action_n, one_hot, func)
@@ -368,7 +359,7 @@ def load_rand_data(path_to_dataset, subjects, actions, one_hot, timesteps, rand_
 
 def get_test_data(path_to_dataset, subjects, actions, one_hot):
   action_n = len(actions)
-  func = lambda filename, action, subj : readCSVasFloat_for_validation(filename, action, subj, one_hot)
+  func = lambda filename, action, subact : readCSVasFloat_for_validation(filename, action, subact, one_hot)
   data_sequences = load_data_(path_to_dataset, subjects, actions, action_n, one_hot, func)
   return data_sequences[:,:50], data_sequences[:,50:]
 
