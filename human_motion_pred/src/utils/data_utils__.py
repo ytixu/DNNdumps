@@ -218,9 +218,9 @@ def readCSVasFloat_randLines(filename, timesteps, rand_n, one_hot, action_n):
   with open(filename, 'r') as csvfile:
     lines = np.array(list(csv.reader(csvfile, delimiter=',', quoting=csv.QUOTE_NONNUMERIC)))
     line_n = lines.shape[0]
-    rand_n = max(int(math.floor(line_n/2-16)),rand_n)
+    rand_n = max(int(math.floor(line_n/2-32)),rand_n)
     # Sample somewherein the middle (from seq2seq_model.get_batch)
-    line_idx = np.random.choice(line_n-2*timesteps-16, rand_n, replace=False)+16
+    line_idx = np.random.choice(line_n-2*timesteps-32, rand_n, replace=False)+32
     data_dim = lines[0].shape[-1]
     if one_hot:
       returnArray = np.zeros((rand_n, timesteps, data_dim+action_n))
@@ -229,7 +229,7 @@ def readCSVasFloat_randLines(filename, timesteps, rand_n, one_hot, action_n):
 
     for i, idx in enumerate(line_idx):
       # skip every second image
-      returnArray[i,:,:data_dim] = lines[range(idx,idx+2*timesteps,2)][:]
+      returnArray[i,:,:data_dim] = lines[range(idx,idx+2*timesteps,2)]
 
   return returnArray
 
