@@ -208,8 +208,9 @@ def readCSVasFloat(filename):
 
 def readCSVasFloat_randLines(filename, timesteps, rand_n, one_hot, action_n):
   with open(filename, 'r') as csvfile:
-    lines = csv.reader(csvfile, delimiter=',', quoting=csv.QUOTE_NONNUMERIC)
-    line_n = len(list(lines))
+    lines = np.array(list(csv.reader(csvfile, delimiter=',', quoting=csv.QUOTE_NONNUMERIC)))
+    print ('readCSVasFloat_randLines', lines.shape)
+    line_n = lines.shape[0]
     # Sample somewherein the middle (from seq2seq_model.get_batch)
     line_idx = np.random.choice(line_n-2*timesteps-16, rand_n, replace=False)+16
     data_dim = lines[0].shape[-1]
@@ -255,21 +256,21 @@ def find_indices_srnn(T_n): # data, action ):
     # idx.append( rng.randint( 16,T2-prefix-suffix ))
     return idx
 
-def readCSVasFloat_for_validation(filename, 150, action, subj, n_seed=8):
+def readCSVasFloat_for_validation(filename, action, subj, one_hot):
 
   with open(filename, 'r') as csvfile:
-    lines = csv.reader(csvfile, delimiter=',', quoting=csv.QUOTE_NONNUMERIC)
-    line_n = len(list(lines))
-    data_dim = lines[0].shape[-1]
+    lines = list(csv.reader(csvfile, delimiter=',', quoting=csv.QUOTE_NONNUMERIC))
+    line_n = len(lines)
+    data_dim = len(lines[0])
 
     # (from seq2seq_model.get_batch_srnn)
-    frames = self.find_indices_srnn( line_n )
+    frames = find_indices_srnn( line_n )
     line_idx = []
 
     if one_hot:
-      returnArray = np.zeros((rand_n, 150, data_dim+action_n))
+      returnArray = np.zeros((len(frames), 150, data_dim+action_n))
     else:
-      returnArray = np.zeros((rand_n, 150, data_dim))
+      returnArray = np.zeros((len(frames), 150, data_dim))
 
     # 150 frames (as in seq2seq_model.get_batch_srnn)
     for i, idx in enumerate(line_idx):
@@ -350,7 +351,7 @@ def load_data_(path_to_dataset, subjects, actions, action_n, one_hot, func):
         if len(data_sequences) == 0:
           data_sequences = action_sequences
         else:
-          data_sequences = np.stack(data_sequences, action_sequences, axis=0)
+          data_sequences = np.concatenate([data_sequences, action_sequences], axis=0)
     return data_sequences
 
 def load_rand_data(path_to_dataset, subjects, actions, one_hot, timesteps, rand_n, iter_n):
@@ -363,9 +364,9 @@ def load_rand_data(path_to_dataset, subjects, actions, one_hot, timesteps, rand_
     iter_n -= 1
     yield data_sequences
 
-def get_test_data(path_to_dataset, subjects, actions, one_hot, timesteps):
+def get_test_data(path_to_dataset, subjects, actions, one_hot):
   action_n = len(actions)
-  func = lambda filename, action, subj : readCSVasFloat_for_validation(filename, action, subj)
+  func = lambda filename, action, subj : readCSVasFloat_for_validation(filename, action, subj, one_hot)
   data_sequences = load_data_(path_to_dataset, subjects, actions, action_n, one_hot, func)
   return data_sequences[:,:50], data_sequences[:,50:]
 
@@ -403,9 +404,8 @@ def normalize_data( data, data_mean, data_std, dim_to_use, actions, one_hot ):
 
   if one_hot:
     dim_to_use = dim_to_use + range(99,99+nactions)
-
-  data[:,:99] = np.divide( (data[:,:99] - data_mean), data_std )
-  return data[ :, dim_to_use ]
+  data[:,:,:99] = np.divide( (data[:,:,:99] - data_mean), data_std )
+  return data[ :,:,dim_to_use ]
 
 def normalization_stats(completeData):
   """"

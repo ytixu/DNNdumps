@@ -72,7 +72,7 @@ def train_data_randGen( config, one_hot ):
     yield train_set
 
 def get_test_data( config, one_hot ):
-  expmap_gt, expmap_pred_gt = data_utils__.get_test_data( config['actions'], '../baselines/samples.h5', one_hot )
+  expmap_gt, expmap_pred_gt = data_utils__.get_test_data( config['data_dir'], TEST_SUBJECT_ID, config['actions'], one_hot )
   expmap_gt = data_utils__.normalize_data( expmap_gt, config['data_mean'], config['data_std'], config['dim_to_use'], config['actions'], one_hot )
   expmap_pred_gt = data_utils__.normalize_data( expmap_pred_gt, config['data_mean'], config['data_std'], config['dim_to_use'], config['actions'], one_hot )
   return expmap_gt, expmap_pred_gt
@@ -83,7 +83,7 @@ def batch_convert_expmap(batch_data, model):
     (to euler angles or to euclidean space)
   '''
   for i in np.arange( batch_data.shape[0] ):
-      yield i, data_utils__.unNormalizeData(batch_data[i,:,:], model.data_mean,
+      yield data_utils__.unNormalizeData(batch_data[i,:,:], model.data_mean,
         model.data_std, model.dim_to_ignore, model.labels, model.has_labels )
 
 def batch_expmap2euler(batch_data, model, normalized=True):
@@ -101,7 +101,6 @@ def batch_expmap2euler(batch_data, model, normalized=True):
         denormed[j,k:k+3] = data_utils__.rotmat2euler( data_utils__.expmap2rotmat( denormed[j,k:k+3] ))
     srnn_euler[i] = denormed
 
-  print 'srnn', len(srnn_euler), srnn_euler[0].shape
   return srnn_euler
 
 def batch_expmap2xyz(batch_data, model, normalized=True):
@@ -141,15 +140,15 @@ def euler_diff(batch_expmap1, batch_expmap2, model, normalized=[True, True]):
     # (next 3 entries) are also not considered in the error, so the_key
     # are set to zero.
     # See https://github.com/asheshjain399/RNNexp/issues/6#issuecomment-249404882
-    srnn_euler=np.copy(srnn_euler)
-    srnn_euler[:,0:6] = 0
+    new_euler = np.copy(srnn_euler)
+    new_euler[:,0:6] = 0
 
     # Now compute the l2 error. The following is numpy port of the error
     # function provided by Ashesh Jain (in matlab), available at
     # https://github.com/asheshjain399/RNNexp/blob/srnn/structural_rnn/CRFProblems/H3.6m/dataParser/Utils/motionGenerationError.m#L40-L54
-    idx_to_use = np.where( np.std( srnn_euler, 0 ) > 1e-4 )[0]
+    idx_to_use = np.where( np.std( new_euler, 0 ) > 1e-4 )[0]
 
-    euc_error = np.power( srnn_euler[:,idx_to_use] - batch_euler2[i][:,idx_to_use], 2)
+    euc_error = np.power( new_euler[:,idx_to_use] - batch_euler2[i][:,idx_to_use], 2)
     euc_error = np.sum(euc_error, 1)
     euc_error = np.sqrt( euc_error )
     mean_errors[i,:] = euc_error

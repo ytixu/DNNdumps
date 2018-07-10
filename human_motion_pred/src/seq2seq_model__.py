@@ -189,14 +189,15 @@ if __name__ == '__main__':
   expmap_gt = np.zeros((8, n, 99))
   expmap_pred = np.zeros((8, n, 99))
   with h5py.File( '../baselines/samples.h5', 'r' ) as h5f:
-    for action in config['actions']:
-      for i in range(8):
-        expmap_gt[i] = h5f['expmap/preds_gt/%s_%d'%(action, i)][:n]
-        expmap_pred[i] = h5f['expmap/preds/%s_%d'%(action, i)][:n]
+    for i, action in enumerate(config['actions']):
+      for j in range(8):
+        expmap_gt[j] = h5f['expmap/preds_gt/%s_%d'%(action, j)][:n]
+        expmap_pred[j] = h5f['expmap/preds/%s_%d'%(action, j)][:n]
 
-      # xyz = translate__.batch_expmap2xyz(expmap_gt, ae, normalized=False)
-      # image.plot_poses(xyz[:,:5])
-
+      xyz = translate__.batch_expmap2xyz(test_pred_gt[i*8:(i+1)*8,:5], ae)
+      image.plot_poses(xyz[:,:5])
+      print action
       print translate__.euler_diff(expmap_gt, expmap_pred, ae, normalized=[False, False])
-      print translate__.euler_diff(expmap_gt, test_pred_gt[:,:n], ae, normalized=[False, True])
+      print translate__.euler_diff(expmap_gt, test_pred_gt[i*8:(i+1)*8,:n], ae, normalized=[False, True])
+      break
 
