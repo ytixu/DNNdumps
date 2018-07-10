@@ -115,8 +115,6 @@ if __name__ == '__main__':
   print args
   print train_set.values()[0].shape
   print test_set.values()[0].shape
-  print np.max(test_set.values()[0])
-  print np.min(test_set.values()[0])
   print args['data_mean']
   print args['data_std']
   print args['dim_to_ignore']
@@ -128,5 +126,7 @@ if __name__ == '__main__':
       'data_mean':args['data_mean'].tolist(),
       'data_std':args['data_std'].tolist(),
       'dim_to_ignore':args['dim_to_ignore'],
-      'dim_to_use':args['dim_to_use']
+      'dim_to_use':args['dim_to_use'],
+      'max':1.*max([np.max(v) for v in train_set.values()] + [np.max(v) for v in test_set.values()]),
+      'min':1.*min([np.min(v) for v in train_set.values()] + [np.min(v) for v in test_set.values()])
     }, param_file)
