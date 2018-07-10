@@ -208,19 +208,73 @@ def readCSVasFloat(filename):
 
 def readCSVasFloat_randLines(filename, timesteps, rand_n, one_hot, action_n):
   with open(filename, 'r') as csvfile:
-    spamreader = csv.reader(csvfile, delimiter=',', quoting=csv.QUOTE_NONNUMERIC)
-    lines = open(filename).readlines()
+    lines = csv.reader(csvfile, delimiter=',', quoting=csv.QUOTE_NONNUMERIC)
+    line_n = len(list(lines))
     # Sample somewherein the middle (from seq2seq_model.get_batch)
-    line_idx = np.random.choice(len(lines)-2*timesteps-16, rand_n, replace=False)+16
-    line_length = lines[0].shape
+    line_idx = np.random.choice(line_n-2*timesteps-16, rand_n, replace=False)+16
+    data_dim = lines[0].shape[-1]
     if one_hot:
-      returnArray = np.zeros((rand_n, timesteps, line_length+action_n))
+      returnArray = np.zeros((rand_n, timesteps, data_dim+action_n))
     else:
-      returnArray = np.zeros((rand_n, timesteps, line_length))
+      returnArray = np.zeros((rand_n, timesteps, data_dim))
 
     for i, idx in enumerate(line_idx):
       # skip every second image
-      returnArray[i,:,:line_length] = lines[range(idx,idx+2*timesteps,2)][:]
+      returnArray[i,:,:data_dim] = lines[range(idx,idx+2*timesteps,2)][:]
+
+  return returnArray
+
+# (from seq2seq_model.find_indices_srnn)
+def find_indices_srnn(T_n): # data, action ):
+    """
+    Find the same action indices as in SRNN.
+    See https://github.com/asheshjain399/RNNexp/blob/master/structural_rnn/CRFProblems/H3.6m/processdata.py#L325
+    """
+
+    # Used a fixed dummy seed, following
+    # https://github.com/asheshjain399/RNNexp/blob/srnn/structural_rnn/forecastTrajectories.py#L29
+    SEED = 1234567890
+    rng = np.random.RandomState( SEED )
+
+    subject = 5
+    subaction1 = 1
+    subaction2 = 2
+
+    # T1 = data[ (subject, action, subaction1, 'even') ].shape[0]
+    # T2 = data[ (subject, action, subaction2, 'even') ].shape[0]
+    prefix, suffix = 50, 100
+
+    idx = [rng.randint( 16,T_n-prefix-suffix ) for i in range(4)]
+    # idx.append( rng.randint( 16,T1-prefix-suffix ))
+    # idx.append( rng.randint( 16,T2-prefix-suffix ))
+    # idx.append( rng.randint( 16,T1-prefix-suffix ))
+    # idx.append( rng.randint( 16,T2-prefix-suffix ))
+    # idx.append( rng.randint( 16,T1-prefix-suffix ))
+    # idx.append( rng.randint( 16,T2-prefix-suffix ))
+    # idx.append( rng.randint( 16,T1-prefix-suffix ))
+    # idx.append( rng.randint( 16,T2-prefix-suffix ))
+    return idx
+
+def readCSVasFloat_for_validation(filename, 150, action, subj, n_seed=8):
+
+  with open(filename, 'r') as csvfile:
+    lines = csv.reader(csvfile, delimiter=',', quoting=csv.QUOTE_NONNUMERIC)
+    line_n = len(list(lines))
+    data_dim = lines[0].shape[-1]
+
+    # (from seq2seq_model.get_batch_srnn)
+    frames = self.find_indices_srnn( line_n )
+    line_idx = []
+
+    if one_hot:
+      returnArray = np.zeros((rand_n, 150, data_dim+action_n))
+    else:
+      returnArray = np.zeros((rand_n, 150, data_dim))
+
+    # 150 frames (as in seq2seq_model.get_batch_srnn)
+    for i, idx in enumerate(line_idx):
+      # skip every second image
+      returnArray[i,:,:data_dim] = lines[range(idx*2,idx*2+2*150,2)][:]
 
   return returnArray
 
@@ -275,57 +329,45 @@ def load_data(path_to_dataset, subjects, actions, one_hot):
 
   return trainData, completeData
 
+def load_data_(path_to_dataset, subjects, actions, action_n, one_hot, func):
+  '''
+  Helper function for loading data
+  '''
+  data_sequences = []
+  for subj in subjects:
+    for action_idx in np.arange(action_n):
+      action = actions[ action_idx ]
+      for subact in [1, 2]:  # subactions
+        # print("Reading subject {0}, action {1}, subaction {2}".format(subj, action, subact))
+        filename = '{0}/S{1}/{2}_{3}.txt'.format( path_to_dataset, subj, action, subact)
+
+        action_sequences = func(filename, action, subj)
+
+        if one_hot:
+          # Add a one-hot encoding at the end of the representation
+          action_sequences[ :, :, action_idx-action_n ] = 1
+
+        if len(data_sequences) == 0:
+          data_sequences = action_sequences
+        else:
+          data_sequences = np.stack(data_sequences, action_sequences, axis=0)
+    return data_sequences
+
 def load_rand_data(path_to_dataset, subjects, actions, one_hot, timesteps, rand_n, iter_n):
   action_n = len(actions)
   rand_n = rand_n/action_n/2/len(subjects)
+  func = lambda filename, action, subj : readCSVasFloat_randLines(filename, timesteps, rand_n, one_hot, action_n)
 
   while iter_n > 0:
-    data_sequences = []
-    for subj in subjects:
-      for action_idx in np.arange(action_n):
-        action = actions[ action_idx ]
-        for subact in [1, 2]:  # subactions
-          # print("Reading subject {0}, action {1}, subaction {2}".format(subj, action, subact))
-          filename = '{0}/S{1}/{2}_{3}.txt'.format( path_to_dataset, subj, action, subact)
+    data_sequences = load_data_(path_to_dataset, subjects, actions, action_n, one_hot, func)
+    iter_n -= 1
+    yield data_sequences
 
-          action_sequences = readCSVasFloat_randLines(filename, timesteps, rand_n, one_hot, action_n)
-
-          if one_hot:
-            # Add a one-hot encoding at the end of the representation
-            action_sequences[ :, :, action_idx-action_n ] = 1
-
-          if len(data_sequences) == 0:
-            data_sequences = action_sequences
-          else:
-            data_sequences = np.stack(data_sequences, action_sequences, axis=0)
-
-      iter_n -= 1
-      yield data_sequences
-
-def get_test_data(actions, data_dir, one_hot, n=8 ):
-  data_dim = 99
+def get_test_data(path_to_dataset, subjects, actions, one_hot, timesteps):
   action_n = len(actions)
-
-  if one_hot:
-    data_dim += action_n
-
-  expmap_gt = np.zeros((n, 100, data_dim))
-  expmap_pred_gt = np.zeros((n, 100, data_dim))
-
-  with h5py.File( data_dir, 'r' ) as h5f:
-    for action_idx in np.arange(action_n):
-      action = actions[ action_idx ]
-      for i in range(n):
-        # conditioned sequences
-        expmap_gt[i,:,:99] = h5f['expmap/gt/%s_%d'%(action, i)][:]
-        # ground truth for the prediction
-        expmap_pred_gt[i,:,:99] = h5f['expmap/preds_gt/%s_%d'%(action, i)][:]
-
-        if one_hot:
-          expmap_gt[i,:,99+action_idx:] = 1
-          expmap_pred_gt[i,:,99+action_idx:] = 1
-
-  return expmap_gt, expmap_pred_gt
+  func = lambda filename, action, subj : readCSVasFloat_for_validation(filename, action, subj)
+  data_sequences = load_data_(path_to_dataset, subjects, actions, action_n, one_hot, func)
+  return data_sequences[:,:50], data_sequences[:,50:]
 
 def normalize_data( data, data_mean, data_std, dim_to_use, actions, one_hot ):
   """
