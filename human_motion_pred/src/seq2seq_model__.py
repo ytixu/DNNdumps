@@ -204,8 +204,8 @@ if __name__ == '__main__':
       #image.plot_poses(xyz[:,:5])
 
       print action, n
-      print translate__.euler_diff(expmap_gt, expmap_pred, ae, normalized=[False, False])
+      print translate__.euler_diff(expmap_gt, expmap_pred, ae, normalized=[False, False])[0]
       #print translate__.euler_diff(expmap_gt, batch_data[:,-n:], ae, normalized=[False, True])
-      print translate__.euler_diff(expmap_gt, loaded_batch, ae, normalized=[False, True])
-      break
+      print translate__.euler_diff(expmap_gt, loaded_batch, ae, normalized=[False, True])[0]
+      #break
 
