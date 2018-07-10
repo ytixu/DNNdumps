@@ -198,5 +198,5 @@ if __name__ == '__main__':
       # image.plot_poses(xyz[:,:5])
 
       print translate__.euler_diff(expmap_gt, expmap_pred, ae, normalized=[False, False])
-      print translate__.euler_diff(expmap_gt, test_pred_gt[:,:n], ae, normalized=[False, False])
+      print translate__.euler_diff(expmap_gt, test_pred_gt[:,:n], ae, normalized=[False, True])
 
