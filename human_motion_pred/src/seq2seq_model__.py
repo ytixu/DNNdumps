@@ -80,6 +80,7 @@ class seq2seq_ae__:
     idx.append( rng.randint( 16,T2-prefix-suffix ))
     idx.append( rng.randint( 16,T1-prefix-suffix ))
     idx.append( rng.randint( 16,T2-prefix-suffix ))
+    print action,[idx[i] for i in [0,2,4,6]], [idx[i] for i in [1,3,5,7]], T1, T2
     return idx
 
   def get_batch( self, data):
@@ -157,9 +158,9 @@ class seq2seq_ae__:
 
 
 if __name__ == '__main__':
-  train_set, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS)
+  train_set, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS, create_params=True)
   ae = seq2seq_ae__(config)
-  test_gt, test_pred_gt = test_set
+  #test_gt, test_pred_gt = test_set
 
 
   '''
@@ -169,7 +170,7 @@ if __name__ == '__main__':
   #batch_data = ae.get_batch( train_set)
   #print 'train batch', batch_data.shape
 
-  # for action in config['actions']:
+  #for action in config['actions']:
   #   batch_data = ae.get_batch_srnn( test_set, action)
   #   print 'test batch', batch_data.shape
 
@@ -177,7 +178,6 @@ if __name__ == '__main__':
   # #   image.plot_poses(xyz)
 
   #   print translate__.euler_diff(batch_data, batch_data, ae)
-
   '''
   test prediction from Martinez et al.
   load generated predictions from sample.h5
@@ -194,10 +194,16 @@ if __name__ == '__main__':
         expmap_gt[j] = h5f['expmap/preds_gt/%s_%d'%(action, j)][:n]
         expmap_pred[j] = h5f['expmap/preds/%s_%d'%(action, j)][:n]
 
-      xyz = translate__.batch_expmap2xyz(test_pred_gt[i*8:(i+1)*8,:5], ae)
+      batch_data = ae.get_batch_srnn( test_set, action)
+
+      xyz = translate__.batch_expmap2xyz(batch_data[:,-25:-10], ae)
       image.plot_poses(xyz[:,:5])
+      xyz = translate__.batch_expmap2xyz(expmap_gt[:5], ae, normalized=False)
+      image.plot_poses(xyz[:,:5])
+
       print action
       print translate__.euler_diff(expmap_gt, expmap_pred, ae, normalized=[False, False])
-      print translate__.euler_diff(expmap_gt, test_pred_gt[i*8:(i+1)*8,:n], ae, normalized=[False, True])
+      print translate__.euler_diff(expmap_gt, batch_data[:,-25:], ae, normalized=[False, True])
+      #print translate__.euler_diff(expmap_gt, test_pred_gt[i*8:(i+1)*8,:n], ae, normalized=[False, True])
       break
 

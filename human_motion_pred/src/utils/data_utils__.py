@@ -9,6 +9,7 @@ import numpy as np
 from six.moves import xrange # pylint: disable=redefined-builtin
 import copy
 import csv
+import math
 
 def rotmat2euler( R ):
   """
@@ -245,7 +246,7 @@ def find_indices_srnn(T_n): # data, action ):
     # T2 = data[ (subject, action, subaction2, 'even') ].shape[0]
     prefix, suffix = 50, 100
 
-    idx = [rng.randint( 16,T_n-prefix-suffix ) for i in range(4)]
+    idx = [rng.randint( 16,T_n-prefix-suffix ) for i in range(8)]
     # idx.append( rng.randint( 16,T1-prefix-suffix ))
     # idx.append( rng.randint( 16,T2-prefix-suffix ))
     # idx.append( rng.randint( 16,T1-prefix-suffix ))
@@ -254,13 +255,14 @@ def find_indices_srnn(T_n): # data, action ):
     # idx.append( rng.randint( 16,T2-prefix-suffix ))
     # idx.append( rng.randint( 16,T1-prefix-suffix ))
     # idx.append( rng.randint( 16,T2-prefix-suffix ))
+    print (idx, T_n)
     return idx
 
 def readCSVasFloat_for_validation(filename, action, subj, one_hot):
 
   with open(filename, 'r') as csvfile:
     lines = list(csv.reader(csvfile, delimiter=',', quoting=csv.QUOTE_NONNUMERIC))
-    line_n = len(lines)
+    line_n = int(math.ceil(len(lines)/2.0))
     data_dim = len(lines[0])
 
     # (from seq2seq_model.get_batch_srnn)
@@ -384,28 +386,30 @@ def normalize_data( data, data_mean, data_std, dim_to_use, actions, one_hot ):
   Returns
     data_out: the passed data matrix, but normalized
   """
-  # data_out = {}
   nactions = len(actions)
 
-  # if not one_hot:
-  #   # No one-hot encoding... no need to do anything special
-  #   for key in data.keys():
-  #     data_out[ key ] = np.divide( (data[key] - data_mean), data_std )
-  #     data_out[ key ] = data_out[ key ][ :, dim_to_use ]
+  if type(data) == type({}):
+    data_out = {}
+    if not one_hot:
+      # No one-hot encoding... no need to do anything special
+      for key in data.keys():
+        data_out[ key ] = np.divide( (data[key] - data_mean), data_std )
+        data_out[ key ] = data_out[ key ][ :, dim_to_use ]
 
-  # else:
-  #   # TODO hard-coding 99 dimensions for un-normalized human poses
-  #   for key in data.keys():
-  #     data_out[ key ] = np.divide( (data[key][:, 0:99] - data_mean), data_std )
-  #     data_out[ key ] = data_out[ key ][ :, dim_to_use ]
-  #     data_out[ key ] = np.hstack( (data_out[key], data[key][:,-nactions:]) )
+    else:
+      # TODO hard-coding 99 dimensions for un-normalized human poses
+      for key in data.keys():
+        data_out[ key ] = np.divide( (data[key][:, 0:99] - data_mean), data_std )
+        data_out[ key ] = data_out[ key ][ :, dim_to_use ]
+        data_out[ key ] = np.hstack( (data_out[key], data[key][:,-nactions:]) )
 
-  # return data_out
+    return data_out
 
-  if one_hot:
-    dim_to_use = dim_to_use + range(99,99+nactions)
-  data[:,:,:99] = np.divide( (data[:,:,:99] - data_mean), data_std )
-  return data[ :,:,dim_to_use ]
+  else:
+    if one_hot:
+      dim_to_use = dim_to_use + range(99,99+nactions)
+    data[:,:,:99] = np.divide( (data[:,:,:99] - data_mean), data_std )
+    return data[ :,:,dim_to_use ]
 
 def normalization_stats(completeData):
   """"
