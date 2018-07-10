@@ -82,11 +82,11 @@ def get_test_data( config, one_hot ):
 
   expmap_gt = data_utils__.normalize_data( expmap_gt, config['data_mean'],
     config['data_std'], config['dim_to_use'], config['actions'], one_hot,
-    config['data_max'], config['data_mean'] )
+    config['data_max'], config['data_min'] )
 
   expmap_pred_gt = data_utils__.normalize_data( expmap_pred_gt,
     config['data_mean'], config['data_std'], config['dim_to_use'],
-    config['actions'], one_hot, config['data_max'], config['data_mean'] )
+    config['actions'], one_hot, config['data_max'], config['data_min'] )
   return expmap_gt, expmap_pred_gt
 
 def batch_convert_expmap(batch_data, model):
@@ -97,7 +97,7 @@ def batch_convert_expmap(batch_data, model):
   for i in np.arange( batch_data.shape[0] ):
       yield data_utils__.unNormalizeData(batch_data[i,:,:], model.data_mean,
         model.data_std, model.dim_to_ignore, model.labels, model.has_labels,
-        config['data_max'], config['data_mean'] )
+        model.data_max, model.data_min )
 
 def batch_expmap2euler(batch_data, model, normalized=True):
   '''

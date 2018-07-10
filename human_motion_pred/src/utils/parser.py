@@ -129,5 +129,5 @@ if __name__ == '__main__':
       'dim_to_ignore':args['dim_to_ignore'],
       'dim_to_use':args['dim_to_use'],
       'data_max':math.ceil(max([np.max(v) for v in train_set.values()] + [np.max(v) for v in test_set.values()])),
-      'data_min':math.floor(*min([np.min(v) for v in train_set.values()] + [np.min(v) for v in test_set.values()]))
+      'data_min':math.floor(min([np.min(v) for v in train_set.values()] + [np.min(v) for v in test_set.values()]))
     }, param_file)
