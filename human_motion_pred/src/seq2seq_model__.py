@@ -191,14 +191,16 @@ if __name__ == '__main__':
   with h5py.File( '../baselines/samples.h5', 'r' ) as h5f:
     for i, action in enumerate(config['actions']):
       for j in range(8):
+        print h5f['expmap/preds/%s_%d'%(action, j)].shape
         expmap_gt[j] = h5f['expmap/preds_gt/%s_%d'%(action, j)][:n]
         expmap_pred[j] = h5f['expmap/preds/%s_%d'%(action, j)][:n]
 
       batch_data = ae.get_batch_srnn( test_set, action)
+      print batch_data.shape
 
-      xyz = translate__.batch_expmap2xyz(batch_data[:,-25:-10], ae)
+      xyz = translate__.batch_expmap2xyz(batch_data[:,-25:-20], ae)
       image.plot_poses(xyz[:,:5])
-      xyz = translate__.batch_expmap2xyz(expmap_gt[:5], ae, normalized=False)
+      xyz = translate__.batch_expmap2xyz(expmap_gt[:,:5], ae, normalized=False)
       image.plot_poses(xyz[:,:5])
 
       print action
