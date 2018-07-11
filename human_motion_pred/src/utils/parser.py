@@ -32,7 +32,7 @@ def get_parse(model_name, labels=False, create_params=False):
   ap.add_argument('-p', '--periods', required=False, help='Number of iterations of the data', default='100000', type=int)
   ap.add_argument('-rn', '--rand_n', required=False, help='Number of data per iteration', default='5000', type=int)
   ap.add_argument('-ld', '--latent_dim', required=False, help='Embedding size', default='1024', type=int)
-  ap.add_argument('-lr', '--learning_rate', required=False, help='Learning rate.', default='0.005', type=float)
+  ap.add_argument('-lr', '--learning_rate', required=False, help='Learning rate.', default='0.001', type=float)
   ap.add_argument('-te', '--test_every', required=False, help='How often to compute error on the test set.', default='10', type=int)
 
   ap.add_argument('-t', '--timesteps', required=False, help='Timestep size', default='75', type=int)

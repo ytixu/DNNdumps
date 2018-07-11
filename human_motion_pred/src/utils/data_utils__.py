@@ -352,7 +352,7 @@ def load_data_(path_to_dataset, subjects, actions, action_n, one_hot, func):
           data_sequences = action_sequences
         else:
           data_sequences = np.concatenate([data_sequences, action_sequences], axis=0)
-    return data_sequences
+  return data_sequences
 
 def load_rand_data(path_to_dataset, subjects, actions, one_hot, timesteps, rand_n, iter_n):
   action_n = len(actions)

@@ -77,17 +77,20 @@ def train_data_randGen( config, one_hot ):
     yield train_set
 
 def get_test_data( config, one_hot ):
-  expmap_gt, expmap_pred_gt = data_utils__.get_test_data( config['data_dir'],
-    TEST_SUBJECT_ID, config['actions'], one_hot )
+  def x():
+    expmap_gt, expmap_pred_gt = data_utils__.get_test_data( config['data_dir'],
+      TEST_SUBJECT_ID, config['actions'], one_hot )
 
-  expmap_gt = data_utils__.normalize_data( expmap_gt, config['data_mean'],
-    config['data_std'], config['dim_to_use'], config['actions'], one_hot,
-    config['data_max'], config['data_min'] )
+    expmap_gt = data_utils__.normalize_data( expmap_gt, config['data_mean'],
+      config['data_std'], config['dim_to_use'], config['actions'], one_hot,
+      config['data_max'], config['data_min'] )
 
-  expmap_pred_gt = data_utils__.normalize_data( expmap_pred_gt,
-    config['data_mean'], config['data_std'], config['dim_to_use'],
-    config['actions'], one_hot, config['data_max'], config['data_min'] )
-  return expmap_gt, expmap_pred_gt
+    expmap_pred_gt = data_utils__.normalize_data( expmap_pred_gt,
+      config['data_mean'], config['data_std'], config['dim_to_use'],
+      config['actions'], one_hot, config['data_max'], config['data_min'] )
+    return expmap_gt, expmap_pred_gt
+
+  return x
 
 def batch_convert_expmap(batch_data, model):
   '''
