@@ -71,7 +71,8 @@ class H_RNN(seq2seq_model__.seq2seq_ae__):
 		y = np.repeat(y, len(self.hierarchies), axis=0)
 		y = np.reshape(y, (-1, len(self.hierarchies), self.timesteps, y.shape[-1]))
 		for i, h in enumerate(self.hierarchies):
-			y[:,i,h+1:,:] = 0.0
+			for j in range(h+1, self.timesteps):
+				y[:,i,j] = y[:,i,h]
 		return np.reshape(y, (-1, self.timesteps*len(self.hierarchies), y.shape[-1]))
 
 	def run(self, data_iterator, n=25):
@@ -83,14 +84,15 @@ class H_RNN(seq2seq_model__.seq2seq_ae__):
 			iterations = 0
 			for x in data_iterator:
 				print 'iteration', iterations
-				from utils import image
-				xyz = translate__.batch_expmap2xyz(x[:5,:5], self)
-				image.plot_poses(xyz)
 
 				x_train, x_test, y_train, y_test = cross_validation.train_test_split(x, x, test_size=self.cv_splits)
 				y_train = self.__alter_y(y_train)
 				y_test = self.__alter_y(y_test)
 				print x_train.shape, x_test.shape, y_train.shape, y_test.shape
+				from utils import image
+                                xyz = translate__.batch_expmap2xyz(y_train[:5,:5], self)
+                                image.plot_poses(xyz)
+
 				history = self.autoencoder.fit(x_train, y_train,
 							shuffle=True,
 							epochs=self.epochs,

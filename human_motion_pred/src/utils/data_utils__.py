@@ -219,7 +219,7 @@ def readCSVasFloat_randLines(filename, timesteps, rand_n, one_hot, action_n):
     lines = np.array(list(csv.reader(csvfile, delimiter=',', quoting=csv.QUOTE_NONNUMERIC)))
     # skip every second frame
     line_n = int(math.ceil(lines.shape[0]/2.0))-16-timesteps
-    rand_n = max(line_n,rand_n)
+    rand_n = min(line_n,rand_n)
     # Sample somewherein the middle (from seq2seq_model.get_batch)
     line_idx = np.random.choice(line_n, rand_n, replace=False)+16
     data_dim = lines[0].shape[-1]
