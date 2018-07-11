@@ -26,11 +26,11 @@ class H_RNN(seq2seq_model__.seq2seq_ae__):
 
 	def make_model(self):
 		inputs = Input(shape=(self.timesteps, self.data_dim))
-		encoded = RNN_UNIT(self.latent_dim, return_sequences=True)(inputs)
+		encoded = RNN_UNIT(self.latent_dim, return_sequences=True, activation='linear')(inputs)
 
 		z = Input(shape=(self.latent_dim,))
 		decode_1 = RepeatVector(self.timesteps)
-		decode_2 = RNN_UNIT(self.data_dim, return_sequences=True)
+		decode_2 = RNN_UNIT(self.data_dim, return_sequences=True, activation='linear')
 
 		decoded = [None]*len(self.hierarchies)
 		if len(self.hierarchies) == 1:
