@@ -89,9 +89,9 @@ class H_RNN(seq2seq_model__.seq2seq_ae__):
 				y_train = self.__alter_y(y_train)
 				y_test = self.__alter_y(y_test)
 				print x_train.shape, x_test.shape, y_train.shape, y_test.shape
-				from utils import image
-                                xyz = translate__.batch_expmap2xyz(y_train[:5,:5], self)
-                                image.plot_poses(xyz)
+				#from utils import image
+                                #xyz = translate__.batch_expmap2xyz(y_train[:5,:5], self)
+                                #image.plot_poses(xyz)
 
 				history = self.autoencoder.fit(x_train, y_train,
 							shuffle=True,
@@ -102,16 +102,16 @@ class H_RNN(seq2seq_model__.seq2seq_ae__):
 				print history.history['loss']
 				new_loss = np.mean(history.history['loss'])
 				if new_loss < loss:
-					#self.autoencoder.save_weights(self.save_path, overwrite=True)
+					self.autoencoder.save_weights(self.save_path, overwrite=True)
 					loss = new_loss
 					print 'Saved model - ', loss
 
-				y_test_decoded = self.autoencoder.predict(x_test[:1])
-				# print y_test_decoded.shape
-				y_test_decoded = np.reshape(y_test_decoded, (len(self.hierarchies), self.timesteps, -1))
-				self.training_images_plotter(y_test_decoded, x_test[:1])
-
 				if iterations % self.test_every == 0:
+					y_test_decoded = self.autoencoder.predict(x_test[:1])
+					# print y_test_decoded.shape
+					y_test_decoded = np.reshape(y_test_decoded, (len(self.hierarchies), self.timesteps, -1))
+					self.training_images_plotter(y_test_decoded, x_test[:1])
+
 					idx = np.random.choice(x_test.shape[0], n, replace=False)
 					y_test_encoded = self.encoder.predict(x_test[idx])[:,-1]
 					y_test_decoded = self.decoder.predict(y_test_encoded)
