@@ -136,6 +136,7 @@ def unNormalizeData(normalizedData, data_mean, data_std, dimensions_to_ignore, a
   """
   # redo normalization between -1 and 1
   if data_max > 0:
+    print ( 'unnormalized -1, 1')
     if one_hot:
       normalizedData[:,:-len(actions)] = (normalizedData[:,:-len(actions)] + 1)/2*(data_max-data_min)+data_min
     else:
@@ -411,6 +412,7 @@ def normalize_data( data, data_mean, data_std, dim_to_use, actions, one_hot, dat
       dim_to_use = dim_to_use + range(99,99+nactions)
     data[:,:,:99] = np.divide( (data[:,:,:99] - data_mean), data_std )
     # normalize between -1 and 1
+    print ('normalized -1, 1')
     data[:,:,:99] = 2*(data[:,:,:99]-data_min)/(data_max-data_min) - 1
     return data[ :,:,dim_to_use ]
 

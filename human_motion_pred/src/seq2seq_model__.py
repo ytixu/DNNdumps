@@ -171,6 +171,10 @@ if __name__ == '__main__':
   '''
   test conversions
   '''
+  for x in train_set:
+    xyz = translate__.batch_expmap2xyz(x[:5,:5], ae)
+    image.plot_poses(xyz)
+    break
 
   #batch_data = ae.get_batch( train_set)
   #print 'train batch', batch_data.shape
@@ -183,11 +187,14 @@ if __name__ == '__main__':
   # #   image.plot_poses(xyz)
 
   #   print translate__.euler_diff(batch_data, batch_data, ae)
+
+def other_():
   '''
   test prediction from Martinez et al.
   load generated predictions from sample.h5
   + sanity check in the conversions from translate__.py
   '''
+
   import h5py
   # numpy implementation
   n = ae.timesteps-ae.conditioned_pred_steps
