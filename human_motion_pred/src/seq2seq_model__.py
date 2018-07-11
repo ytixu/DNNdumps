@@ -93,8 +93,7 @@ class seq2seq_ae__:
 
     # Select entries at random
     all_keys    = list(data.keys())
-    print all_keys
-    chosen_keys = [6 for _ in range(self.batch_size)] # np.random.choice( len(all_keys), self.batch_size )
+    chosen_keys = np.random.choice( len(all_keys), self.batch_size )
 
     batch_data  = np.zeros((self.batch_size, self.timesteps, self.data_dim), dtype=float)
 
@@ -106,7 +105,7 @@ class seq2seq_ae__:
       n, _ = data[ the_key ].shape
 
       # Sample somewherein the middle
-      idx = 16+i # np.random.randint( 16, n-self.timesteps )
+      idx = np.random.randint( 16, n-self.timesteps )
 
       # Select the data around the sampled points
       batch_data[i] = data[ the_key ][idx:idx+self.timesteps ,:]
@@ -164,7 +163,7 @@ class seq2seq_ae__:
                       np.array([xyz_gt[:,range(0,self.timesteps,self.timesteps/5)]]))
 
 if __name__ == '__main__':
-  train_set, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS, create_params=True)
+  train_set, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS) #, create_params=True)
   ae = seq2seq_ae__(config)
   test_gt, test_pred_gt = test_set
 
@@ -177,10 +176,10 @@ if __name__ == '__main__':
   #  image.plot_poses(xyz)
   #  break
 
-  batch_data = ae.get_batch( train_set)
-  print 'train batch', batch_data.shape
-  xyz = translate__.batch_expmap2xyz(batch_data[:5, :5], ae)
-  image.plot_poses(xyz)
+  # batch_data = ae.get_batch( train_set)
+  # print 'train batch', batch_data.shape
+  # xyz = translate__.batch_expmap2xyz(batch_data[:5, :5], ae)
+  # image.plot_poses(xyz)
 
   #for action in config['actions']:
   #   batch_data = ae.get_batch_srnn( test_set, action)
@@ -191,7 +190,6 @@ if __name__ == '__main__':
 
   #   print translate__.euler_diff(batch_data, batch_data, ae)
 
-def other_():
   '''
   test prediction from Martinez et al.
   load generated predictions from sample.h5

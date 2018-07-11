@@ -136,7 +136,6 @@ def unNormalizeData(normalizedData, data_mean, data_std, dimensions_to_ignore, a
   """
   # redo normalization between -1 and 1
   if data_max > 0:
-    print ( 'unnormalized -1, 1')
     if one_hot:
       normalizedData[:,:-len(actions)] = (normalizedData[:,:-len(actions)] + 1)/2*(data_max-data_min)+data_min
     else:
@@ -222,8 +221,7 @@ def readCSVasFloat_randLines(filename, timesteps, rand_n, one_hot, action_n):
     line_n = int(math.ceil(lines.shape[0]/2.0))-16-timesteps
     rand_n = max(line_n,rand_n)
     # Sample somewherein the middle (from seq2seq_model.get_batch)
-    line_idx = [16+i for i in range(rand_n)] # np.random.choice(line_n, rand_n, replace=False)+16
-    print (line_idx)
+    line_idx = np.random.choice(line_n, rand_n, replace=False)+16
     data_dim = lines[0].shape[-1]
     if one_hot:
       returnArray = np.zeros((rand_n, timesteps, data_dim+action_n))
@@ -413,7 +411,6 @@ def normalize_data( data, data_mean, data_std, dim_to_use, actions, one_hot, dat
       dim_to_use = dim_to_use + range(99,99+nactions)
     data[:,:,:99] = np.divide( (data[:,:,:99] - data_mean), data_std )
     # normalize between -1 and 1
-    print ('normalized -1, 1')
     data[:,:,:99] = 2*(data[:,:,:99]-data_min)/(data_max-data_min) - 1
     return data[ :,:,dim_to_use ]
 
