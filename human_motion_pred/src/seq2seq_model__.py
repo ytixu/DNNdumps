@@ -105,7 +105,7 @@ class seq2seq_ae__:
       n, _ = data[ the_key ].shape
 
       # Sample somewherein the middle
-      idx = np.random.randint( 16, n-self.timesteps )
+      idx = 16 # np.random.randint( 16, n-self.timesteps )
 
       # Select the data around the sampled points
       batch_data[i] = data[ the_key ][idx:idx+self.timesteps ,:]

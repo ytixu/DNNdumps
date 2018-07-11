@@ -218,10 +218,11 @@ def readCSVasFloat(filename):
 def readCSVasFloat_randLines(filename, timesteps, rand_n, one_hot, action_n):
   with open(filename, 'r') as csvfile:
     lines = np.array(list(csv.reader(csvfile, delimiter=',', quoting=csv.QUOTE_NONNUMERIC)))
-    line_n = lines.shape[0]
-    rand_n = max(int(math.floor(line_n/2-32)),rand_n)
+    # skip every second frame
+    line_n = int(math.ceil(lines.shape[0]/2.0))
+    rand_n = max(int(math.floor(line_n-16)),rand_n)
     # Sample somewherein the middle (from seq2seq_model.get_batch)
-    line_idx = np.random.choice(line_n-2*timesteps-32, rand_n, replace=False)+32
+    line_idx = [16+i for i in range(rand_n)] # np.random.choice(line_n-timesteps-16, rand_n, replace=False)+16
     data_dim = lines[0].shape[-1]
     if one_hot:
       returnArray = np.zeros((rand_n, timesteps, data_dim+action_n))
@@ -229,8 +230,7 @@ def readCSVasFloat_randLines(filename, timesteps, rand_n, one_hot, action_n):
       returnArray = np.zeros((rand_n, timesteps, data_dim))
 
     for i, idx in enumerate(line_idx):
-      # skip every second image
-      returnArray[i,:,:data_dim] = lines[range(idx,idx+2*timesteps,2)]
+      returnArray[i,:,:data_dim] = lines[range(2*idx,2*(idx+timesteps),2)]
 
   return returnArray
 
@@ -275,8 +275,8 @@ def readCSVasFloat_for_validation(filename, action, subact, one_hot):
 
     # 150 frames (as in seq2seq_model.get_batch_srnn)
     for i, idx in enumerate(frames):
-      # skip every second image
-      returnArray[i,:,:data_dim] = lines[range(idx*2,idx*2+2*150,2)][:]
+      # skip every second frame
+      returnArray[i,:,:data_dim] = lines[range(2*idx,2*(idx+150),2)][:]
 
   return returnArray
 
