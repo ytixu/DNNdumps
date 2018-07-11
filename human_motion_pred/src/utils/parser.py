@@ -93,6 +93,8 @@ def get_parse(model_name, labels=False, create_params=False):
     args['dim_to_ignore'] = dim_to_ignore
     args['dim_to_use'] = dim_to_use
     args['data_dim'] = len(dim_to_use)
+    args['data_max'] = 0
+    args['data_min'] = 0
 
   else:
     with open(args['data_param'], 'rb') as param_file:
