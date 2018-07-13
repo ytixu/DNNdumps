@@ -12,8 +12,8 @@ from utils import parser
 from utils import translate__
 
 MODEL_NAME = 'H_GRU'
-HAS_LABELS = False
 USE_GRU = True
+HAS_LABELS = True
 
 if USE_GRU:
 	from keras.layers import GRU as RNN_UNIT
@@ -90,6 +90,6 @@ class H_RNN(seq2seq_model__.seq2seq_ae__):
 
 if __name__ == '__main__':
 	train_set_gen, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS)
-	ae = H_RNN(config)
+	ae = H_RNN(config, HAS_LABELS)
 	#test_gt, test_pred_gt = test_set
 	ae.run(train_set_gen)

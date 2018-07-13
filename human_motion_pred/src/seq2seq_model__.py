@@ -15,7 +15,7 @@ HAS_LABELS = False
 
 class seq2seq_ae__:
 
-  def __init__(self, args):
+  def __init__(self, args, has_labels):
     self.autoencoder = None
     self.encoder = None
     self.decoder = None
@@ -33,14 +33,15 @@ class seq2seq_ae__:
     self.conditioned_pred_steps = args['conditioned_pred_steps']
     self.latent_dim = args['latent_dim']
 
-    if HAS_LABELS:
+    if has_labels:
       self.label_dim = args['label_dim']
+      self.motion_dim = args['data_dim']
       self.data_dim = args['data_dim']+args['label_dim']
     else:
       self.data_dim = args['data_dim']
 
     self.labels = args['actions']
-    self.has_labels = HAS_LABELS
+    self.has_labels = has_labels
 
     self.load_path = args['load_path']
     self.save_path = args['save_path']
@@ -215,7 +216,7 @@ class seq2seq_ae__:
 
 if __name__ == '__main__':
   train_set, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS) #, create_params=True)
-  ae = seq2seq_ae__(config)
+  ae = seq2seq_ae__(config, HAS_LABELS)
   test_gt, test_pred_gt = test_set
 
 

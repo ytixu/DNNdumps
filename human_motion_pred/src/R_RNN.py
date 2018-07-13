@@ -3,17 +3,18 @@ matplotlib.use('Agg')
 
 import numpy as np
 from sklearn import cross_validation
-from keras.layers import Input, RepeatVector, Lambda, concatenate
+from keras.layers import Input, RepeatVector, Lambda, concatenate, Dense, Add
 from keras.models import Model
 from keras.optimizers import RMSprop
+import keras.backend as K
 
 import seq2seq_model__
 from utils import parser
 from utils import translate__
 
 MODEL_NAME = 'R_GRU'
-HAS_LABELS = False
 USE_GRU = True
+HAS_LABELS = True
 
 if USE_GRU:
 	from keras.layers import GRU as RNN_UNIT
@@ -24,14 +25,14 @@ else:
 class R_RNN(seq2seq_model__.seq2seq_ae__):
 
 	def make_model(self):
-		inputs = Input(shape=(self.timesteps, self.input_dim))
-		encoded = RNN_UNIT(self.latent_dim, return_sequences=True)(inputs)
+		inputs = Input(shape=(self.timesteps, self.data_dim))
+		encoded = RNN_UNIT(self.latent_dim, return_sequences=True, activation='linear')(inputs)
 
 		z = Input(shape=(self.latent_dim,))
-		decode_pose = Dense(self.motion_dim, activation='tanh')
+		decode_pose = Dense(self.motion_dim)
 		decode_name = Dense(self.label_dim, activation='relu')
 		decode_repete = RepeatVector(self.timesteps)
-		decode_residual = RNN_UNIT(self.output_dim, return_sequences=True)
+		decode_residual = RNN_UNIT(self.data_dim, return_sequences=True, activation='linear')
 		decode_add = Add()
 
 		decoded = [None]*len(self.hierarchies)
@@ -85,7 +86,7 @@ class R_RNN(seq2seq_model__.seq2seq_ae__):
 	def __alter_label(self, x):
 		idx = np.random.choice(x.shape[0], x.shape[0]/2, replace=False)
 		x[idx,:,-self.label_dim:] = 0
-		return x, y
+		return x
 
 	def run(self, data_iterator):
 		self.load()
@@ -112,6 +113,6 @@ class R_RNN(seq2seq_model__.seq2seq_ae__):
 
 if __name__ == '__main__':
 	train_set_gen, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS)
-	ae = H_RNN(config)
+	ae = R_RNN(config, HAS_LABELS)
 	#test_gt, test_pred_gt = test_set
 	ae.run(train_set_gen)
