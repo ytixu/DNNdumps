@@ -52,109 +52,144 @@ class seq2seq_ae__:
     self.data_max = args['data_max']
     self.data_min = args['data_min']
 
-  def find_indices_srnn( self, data, action ):
-    """
-    Find the same action indices as in SRNN.
-    See https://github.com/asheshjain399/RNNexp/blob/master/structural_rnn/CRFProblems/H3.6m/processdata.py#L325
-    """
+    self.loss_count = 1000
+    self.iter_count = 0
 
-    # Used a fixed dummy seed, following
-    # https://github.com/asheshjain399/RNNexp/blob/srnn/structural_rnn/forecastTrajectories.py#L29
-    SEED = 1234567890
-    rng = np.random.RandomState( SEED )
+  # def find_indices_srnn( self, data, action ):
+  #   """
+  #   Find the same action indices as in SRNN.
+  #   See https://github.com/asheshjain399/RNNexp/blob/master/structural_rnn/CRFProblems/H3.6m/processdata.py#L325
+  #   """
 
-    subject = 5
-    subaction1 = 1
-    subaction2 = 2
+  #   # Used a fixed dummy seed, following
+  #   # https://github.com/asheshjain399/RNNexp/blob/srnn/structural_rnn/forecastTrajectories.py#L29
+  #   SEED = 1234567890
+  #   rng = np.random.RandomState( SEED )
 
-    T1 = data[ (subject, action, subaction1, 'even') ].shape[0]
-    T2 = data[ (subject, action, subaction2, 'even') ].shape[0]
-    prefix, suffix = 50, 100
+  #   subject = 5
+  #   subaction1 = 1
+  #   subaction2 = 2
 
-    idx = []
-    idx.append( rng.randint( 16,T1-prefix-suffix ))
-    idx.append( rng.randint( 16,T2-prefix-suffix ))
-    idx.append( rng.randint( 16,T1-prefix-suffix ))
-    idx.append( rng.randint( 16,T2-prefix-suffix ))
-    idx.append( rng.randint( 16,T1-prefix-suffix ))
-    idx.append( rng.randint( 16,T2-prefix-suffix ))
-    idx.append( rng.randint( 16,T1-prefix-suffix ))
-    idx.append( rng.randint( 16,T2-prefix-suffix ))
-    print action,[idx[i] for i in [0,2,4,6]], [idx[i] for i in [1,3,5,7]], T1, T2
-    return idx
+  #   T1 = data[ (subject, action, subaction1, 'even') ].shape[0]
+  #   T2 = data[ (subject, action, subaction2, 'even') ].shape[0]
+  #   prefix, suffix = 50, 100
 
-  def get_batch( self, data):
-    """Get a random batch of data from the specified bucket, prepare for step.
-    Args
-      data: a list of sequences of size n-by-d to fit the model to.
-    Returns
-      batch_data: the constructed batch.
-    """
+  #   idx = []
+  #   idx.append( rng.randint( 16,T1-prefix-suffix ))
+  #   idx.append( rng.randint( 16,T2-prefix-suffix ))
+  #   idx.append( rng.randint( 16,T1-prefix-suffix ))
+  #   idx.append( rng.randint( 16,T2-prefix-suffix ))
+  #   idx.append( rng.randint( 16,T1-prefix-suffix ))
+  #   idx.append( rng.randint( 16,T2-prefix-suffix ))
+  #   idx.append( rng.randint( 16,T1-prefix-suffix ))
+  #   idx.append( rng.randint( 16,T2-prefix-suffix ))
+  #   print action,[idx[i] for i in [0,2,4,6]], [idx[i] for i in [1,3,5,7]], T1, T2
+  #   return idx
 
-    # Select entries at random
-    all_keys    = list(data.keys())
-    chosen_keys = np.random.choice( len(all_keys), self.batch_size )
+  # def get_batch( self, data):
+  #   """Get a random batch of data from the specified bucket, prepare for step.
+  #   Args
+  #     data: a list of sequences of size n-by-d to fit the model to.
+  #   Returns
+  #     batch_data: the constructed batch.
+  #   """
 
-    batch_data  = np.zeros((self.batch_size, self.timesteps, self.data_dim), dtype=float)
+  #   # Select entries at random
+  #   all_keys    = list(data.keys())
+  #   chosen_keys = np.random.choice( len(all_keys), self.batch_size )
 
-    for i in xrange( self.batch_size ):
+  #   batch_data  = np.zeros((self.batch_size, self.timesteps, self.data_dim), dtype=float)
 
-      the_key = all_keys[ chosen_keys[i] ]
+  #   for i in xrange( self.batch_size ):
 
-      # Get the number of frames
-      n, _ = data[ the_key ].shape
+  #     the_key = all_keys[ chosen_keys[i] ]
 
-      # Sample somewherein the middle
-      idx = np.random.randint( 16, n-self.timesteps )
+  #     # Get the number of frames
+  #     n, _ = data[ the_key ].shape
 
-      # Select the data around the sampled points
-      batch_data[i] = data[ the_key ][idx:idx+self.timesteps ,:]
+  #     # Sample somewherein the middle
+  #     idx = np.random.randint( 16, n-self.timesteps )
 
-    return batch_data
+  #     # Select the data around the sampled points
+  #     batch_data[i] = data[ the_key ][idx:idx+self.timesteps ,:]
+
+  #   return batch_data
 
 
-  def get_batch_srnn(self, data, action ):
-    """
-    Get a random batch of data from the specified bucket, prepare for step.
-    Args
-      data: dictionary with k:v, k=((subject, action, subsequence, 'even')),
-        v=nxd matrix with a sequence of poses
-      action: the action to load data from
-    Returns
-      batch_data : the constructed batches have the proper format to call step(...) later.
-    """
-    print action, type(action)
-    actions = ["directions", "discussion", "eating", "greeting", "phoning",
-              "posing", "purchases", "sitting", "sittingdown", "smoking",
-              "takingphoto", "waiting", "walking", "walkingdog", "walkingtogether"]
+  # def get_batch_srnn(self, data, action ):
+  #   """
+  #   Get a random batch of data from the specified bucket, prepare for step.
+  #   Args
+  #     data: dictionary with k:v, k=((subject, action, subsequence, 'even')),
+  #       v=nxd matrix with a sequence of poses
+  #     action: the action to load data from
+  #   Returns
+  #     batch_data : the constructed batches have the proper format to call step(...) later.
+  #   """
+  #   print action, type(action)
+  #   actions = ["directions", "discussion", "eating", "greeting", "phoning",
+  #             "posing", "purchases", "sitting", "sittingdown", "smoking",
+  #             "takingphoto", "waiting", "walking", "walkingdog", "walkingtogether"]
 
-    if not action in actions:
-      raise ValueError("Unrecognized action {0}".format(action))
+  #   if not action in actions:
+  #     raise ValueError("Unrecognized action {0}".format(action))
 
-    frames = {}
-    frames[ action ] = self.find_indices_srnn( data, action )
+  #   frames = {}
+  #   frames[ action ] = self.find_indices_srnn( data, action )
 
-    batch_size = 8 # we always evaluate 8 seeds
-    subject    = 5 # we always evaluate on subject 5
+  #   batch_size = 8 # we always evaluate 8 seeds
+  #   subject    = 5 # we always evaluate on subject 5
 
-    seeds = [( action, (i%2)+1, frames[action][i] ) for i in range(batch_size)]
+  #   seeds = [( action, (i%2)+1, frames[action][i] ) for i in range(batch_size)]
 
-    batch_data  = np.zeros( (batch_size, self.timesteps, self.data_dim), dtype=float )
+  #   batch_data  = np.zeros( (batch_size, self.timesteps, self.data_dim), dtype=float )
 
-    # Reproducing SRNN's sequence subsequence selection as done in
-    # https://github.com/asheshjain399/RNNexp/blob/master/structural_rnn/CRFProblems/H3.6m/processdata.py#L343
-    for i in xrange( batch_size ):
+  #   # Reproducing SRNN's sequence subsequence selection as done in
+  #   # https://github.com/asheshjain399/RNNexp/blob/master/structural_rnn/CRFProblems/H3.6m/processdata.py#L343
+  #   for i in xrange( batch_size ):
 
-      _, subsequence, idx = seeds[i]
-      idx = idx + 50
+  #     _, subsequence, idx = seeds[i]
+  #     idx = idx + 50
 
-      data_sel = data[ (subject, action, subsequence, 'even') ]
+  #     data_sel = data[ (subject, action, subsequence, 'even') ]
 
-      data_sel = data_sel[(idx-self.conditioned_pred_steps):(idx+self.timesteps-self.conditioned_pred_steps) ,:]
+  #     data_sel = data_sel[(idx-self.conditioned_pred_steps):(idx+self.timesteps-self.conditioned_pred_steps) ,:]
 
-      batch_data[i]  = data_sel
+  #     batch_data[i]  = data_sel
 
-    return batch_data
+  #   return batch_data
+
+  def make_model(self):
+    pass
+
+  def load(self):
+    self.make_model()
+    if self.trained:
+      self.autoencoder.load_weights(self.load_path)
+      print 'LOADED', self.load_path
+      return True
+    return False
+
+  def post_train_step(self, loss, x_test, n=25):
+    # print loss
+    if new_loss < self.loss_count:
+      self.autoencoder.save_weights(self.save_path, overwrite=True)
+      self.loss_count = new_loss
+      print 'Saved model -', loss
+
+    if self.iter_count % self.test_every == 0:
+      y_test_decoded = self.autoencoder.predict(x_test[:1])
+      # print y_test_decoded.shape
+      y_test_decoded = np.reshape(y_test_decoded, (len(self.hierarchies), self.timesteps, -1))
+      self.training_images_plotter(y_test_decoded, x_test[:1])
+
+      idx = np.random.choice(x_test.shape[0], n, replace=False)
+      y_test_encoded = self.encoder.predict(x_test[idx])[:,-1]
+      y_test_decoded = self.decoder.predict(y_test_encoded)
+      print translate__.euler_diff(x_test[idx], y_test_decoded, self)[0]
+
+    self.iter_count += 1
+    print 'Iteration -', self.iter_count
 
   def training_images_plotter(self, pred_data, gt_data):
     xyz_pred = translate__.batch_expmap2xyz(pred_data, self)
