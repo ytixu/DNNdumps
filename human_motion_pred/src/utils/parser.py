@@ -71,7 +71,7 @@ def get_parse(model_name, labels=False, create_params=False):
 
 
   args = vars(ap.parse_args())
-  model_signature = '%s_t%d_l%d' % (model_name, args['timesteps'], args['latent_dim'])
+  model_signature = '%s_t%d_l%d_c%d' % (model_name, args['timesteps'], args['latent_dim'], args['conditioned_pred_steps'])
 
   # set up log and save paths
   if args['save_path'] == '':

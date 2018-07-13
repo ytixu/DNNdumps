@@ -76,7 +76,7 @@ class H_RNN(seq2seq_model__.seq2seq_ae__):
 		return np.reshape(y, (-1, self.timesteps*len(self.hierarchies), y.shape[-1]))
 
 	def run(self, data_iterator, n=25):
-		if not self.load():
+		if  self.load():
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			loss = 10000
@@ -113,9 +113,17 @@ class H_RNN(seq2seq_model__.seq2seq_ae__):
 					self.training_images_plotter(y_test_decoded, x_test[:1])
 
 					idx = np.random.choice(x_test.shape[0], n, replace=False)
-					y_test_encoded = self.encoder.predict(x_test[idx])[:,-1]
-					y_test_decoded = self.decoder.predict(y_test_encoded)
-					print translate__.euler_diff(x_test[idx], y_test_decoded, self)[0]
+					y_test_encoded = self.encoder.predict(x_test[idx])[:,[self.conditioned_pred_steps-1, -1]]
+					log_err = [new_loss, 0, 0]
+					for h, cut in enumerate([self.conditioned_pred_steps, self.timesteps]):
+						y_test_decoded = self.decoder.predict(y_test_encoded[:,h])
+						euler_err = translate__.euler_diff(x_test[idx,:cut], y_test_decoded[:,:cut], self)[0]
+						print euler_err
+						log_err[h+1] = np.mean(euler_err)
+
+					self.log_training_error(log_err)
+				else:
+					self.log_training_error([new_loss])
 
 				iterations += 1
 

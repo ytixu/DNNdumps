@@ -1,6 +1,7 @@
 import matplotlib
 matplotlib.use('Agg')
 
+import csv
 import numpy as np
 
 from utils import data_utils__
@@ -161,6 +162,12 @@ class seq2seq_ae__:
     xyz_gt = translate__.batch_expmap2xyz(gt_data, self)
     image.plot_poses(xyz_pred[range(0,xyz_pred.shape[0],xyz_pred.shape[0]/5)][:,range(0,self.timesteps,self.timesteps/5)],
                       np.array([xyz_gt[:,range(0,self.timesteps,self.timesteps/5)]]))
+
+  def log_training_error(self, log):
+    with open(self.log_path, 'a+') as f:
+      spamwriter = csv.writer(f)
+      spamwriter.writerow(log + [self.lr])
+
 
 if __name__ == '__main__':
   train_set, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS) #, create_params=True)
