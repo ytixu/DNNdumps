@@ -67,7 +67,8 @@ class H_RNN(seq2seq_model__.seq2seq_ae__):
 		return np.reshape(y, (-1, self.timesteps*len(self.hierarchies), y.shape[-1]))
 
 	def run(self, data_iterator):
-		if not self.load():
+		self.load()
+		if not self.trained:
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			for x in data_iterator:

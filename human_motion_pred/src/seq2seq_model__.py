@@ -1,6 +1,7 @@
 import matplotlib
 matplotlib.use('Agg')
 
+import csv
 import numpy as np
 
 from utils import data_utils__
@@ -24,7 +25,7 @@ class seq2seq_ae__:
     # self.periods = args['periods']
     self.cv_splits = args['cv_splits'] if 'cv_splits' in args else 0.2
     self.lr = args['learning_rate']
-    self.trained = False if args['mode'] == 'train' else True
+    self.trained = args['mode'] == 'sample'
     self.test_every = args['test_every']
 
     self.timesteps = args['timesteps'] if 'timesteps' in args else 5
@@ -164,18 +165,18 @@ class seq2seq_ae__:
 
   def load(self):
     self.make_model()
-    if self.trained:
+    if self.load_path != '':
       self.autoencoder.load_weights(self.load_path)
       print 'LOADED', self.load_path
       return True
     return False
 
-  def post_train_step(self, loss, x_test, n=25):
-    # print loss
+  def post_train_step(self, new_loss, x_test, n=25):
+    # print new_loss
     if new_loss < self.loss_count:
       self.autoencoder.save_weights(self.save_path, overwrite=True)
       self.loss_count = new_loss
-      print 'Saved model -', loss
+      print 'Saved model -', new_loss
 
     if self.iter_count % self.test_every == 0:
       y_test_decoded = self.autoencoder.predict(x_test[:1])
@@ -186,7 +187,16 @@ class seq2seq_ae__:
       idx = np.random.choice(x_test.shape[0], n, replace=False)
       y_test_encoded = self.encoder.predict(x_test[idx])[:,-1]
       y_test_decoded = self.decoder.predict(y_test_encoded)
-      print translate__.euler_diff(x_test[idx], y_test_decoded, self)[0]
+      log_err = [new_loss, 0, 0]
+      for h, cut in enumerate([self.conditioned_pred_steps, self.timesteps]):
+        y_test_decoded = self.decoder.predict(y_test_encoded[:,h])
+        euler_err = translate__.euler_diff(x_test[idx,:cut], y_test_decoded[:,:cut], self)[0]
+        print euler_err
+        log_err[h+1] = np.mean(euler_err)
+
+      self.log_training_error(log_err)
+    else:
+      self.log_training_error([new_loss])
 
     self.iter_count += 1
     print 'Iteration -', self.iter_count
@@ -196,6 +206,12 @@ class seq2seq_ae__:
     xyz_gt = translate__.batch_expmap2xyz(gt_data, self)
     image.plot_poses(xyz_pred[range(0,xyz_pred.shape[0],xyz_pred.shape[0]/5)][:,range(0,self.timesteps,self.timesteps/5)],
                       np.array([xyz_gt[:,range(0,self.timesteps,self.timesteps/5)]]))
+
+  def log_training_error(self, log):
+    with open(self.log_path, 'a+') as f:
+      spamwriter = csv.writer(f)
+      spamwriter.writerow(log + [self.lr])
+
 
 if __name__ == '__main__':
   train_set, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS) #, create_params=True)

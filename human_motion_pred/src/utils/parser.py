@@ -18,7 +18,7 @@ def get_log_name(name):
 
 def get_parse(model_name, labels=False, create_params=False):
   ap = argparse.ArgumentParser()
-  list_of_modes = ['train', 'sample', 'cont']
+  list_of_modes = ['train', 'sample']
   ap.add_argument('-dd', '--data_dir', required=False, help='Data directory', default='../../data/h3.6/raw/h3.6m/dataset')
   ap.add_argument('-dp', '--data_param', required=False, help='Data parameter file path (the mean, std and used dims)', default='../../data/h3.6/raw/h3.6m/params.json')
 
@@ -71,7 +71,7 @@ def get_parse(model_name, labels=False, create_params=False):
 
 
   args = vars(ap.parse_args())
-  model_signature = '%s_t%d_l%d' % (model_name, args['timesteps'], args['latent_dim'])
+  model_signature = '%s_t%d_l%d_c%d' % (model_name, args['timesteps'], args['latent_dim'], args['conditioned_pred_steps'])
 
   # set up log and save paths
   if args['save_path'] == '':

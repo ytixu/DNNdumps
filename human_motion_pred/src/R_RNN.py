@@ -66,7 +66,7 @@ class R_RNN(seq2seq_model__.seq2seq_ae__):
 		self.encoder = Model(inputs, encoded)
 		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
-		opt = RMSprop(lr=LEARNING_RATE)
+		opt = RMSprop(lr=self.lr)
 		self.autoencoder.compile(optimizer=opt, loss=customLoss)
 
 		self.autoencoder.summary()
@@ -88,7 +88,8 @@ class R_RNN(seq2seq_model__.seq2seq_ae__):
 		return x, y
 
 	def run(self, data_iterator):
-		if not self.load():
+		self.load()
+		if not self.trained:
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			for x in data_iterator:
