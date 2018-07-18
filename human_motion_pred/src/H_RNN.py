@@ -5,7 +5,7 @@ import numpy as np
 from sklearn import cross_validation
 from keras.layers import Input, RepeatVector, Lambda, concatenate
 from keras.models import Model
-from keras.optimizers import Adadelta
+from keras.optimizers import Adagrad
 
 import seq2seq_model__
 from utils import parser
@@ -49,8 +49,8 @@ class H_RNN(seq2seq_model__.seq2seq_ae__):
 		self.encoder = Model(inputs, encoded)
 		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
-		opt = Adadelta()
-		self.autoencoder.compile(optimizer=opt, loss='mean_squared_error')
+		#opt = Adadelta()
+		self.autoencoder.compile(optimizer='Adagrad', loss='mean_squared_error')
 
 		self.autoencoder.summary()
 		self.encoder.summary()
