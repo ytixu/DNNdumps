@@ -5,7 +5,7 @@ import numpy as np
 from sklearn import cross_validation
 from keras.layers import Input, RepeatVector, Lambda, concatenate
 from keras.models import Model
-from keras.optimizers import RMSprop
+from keras.optimizers import Adadelta
 
 import seq2seq_model__
 from utils import parser
@@ -13,7 +13,7 @@ from utils import translate__
 
 MODEL_NAME = 'H_GRU'
 USE_GRU = True
-HAS_LABELS = True
+HAS_LABELS = False
 
 if USE_GRU:
 	from keras.layers import GRU as RNN_UNIT
@@ -49,7 +49,7 @@ class H_RNN(seq2seq_model__.seq2seq_ae__):
 		self.encoder = Model(inputs, encoded)
 		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
-		opt = RMSprop(lr=self.lr)
+		opt = Adadelta()
 		self.autoencoder.compile(optimizer=opt, loss='mean_squared_error')
 
 		self.autoencoder.summary()
@@ -72,7 +72,8 @@ class H_RNN(seq2seq_model__.seq2seq_ae__):
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			for x in data_iterator:
-				x_train, x_test, y_train, y_test = cross_validation.train_test_split(x, x, test_size=self.cv_splits)
+				y = np.copy(x)
+				x_train, x_test, y_train, y_test = cross_validation.train_test_split(x, y, test_size=self.cv_splits)
 				y_train = self.__alter_y(y_train)
 				y_test = self.__alter_y(y_test)
 				print x_train.shape, x_test.shape, y_train.shape, y_test.shape

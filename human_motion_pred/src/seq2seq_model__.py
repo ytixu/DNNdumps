@@ -29,7 +29,8 @@ class seq2seq_ae__:
     self.test_every = args['test_every']
 
     self.timesteps = args['timesteps'] if 'timesteps' in args else 5
-    self.hierarchies = range(self.timesteps) if args['hierarchies'] == 'all' else args['hierarchies']
+    self.hierarchies = range(self.timesteps) if args['hierarchies'] == 'all' else map(int, args['hierarchies'])
+    print self.hierarchies
     self.conditioned_pred_steps = args['conditioned_pred_steps']
     self.latent_dim = args['latent_dim']
 
@@ -177,20 +178,18 @@ class seq2seq_ae__:
     if new_loss < self.loss_count:
       self.autoencoder.save_weights(self.save_path, overwrite=True)
       self.loss_count = new_loss
-      print 'Saved model -', new_loss
+      print 'Saved model -', new_loss, self.save_path
 
     if self.iter_count % self.test_every == 0:
-      y_test_decoded = self.autoencoder.predict(x_test[:1])
-      # print y_test_decoded.shape
-      y_test_decoded = np.reshape(y_test_decoded, (len(self.hierarchies), self.timesteps, -1))
-      self.training_images_plotter(y_test_decoded, x_test[:1])
+      #y_test_decoded = self.autoencoder.predict(x_test[:1])
+      #y_test_decoded = np.reshape(y_test_decoded, (len(self.hierarchies), self.timesteps, -1))
+      #self.training_images_plotter(y_test_decoded, x_test[:1])
 
       idx = np.random.choice(x_test.shape[0], n, replace=False)
-      y_test_encoded = self.encoder.predict(x_test[idx])[:,-1]
-      y_test_decoded = self.decoder.predict(y_test_encoded)
+      y_test_encoded = self.encoder.predict(x_test[idx])
       log_err = [new_loss, 0, 0]
       for h, cut in enumerate([self.conditioned_pred_steps, self.timesteps]):
-        y_test_decoded = self.decoder.predict(y_test_encoded[:,h])
+        y_test_decoded = self.decoder.predict(y_test_encoded[:,cut-1])
         euler_err = translate__.euler_diff(x_test[idx,:cut], y_test_decoded[:,:cut], self)[0]
         print euler_err
         log_err[h+1] = np.mean(euler_err)
@@ -217,7 +216,7 @@ class seq2seq_ae__:
 if __name__ == '__main__':
   train_set, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS) #, create_params=True)
   ae = seq2seq_ae__(config, HAS_LABELS)
-  test_gt, test_pred_gt = test_set
+  #test_gt, test_pred_gt = test_set
 
 
   '''
