@@ -181,9 +181,9 @@ class seq2seq_ae__:
       print 'Saved model -', new_loss, self.save_path
 
     if self.iter_count % self.test_every == 0:
-      #y_test_decoded = self.autoencoder.predict(x_test[:1])
-      #y_test_decoded = np.reshape(y_test_decoded, (len(self.hierarchies), self.timesteps, -1))
-      #self.training_images_plotter(y_test_decoded, x_test[:1])
+      y_test_decoded = self.autoencoder.predict(x_test[:1])
+      y_test_decoded = np.reshape(y_test_decoded, (len(self.hierarchies), self.timesteps, -1))
+      self.training_images_plotter(y_test_decoded, x_test[:1])
 
       idx = np.random.choice(x_test.shape[0], n, replace=False)
       y_test_encoded = self.encoder.predict(x_test[idx])

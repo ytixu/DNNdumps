@@ -2,6 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from time import gmtime, strftime
 
+
+def plot_data(data):
+	for x in data:
+		plt.plot(range(x.shape[0]), x)
+	plt.savefig('data-exp-viz.png', dpi=192)
+        plt.close()
+
 M_POSE_LINES = {'r':[0,1,2,3],
 			'g':[0,6,7,8],
 			'b':[0,12,13,14,15],

@@ -77,7 +77,8 @@ class H_RNN(seq2seq_model__.seq2seq_ae__):
 				y_train = self.__alter_y(y_train)
 				y_test = self.__alter_y(y_test)
 				print x_train.shape, x_test.shape, y_train.shape, y_test.shape
-				#from utils import image
+				from utils import image
+				image.plot_data(x_train[0])
                 #xyz = translate__.batch_expmap2xyz(y_train[:5,:5], self)
                 #image.plot_poses(xyz)
 
