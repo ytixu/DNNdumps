@@ -212,6 +212,21 @@ class seq2seq_ae__:
       spamwriter = csv.writer(f)
       spamwriter.writerow(log + [self.lr])
 
+  def __alter_y(self, y):
+    if len(self.hierarchies) == 1:
+      return y
+    y = np.repeat(y, len(self.hierarchies), axis=0)
+    y = np.reshape(y, (-1, len(self.hierarchies), self.timesteps, y.shape[-1]))
+    for i, h in enumerate(self.hierarchies):
+      for j in range(h+1, self.timesteps):
+        y[:,i,j] = y[:,i,h]
+    return np.reshape(y, (-1, self.timesteps*len(self.hierarchies), y.shape[-1]))
+
+  def __alter_label(self, x):
+    idx = np.random.choice(x.shape[0], x.shape[0]/2, replace=False)
+    x[idx,:,-self.label_dim:] = 0
+    return x
+
 
 if __name__ == '__main__':
   train_set, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS) #, create_params=True)

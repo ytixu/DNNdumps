@@ -12,45 +12,51 @@ import seq2seq_model__
 from utils import parser
 from utils import translate__
 
-MODEL_NAME = 'R_GRU'
+MODEL_NAME = 'R_H_GRU'
 USE_GRU = True
-HAS_LABELS = True
+HAS_LABELS = False
 
 if USE_GRU:
 	from keras.layers import GRU as RNN_UNIT
 else:
 	from keras.layers import LSTM as RNN_UNIT
-	MODEL_NAME = 'R_LSTM'
+	MODEL_NAME = 'R_H_LSTM'
 
-class R_RNN(seq2seq_model__.seq2seq_ae__):
+class R_RH_NN(seq2seq_model__.seq2seq_ae__):
 
 	def make_model(self):
 		inputs = Input(shape=(self.timesteps, self.data_dim))
 		encoded = RNN_UNIT(self.latent_dim, return_sequences=True, activation='tanh')(inputs)
 
 		z = Input(shape=(self.latent_dim,))
-		decode_pose = Dense(self.motion_dim)
-		decode_name = Dense(self.label_dim, activation='relu')
 		decode_repete = RepeatVector(self.timesteps)
-		decode_residual = RNN_UNIT(self.data_dim, return_sequences=True, activation='linear')
-		decode_add = Add()
+		decode_rnn = GRU(self.output_dim, return_sequences=True)
+		decode_pose = Dense(self.output_dim, activation='linear')
+		# decode_name = Dense(self.label_dim)
+		decode_reshape = Reshape((self.timesteps, self.output_dim))
+		# softmax = Lambda(lambda x: K.tf.nn.softmax(x))
+
+		def frame_decoded(seq):
+			motion = [None]*self.timesteps
+			for i in self.hierarchies:
+				e = Lambda(lambda x: x[:,i], output_shape=(self.output_dim,))(seq)
+				motion[i] = decode_pose(e)
+				# name = softmax(decode_name(e))
+				# motion[i] = concatenate([pose, name], axis=1)
+			return decode_reshape(concatenate(motion, axis=1))
 
 		decoded = [None]*len(self.hierarchies)
-		residual = [None]*len(self.hierarchies)
 		for i, h in enumerate(self.hierarchies):
 			e = Lambda(lambda x: x[:,h], output_shape=(self.latent_dim,))(encoded)
-			decoded[i] = concatenate([decode_pose(e), decode_name(e)], axis=1)
-			residual[i] = decode_repete(e)
-			residual[i] = decode_residual(residual[i])
-			decoded[i] = decode_add([decode_repete(decoded[i]), residual[i]])
+			decoded[i] = decode_repete(e)
+			decoded[i] = decode_rnn(decoded[i])
+			decoded[i] = frame_decoded(decoded[i])
 
 		decoded = concatenate(decoded, axis=1)
-		residual = concatenate(residual, axis=1)
 
-		decoded_ = concatenate([decode_pose(z), decode_name(z)], axis=1)
-		residual_ = decode_repete(z)
-		residual_ = decode_residual(residual_)
-		decoded_ = decode_add([decode_repete(decoded_), residual_])
+		decoded_ = decode_repete(z)
+		decoded_ = decode_rnn(decoded_)
+		decoded_ = frame_decoded(decoded_)
 
 		def customLoss(yTrue, yPred):
 			yt = K.reshape(yTrue[:,:,-self.label_dim:], (-1, len(self.hierarchies), self.timesteps, self.label_dim))
@@ -80,8 +86,8 @@ class R_RNN(seq2seq_model__.seq2seq_ae__):
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			for x in data_iterator:
-				x_data = self.__alter_label(x)
-				x_train, x_test, y_train, y_test = cross_validation.train_test_split(x_data, x_data, test_size=self.cv_splits)
+				# x_data = self.__alter_label(x)
+				x_train, x_test, y_train, y_test = cross_validation.train_test_split(x, x, test_size=self.cv_splits)
 				y_train = self.__alter_y(y_train)
 				y_test = self.__alter_y(y_test)
 				print x_train.shape, x_test.shape, y_train.shape, y_test.shape
@@ -99,6 +105,6 @@ class R_RNN(seq2seq_model__.seq2seq_ae__):
 
 if __name__ == '__main__':
 	train_set_gen, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS)
-	ae = R_RNN(config, HAS_LABELS)
+	ae = R_H_RNN(config, HAS_LABELS)
 	#test_gt, test_pred_gt = test_set
 	ae.run(train_set_gen)

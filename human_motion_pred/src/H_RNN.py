@@ -27,7 +27,7 @@ class H_RNN(seq2seq_model__.seq2seq_ae__):
 
 	def make_model(self):
 		inputs = Input(shape=(self.timesteps, self.data_dim))
-		encoded = RNN_UNIT(self.latent_dim, return_sequences=True, activation='linear')(inputs)
+		encoded = RNN_UNIT(self.latent_dim, return_sequences=True, activation='tanh')(inputs)
 
 		z = Input(shape=(self.latent_dim,))
 		decode_1 = RepeatVector(self.timesteps)
@@ -57,16 +57,6 @@ class H_RNN(seq2seq_model__.seq2seq_ae__):
 		self.autoencoder.summary()
 		self.encoder.summary()
 		self.decoder.summary()
-
-	def __alter_y(self, y):
-		if len(self.hierarchies) == 1:
-			return y
-		y = np.repeat(y, len(self.hierarchies), axis=0)
-		y = np.reshape(y, (-1, len(self.hierarchies), self.timesteps, y.shape[-1]))
-		for i, h in enumerate(self.hierarchies):
-			for j in range(h+1, self.timesteps):
-				y[:,i,j] = y[:,i,h]
-		return np.reshape(y, (-1, self.timesteps*len(self.hierarchies), y.shape[-1]))
 
 	def run(self, data_iterator):
 		self.load()
