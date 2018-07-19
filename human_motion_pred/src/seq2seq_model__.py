@@ -23,6 +23,8 @@ class seq2seq_ae__:
     self.epochs = args['epochs']
     self.batch_size = args['batch_size']
     # self.periods = args['periods']
+    self.decay = args['decay']
+    self.decay_numb = int(args['periods']/args['decay_times'])
     self.cv_splits = args['cv_splits'] if 'cv_splits' in args else 0.2
     self.lr = args['learning_rate']
     self.trained = args['mode'] == 'sample'
@@ -165,11 +167,15 @@ class seq2seq_ae__:
   def make_model(self):
     pass
 
-  def load(self):
-    self.make_model()
-    if self.load_path != '':
-      self.autoencoder.load_weights(self.load_path)
-      print 'LOADED', self.load_path
+  def recompile_opt(self):
+    pass
+
+  def load(self, path=''):
+    if path == '':
+      path = self.load_path
+    if path != '':
+      self.autoencoder.load_weights(path)
+      print 'LOADED', path
       return True
     return False
 
@@ -199,6 +205,12 @@ class seq2seq_ae__:
       self.log_training_error([new_loss]+rec)
 
     self.iter_count += 1
+
+    if self.iter_count % self.decay_numb == 0:
+      self.load(self.save_path)
+      self.lr = self.lr/self.decay
+      self.recompile_opt()
+
     print 'Iteration -', self.iter_count
 
   def training_images_plotter(self, pred_data, gt_data):
@@ -227,6 +239,33 @@ class seq2seq_ae__:
     x[idx,:,-self.label_dim:] = 0
     return x
 
+
+  def run(self, data_iterator, has_labels, args=[]):
+    self.make_model()
+    self.load()
+    if not self.trained:
+      # from keras.utils import plot_model
+      # plot_model(self.autoencoder, to_file='model.png')
+      for x in data_iterator:
+        if has_labels:
+          x = self.alter_label(x)
+
+        x_train, x_test, y_train, y_test = cross_validation.train_test_split(x, x, test_size=self.cv_splits)
+        y_train = self.__alter_y(y_train)
+        y_test = self.__alter_y(y_test)
+        print x_train.shape, x_test.shape, y_train.shape, y_test.shape
+        # from utils import image
+        # image.plot_data(x_train[0])
+        #xyz = translate__.batch_expmap2xyz(y_train[:5,:5], self)
+        #image.plot_poses(xyz)
+
+        history = self.autoencoder.fit(x_train, y_train,
+              shuffle=True,
+              epochs=self.epochs,
+              batch_size=self.batch_size,
+              validation_data=(x_test, y_test))
+
+        self.post_train_step(history.history['loss'][0], x_test, args)
 
 if __name__ == '__main__':
   train_set, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS) #, create_params=True)
