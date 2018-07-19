@@ -64,10 +64,10 @@ class H_RNN(seq2seq_model__.seq2seq_ae__):
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			for x in data_iterator:
-				y = np.copy(x)
-				x_train, x_test, y_train, y_test = cross_validation.train_test_split(x, y, test_size=self.cv_splits)
-				y_train = self.__alter_y(y_train)
-				y_test = self.__alter_y(y_test)
+				# y = np.copy(x)
+				x_train, x_test, y_train, y_test = cross_validation.train_test_split(x, x, test_size=self.cv_splits)
+				y_train = self.alter_y(y_train)
+				y_test = self.alter_y(y_test)
 				print x_train.shape, x_test.shape, y_train.shape, y_test.shape
 				from utils import image
 				image.plot_data(x_train[0])

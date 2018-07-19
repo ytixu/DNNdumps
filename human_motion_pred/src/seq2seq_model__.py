@@ -212,7 +212,7 @@ class seq2seq_ae__:
       spamwriter = csv.writer(f)
       spamwriter.writerow(log + [self.lr])
 
-  def __alter_y(self, y):
+  def alter_y(self, y):
     if len(self.hierarchies) == 1:
       return y
     y = np.repeat(y, len(self.hierarchies), axis=0)
@@ -222,7 +222,7 @@ class seq2seq_ae__:
         y[:,i,j] = y[:,i,h]
     return np.reshape(y, (-1, self.timesteps*len(self.hierarchies), y.shape[-1]))
 
-  def __alter_label(self, x):
+  def alter_label(self, x):
     idx = np.random.choice(x.shape[0], x.shape[0]/2, replace=False)
     x[idx,:,-self.label_dim:] = 0
     return x
