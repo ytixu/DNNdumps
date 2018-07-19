@@ -5,7 +5,7 @@ import numpy as np
 from sklearn import cross_validation
 from keras.layers import Input, RepeatVector, Lambda, concatenate
 from keras.models import Model
-from keras.optimizers import Adagrad
+#from keras.optimizers import Adagrad
 
 import seq2seq_model__
 from utils import parser
@@ -14,6 +14,8 @@ from utils import translate__
 MODEL_NAME = 'H_GRU'
 USE_GRU = True
 HAS_LABELS = False
+OPT = 'RMSprop'
+LOSS = 'mean_squared_error'
 
 if USE_GRU:
 	from keras.layers import GRU as RNN_UNIT
@@ -50,7 +52,7 @@ class H_RNN(seq2seq_model__.seq2seq_ae__):
 		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
 		#opt = Adadelta()
-		self.autoencoder.compile(optimizer='Adagrad', loss='mean_squared_error')
+		self.autoencoder.compile(optimizer=OPT, loss=LOSS)
 
 		self.autoencoder.summary()
 		self.encoder.summary()
@@ -88,7 +90,7 @@ class H_RNN(seq2seq_model__.seq2seq_ae__):
 							batch_size=self.batch_size,
 							validation_data=(x_test, y_test))
 
-				self.post_train_step(history.history['loss'][0], x_test)
+				self.post_train_step(history.history['loss'][0], x_test, [OPT, LOSS])
 
 if __name__ == '__main__':
 	train_set_gen, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS)

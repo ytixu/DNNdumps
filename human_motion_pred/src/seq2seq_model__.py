@@ -173,7 +173,7 @@ class seq2seq_ae__:
       return True
     return False
 
-  def post_train_step(self, new_loss, x_test, n=25):
+  def post_train_step(self, new_loss, x_test, rec=[], n=25):
     # print new_loss
     if new_loss < self.loss_count:
       self.autoencoder.save_weights(self.save_path, overwrite=True)
@@ -194,9 +194,9 @@ class seq2seq_ae__:
         print euler_err
         log_err[h+1] = np.mean(euler_err)
 
-      self.log_training_error(log_err)
+      self.log_training_error(log_err+rec)
     else:
-      self.log_training_error([new_loss])
+      self.log_training_error([new_loss]+rec)
 
     self.iter_count += 1
     print 'Iteration -', self.iter_count
