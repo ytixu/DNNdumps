@@ -3,6 +3,7 @@ matplotlib.use('Agg')
 
 import csv
 import numpy as np
+from sklearn import cross_validation
 
 from utils import data_utils__
 from utils import translate__
@@ -179,7 +180,7 @@ class seq2seq_ae__:
       return True
     return False
 
-  def post_train_step(self, new_loss, x_test, rec=[], n=25):
+  def __post_train_step(self, new_loss, x_test, rec=[], n=25):
     # print new_loss
     if new_loss < self.loss_count:
       self.autoencoder.save_weights(self.save_path, overwrite=True)
@@ -187,9 +188,9 @@ class seq2seq_ae__:
       print 'Saved model -', new_loss, self.save_path
 
     if self.iter_count % self.test_every == 0:
-      y_test_decoded = self.autoencoder.predict(x_test[:1])
-      y_test_decoded = np.reshape(y_test_decoded, (len(self.hierarchies), self.timesteps, -1))
-      self.training_images_plotter(y_test_decoded, x_test[:1])
+      #y_test_decoded = self.autoencoder.predict(x_test[:1])
+      #y_test_decoded = np.reshape(y_test_decoded, (len(self.hierarchies), self.timesteps, -1))
+      #self.__training_images_plotter(y_test_decoded, x_test[:1])
 
       idx = np.random.choice(x_test.shape[0], n, replace=False)
       y_test_encoded = self.encoder.predict(x_test[idx])
@@ -200,31 +201,31 @@ class seq2seq_ae__:
         print euler_err
         log_err[h+1] = np.mean(euler_err)
 
-      self.log_training_error(log_err+rec)
+      self.__log_training_error(log_err+rec)
     else:
-      self.log_training_error([new_loss]+rec)
+      self.__log_training_error([new_loss]+rec)
 
     self.iter_count += 1
 
     if self.iter_count % self.decay_numb == 0:
       self.load(self.save_path)
-      self.lr = self.lr/self.decay
+      self.lr = self.lr*self.decay
       self.recompile_opt()
 
     print 'Iteration -', self.iter_count
 
-  def training_images_plotter(self, pred_data, gt_data):
+  def __training_images_plotter(self, pred_data, gt_data):
     xyz_pred = translate__.batch_expmap2xyz(pred_data, self)
     xyz_gt = translate__.batch_expmap2xyz(gt_data, self)
     image.plot_poses(xyz_pred[range(0,xyz_pred.shape[0],xyz_pred.shape[0]/5)][:,range(0,self.timesteps,self.timesteps/5)],
                       np.array([xyz_gt[:,range(0,self.timesteps,self.timesteps/5)]]))
 
-  def log_training_error(self, log):
+  def __log_training_error(self, log):
     with open(self.log_path, 'a+') as f:
       spamwriter = csv.writer(f)
       spamwriter.writerow(log + [self.lr])
 
-  def alter_y(self, y):
+  def __alter_y(self, y):
     if len(self.hierarchies) == 1:
       return y
     y = np.repeat(y, len(self.hierarchies), axis=0)
@@ -234,7 +235,7 @@ class seq2seq_ae__:
         y[:,i,j] = y[:,i,h]
     return np.reshape(y, (-1, self.timesteps*len(self.hierarchies), y.shape[-1]))
 
-  def alter_label(self, x):
+  def __alter_label(self, x):
     idx = np.random.choice(x.shape[0], x.shape[0]/2, replace=False)
     x[idx,:,-self.label_dim:] = 0
     return x
@@ -248,7 +249,7 @@ class seq2seq_ae__:
       # plot_model(self.autoencoder, to_file='model.png')
       for x in data_iterator:
         if has_labels:
-          x = self.alter_label(x)
+          x = self.__alter_label(x)
 
         x_train, x_test, y_train, y_test = cross_validation.train_test_split(x, x, test_size=self.cv_splits)
         y_train = self.__alter_y(y_train)
@@ -265,7 +266,7 @@ class seq2seq_ae__:
               batch_size=self.batch_size,
               validation_data=(x_test, y_test))
 
-        self.post_train_step(history.history['loss'][0], x_test, args)
+        self.__post_train_step(history.history['loss'][0], x_test, args)
 
 if __name__ == '__main__':
   train_set, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS) #, create_params=True)

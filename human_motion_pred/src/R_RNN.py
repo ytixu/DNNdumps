@@ -2,7 +2,6 @@ import matplotlib
 matplotlib.use('Agg')
 
 import numpy as np
-from sklearn import cross_validation
 from keras.layers import Input, RepeatVector, Lambda, concatenate, Dense, Add
 from keras.models import Model
 from keras.optimizers import RMSprop
@@ -75,7 +74,7 @@ class R_RNN(seq2seq_model__.seq2seq_ae__):
 		self.encoder.summary()
 		self.decoder.summary()
 
-	def recompile_opt():
+	def recompile_opt(self):
 		opt = RMSprop(lr=self.lr)
 		self.autoencoder.compile(optimizer=opt, loss=self.loss)
 

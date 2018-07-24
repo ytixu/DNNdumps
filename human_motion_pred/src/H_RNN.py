@@ -2,10 +2,9 @@ import matplotlib
 matplotlib.use('Agg')
 
 import numpy as np
-from sklearn import cross_validation
 from keras.layers import Input, RepeatVector, Lambda, concatenate
 from keras.models import Model
-#from keras.optimizers import Adagrad
+from keras.optimizers import RMSprop
 
 import seq2seq_model__
 from utils import parser
@@ -52,11 +51,11 @@ class H_RNN(seq2seq_model__.seq2seq_ae__):
 		self.autoencoder = Model(inputs, decoded)
 		self.recompile_opt()
 
-		self.autoencoder.summary()
-		self.encoder.summary()
-		self.decoder.summary()
+		#self.autoencoder.summary()
+		#self.encoder.summary()
+		#self.decoder.summary()
 
-	def recompile_opt():
+	def recompile_opt(self):
 		opt = RMSprop(lr=self.lr)
 		self.autoencoder.compile(optimizer=opt, loss=LOSS)
 

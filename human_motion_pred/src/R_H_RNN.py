@@ -2,7 +2,6 @@ import matplotlib
 matplotlib.use('Agg')
 
 import numpy as np
-from sklearn import cross_validation
 from keras.layers import Input, RepeatVector, Lambda, concatenate, Dense, Add, Reshape
 from keras.models import Model
 from keras.optimizers import RMSprop
@@ -41,7 +40,7 @@ class R_H_RNN(seq2seq_model__.seq2seq_ae__):
 
 		def frame_decoded(seq):
 			motion = [None]*self.timesteps
-			for i in self.hierarchies:
+			for i in range(self.timesteps):
 				e = Lambda(lambda x: x[:,i], output_shape=(self.data_dim,))(seq)
 				motion[i] = decode_pose_2(decode_pose_1(e))
 				# name = softmax(decode_name(e))
@@ -76,12 +75,13 @@ class R_H_RNN(seq2seq_model__.seq2seq_ae__):
 		self.encoder = Model(inputs, encoded)
 		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
+		self.recompile_opt()
 
 		self.autoencoder.summary()
 		self.encoder.summary()
 		self.decoder.summary()
 
-	def recompile_opt():
+	def recompile_opt(self):
 		opt = RMSprop(lr=self.lr)
 		self.autoencoder.compile(optimizer=opt, loss=LOSS)
 
