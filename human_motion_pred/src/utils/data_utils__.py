@@ -280,7 +280,7 @@ def readCSVasFloat_for_validation(filename, action, subact, one_hot):
   return returnArray
 
 
-def load_data(path_to_dataset, subjects, actions, one_hot):
+def load_data(path_to_dataset, subjects, actions, one_hot, generator=False):
   """
   Borrowed from SRNN code. This is how the SRNN code reads the provided .txt files
   https://github.com/asheshjain399/RNNexp/blob/srnn/structural_rnn/CRFProblems/H3.6m/processdata.py#L270
@@ -318,8 +318,18 @@ def load_data(path_to_dataset, subjects, actions, one_hot):
           the_sequence = np.zeros( (len(even_list), d + nactions), dtype=float )
           the_sequence[ :, 0:d ] = action_sequence[even_list, :]
           the_sequence[ :, d+action_idx ] = 1
+
+          if generator:
+            yield (subj, action, subact), the_sequence
+            continue
+
           trainData[(subj, action, subact, 'even')] = the_sequence
         else:
+
+          if generator:
+            yield (subj, action, subact), action_sequence[even_list, :]
+            continue
+
           trainData[(subj, action, subact, 'even')] = action_sequence[even_list, :]
 
 
@@ -327,6 +337,9 @@ def load_data(path_to_dataset, subjects, actions, one_hot):
           completeData = copy.deepcopy(action_sequence)
         else:
           completeData = np.append(completeData, action_sequence, axis=0)
+
+  if generator:
+    raise StopIteration
 
   return trainData, completeData
 
@@ -371,6 +384,7 @@ def get_test_data(path_to_dataset, subjects, actions, one_hot):
   action_n = len(actions)
   func = lambda filename, action, subact : readCSVasFloat_for_validation(filename, action, subact, one_hot)
   data_sequences = load_data_(path_to_dataset, subjects, actions, action_n, one_hot, func)
+  print ('test data shape', data_sequences.shape)
   return data_sequences[:,:50], data_sequences[:,50:]
 
 def normalize_data( data, data_mean, data_std, dim_to_use, actions, one_hot, data_max=0, data_min=0 ):

@@ -10,6 +10,7 @@ from utils import translate__
 
 from utils import parser
 from utils import image
+from utils import metrics
 
 MODEL_NAME = 'BASE_RNN'
 HAS_LABELS = False
@@ -240,8 +241,7 @@ class seq2seq_ae__:
     x[idx,:,-self.label_dim:] = 0
     return x
 
-
-  def run(self, data_iterator, has_labels, args=[]):
+  def run(self, data_iterator, test_data_func, has_labels, args=[]):
     self.make_model()
     self.load()
     if not self.trained:
@@ -267,6 +267,14 @@ class seq2seq_ae__:
               validation_data=(x_test, y_test))
 
         self.__post_train_step(history.history['loss'][0], x_test, args)
+
+    else:
+      # testing
+      test_x, test_y = test_data_func()
+      embedding = metrics.load_embedding(self, data_iterator, [self.conditioned_pred_steps-1, self.timesteps-1])
+      metrics.get_mesures(self, embedding, test_x, test_y):
+
+
 
 if __name__ == '__main__':
   train_set, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS) #, create_params=True)

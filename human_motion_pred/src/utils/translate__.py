@@ -66,6 +66,15 @@ def read_all_data( actions, seq_length, data_dir, one_hot ):
 
   return train_set, test_set, data_mean, data_std, dim_to_ignore, dim_to_use
 
+def train_data_for_testing( config, one_hot ):
+  for key, train_set in data_utils__.load_data( data_dir, TRAIN_SUBJECT_ID, actions, one_hot, generator=True )
+
+    train_set = data_utils__.normalize_data( train_set, config['data_mean'],
+      config['data_std'], config['dim_to_use'], config['actions'], one_hot,
+      config['data_max'], config['data_min'] )
+
+    yield key, train_set
+
 def train_data_randGen( config, one_hot ):
   for train_set in data_utils__.load_rand_data( config['data_dir'],
       TRAIN_SUBJECT_ID, config['actions'], one_hot, config['timesteps'],

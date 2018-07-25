@@ -104,5 +104,4 @@ class R_RNN(seq2seq_model__.seq2seq_ae__):
 if __name__ == '__main__':
 	train_set_gen, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS)
 	ae = R_RNN(config, HAS_LABELS)
-	#test_gt, test_pred_gt = test_set
-	ae.run(train_set_gen, HAS_LABELS)
+	ae.run(train_set_gen, test_set, HAS_LABELS)

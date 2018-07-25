@@ -106,8 +106,11 @@ def get_parse(model_name, labels=False, create_params=False):
 
     args['data_dim'] = len(args['dim_to_use'])
 
-    train_set = translate__.train_data_randGen( args, labels )
     test_set = translate__.get_test_data( args, labels )
+    if args['mode'] == 'train':
+      train_set = translate__.train_data_randGen( args, labels )
+    else:
+      train_set = translate__.train_data_for_testing( args, labels )
 
   if labels:
     args['label_dim'] = number_of_actions
