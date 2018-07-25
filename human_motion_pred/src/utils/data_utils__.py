@@ -341,7 +341,7 @@ def load_data(path_to_dataset, subjects, actions, one_hot, generator=False):
   if generator:
     raise StopIteration
 
-  return trainData, completeData
+  #return trainData, completeData
 
 def load_data_(path_to_dataset, subjects, actions, action_n, one_hot, func):
   '''

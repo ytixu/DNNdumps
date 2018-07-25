@@ -96,8 +96,8 @@ def get_mesures(model, embedding, test_x, test_y):
 	sample_n = 8
 	pred_t = model.timesteps - model.conditioned_pred_steps
 
-	input_x = np.zeros(N, model.timesteps, model.data_dim)
-	input_x[:,:model.timesteps-model.conditioned_pred_steps] = test_x[:,-model.conditioned_pred_steps:]
+	input_x = np.zeros((test_x.shape[0], model.timesteps, model.data_dim))
+	input_x[:,:model.conditioned_pred_steps] = test_x[:,-model.conditioned_pred_steps:]
 	encoded = model.encoder.predict(input_x)[:,model.conditioned_pred_steps-1]
 	encoded = np.reshape(encoded, (action_n, sample_n, encoded.shape[-1]))
 	test_y = np.reshape(test_y[:,:pred_t], (action_n, sample_n, pred_t, test_y.shape[-1]))
@@ -106,15 +106,15 @@ def get_mesures(model, embedding, test_x, test_y):
 	add_mean, add_std = add_get_params(embedding)
 	print 'add std', np.mean(add_std)
 
-	scores = {k: np.zeros(action_n, sample_n, pred_t) for k in methods}
-	for i in range(action_n):
+	scores = {k: np.zeros((action_n, sample_n, pred_t)) for k in methods}
+	for i in tqdm(range(action_n)):
 		for j in range(sample_n):
 			z_ref = encoded[i, j]
 			ls = embedding[:,1]
 			weights, w_i = __get_weights(ls, z_ref)
 			zs = np.zeros((len(methods), z_ref.shape[-1]))
 
-			for method in methods:
+			for k, method in enumerate(methods):
 				if method == 'mean':
 					new_e = __mean(ls, z_ref, 30, weights, w_i)
 				elif method == 'closest':
@@ -125,10 +125,10 @@ def get_mesures(model, embedding, test_x, test_y):
 				else:
 					new_e = z_ref + add_mean
 
-				zs[i] = new_e
+				zs[k] = new_e
 
-			pred_x = model.decoder.predict(new_e)
-			gt = np.tile(y_test[i,j], [len(methods), 1, 1])
+			pred_x = model.decoder.predict(zs)[:, -pred_t:]
+			gt = np.tile(test_y[i,j], [len(methods), 1, 1])
 			err = translate__.euler_diff(gt, pred_x, model)[1]
 			for k, method in enumerate(methods):
 				scores[method][i,j] = err[k]
@@ -140,5 +140,5 @@ def get_mesures(model, embedding, test_x, test_y):
 		print 'total', np.mean(np.mean(scores[method], axis=0), axis=0)
 		scores[method] = scores[method].tolist()
 
-	with open(OUT_DIR+'get_mesures_%d'%(model.model_signature)+__get_timestamp()+'.json', 'w') as jsonfile:
+	with open(OUT_DIR+'get_mesures_'+model.model_signature+'.json', 'w') as jsonfile:
 		json.dump(scores, jsonfile)

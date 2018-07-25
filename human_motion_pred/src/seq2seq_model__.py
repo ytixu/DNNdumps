@@ -272,7 +272,7 @@ class seq2seq_ae__:
       # testing
       test_x, test_y = test_data_func()
       embedding = metrics.load_embedding(self, data_iterator, [self.conditioned_pred_steps-1, self.timesteps-1])
-      metrics.get_mesures(self, embedding, test_x, test_y):
+      metrics.get_mesures(self, embedding, test_x, test_y)
 
 
 
