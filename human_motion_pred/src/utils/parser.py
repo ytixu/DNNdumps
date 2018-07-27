@@ -121,10 +121,6 @@ if __name__ == '__main__':
   # test
   train_set, test_set, args = get_parse('TEST', create_params=True)
 
-  for k, x in train_set.iteritems():
-    print np.array(translate__.batch_expmap2euler(x)).shape
-
-  print args['woeirwoeiroiwer']
   print args
   print train_set.values()[0].shape
   print test_set.values()[0].shape

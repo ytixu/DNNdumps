@@ -28,9 +28,10 @@ class R_RNN(seq2seq_model__.seq2seq_ae__):
 		encoded = RNN_UNIT(self.latent_dim, return_sequences=True, activation='tanh')(inputs)
 
 		z = Input(shape=(self.latent_dim,))
-		decode_pose = Dense(self.motion_dim)
+		decode_pose_1 = Dense(self.latent_dim/2) # self.motion_dim)
+		decode_pose_2 = Dense(self.data_dim)
 		# decode_name = Dense(self.label_dim, activation='relu')
-		# decode_repete = RepeatVector(self.timesteps)
+		decode_repete = RepeatVector(self.timesteps)
 		decode_residual = RNN_UNIT(self.data_dim, return_sequences=True, activation='linear')
 		decode_add = Add()
 
@@ -39,7 +40,7 @@ class R_RNN(seq2seq_model__.seq2seq_ae__):
 		for i, h in enumerate(self.hierarchies):
 			e = Lambda(lambda x: x[:,h], output_shape=(self.latent_dim,))(encoded)
 			# decoded[i] = concatenate([decode_pose(e), decode_name(e)], axis=1)
-			decoded[i] = decode_pose(e)
+			decoded[i] = decode_pose_2(decode_pose_1(e))
 			residual[i] = decode_repete(e)
 			residual[i] = decode_residual(residual[i])
 			decoded[i] = decode_add([decode_repete(decoded[i]), residual[i]])
@@ -48,7 +49,7 @@ class R_RNN(seq2seq_model__.seq2seq_ae__):
 		residual = concatenate(residual, axis=1)
 
 		# decoded_ = concatenate([decode_pose(z), decode_name(z)], axis=1)
-		decoded_ = decode_pose(z)
+		decoded_ = decode_pose_2(decode_pose_1(z))
 		residual_ = decode_repete(z)
 		residual_ = decode_residual(residual_)
 		decoded_ = decode_add([decode_repete(decoded_), residual_])
