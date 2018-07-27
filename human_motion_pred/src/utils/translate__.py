@@ -60,8 +60,8 @@ def read_all_data( actions, seq_length, data_dir, one_hot ):
   data_mean, data_std, dim_to_ignore, dim_to_use = data_utils__.normalization_stats(complete_train)
 
   # Normalize -- subtract mean, divide by stdev
-  train_set = data_utils__.normalize_data( train_set, data_mean, data_std, dim_to_use, actions, one_hot )
-  test_set  = data_utils__.normalize_data( test_set,  data_mean, data_std, dim_to_use, actions, one_hot )
+  #train_set = data_utils__.normalize_data( train_set, data_mean, data_std, dim_to_use, actions, one_hot )
+  #test_set  = data_utils__.normalize_data( test_set,  data_mean, data_std, dim_to_use, actions, one_hot )
   print("done reading data.")
 
   return train_set, test_set, data_mean, data_std, dim_to_ignore, dim_to_use
@@ -109,9 +109,10 @@ def batch_convert_expmap(batch_data, model):
     (to euler angles or to euclidean space)
   '''
   for i in np.arange( batch_data.shape[0] ):
-      yield data_utils__.unNormalizeData(batch_data[i,:,:], model.data_mean,
-        model.data_std, model.dim_to_ignore, model.labels, model.has_labels,
-        model.data_max, model.data_min )
+      #yield data_utils__.unNormalizeData(batch_data[i,:,:], model.data_mean,
+       # model.data_std, model.dim_to_ignore, model.labels, model.has_labels,
+       # model.data_max, model.data_min )
+      yield batch_data[i,:,:]
 
 def batch_expmap2euler(batch_data, model, normalized=True):
   '''

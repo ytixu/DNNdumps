@@ -337,6 +337,7 @@ def load_data(path_to_dataset, subjects, actions, one_hot, generator=False):
           completeData = copy.deepcopy(action_sequence)
         else:
           completeData = np.append(completeData, action_sequence, axis=0)
+
         break
       break
     break
