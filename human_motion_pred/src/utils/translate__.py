@@ -84,6 +84,7 @@ def train_data_randGen( config, one_hot ):
     train_set = data_utils__.normalize_data( train_set, config['data_mean'],
       config['data_std'], config['dim_to_use'], config['actions'], one_hot,
       config['data_max'], config['data_min'] )
+
     yield train_set
 
 def get_test_data( config, one_hot ):

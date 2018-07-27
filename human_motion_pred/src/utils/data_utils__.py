@@ -319,16 +319,16 @@ def load_data(path_to_dataset, subjects, actions, one_hot, generator=False):
           the_sequence[ :, 0:d ] = action_sequence[even_list, :]
           the_sequence[ :, d+action_idx ] = 1
 
-          if generator:
-            yield (subj, action, subact), the_sequence
-            continue
+          #if generator:
+          #  yield (subj, action, subact), the_sequence
+          #  continue
 
           trainData[(subj, action, subact, 'even')] = the_sequence
         else:
 
-          if generator:
-            yield (subj, action, subact), action_sequence[even_list, :]
-            continue
+          #if generator:
+          #  yield (subj, action, subact), action_sequence[even_list, :]
+          #  continue
 
           trainData[(subj, action, subact, 'even')] = action_sequence[even_list, :]
 
@@ -337,11 +337,9 @@ def load_data(path_to_dataset, subjects, actions, one_hot, generator=False):
           completeData = copy.deepcopy(action_sequence)
         else:
           completeData = np.append(completeData, action_sequence, axis=0)
+	break
 
-  if generator:
-    raise StopIteration
-
-  #return trainData, completeData
+  return trainData, completeData
 
 def load_data_(path_to_dataset, subjects, actions, action_n, one_hot, func):
   '''

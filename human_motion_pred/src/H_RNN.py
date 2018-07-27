@@ -5,6 +5,7 @@ import numpy as np
 from keras.layers import Input, RepeatVector, Lambda, concatenate
 from keras.models import Model
 from keras.optimizers import RMSprop
+import keras.backend as K
 
 import seq2seq_model__
 from utils import parser
@@ -46,6 +47,11 @@ class H_RNN(seq2seq_model__.seq2seq_ae__):
 		decoded_ = decode_1(z)
 		decoded_ = decode_2(decoded_)
 
+		def customLoss(yTrue, yPred):
+			return K.mean(K.sqrt(K.square(K.sin(yTrue) - K.sin(yPred)) + K.square(K.cos(yTrue) - K.cos(yPred))))
+
+		self.loss = customLoss
+
 		self.encoder = Model(inputs, encoded)
 		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
@@ -57,7 +63,7 @@ class H_RNN(seq2seq_model__.seq2seq_ae__):
 
 	def recompile_opt(self):
 		opt = RMSprop(lr=self.lr)
-		self.autoencoder.compile(optimizer=opt, loss=LOSS)
+		self.autoencoder.compile(optimizer=opt, loss=self.loss)
 
 	# def run(self, data_iterator):
 	# 	self.load()
