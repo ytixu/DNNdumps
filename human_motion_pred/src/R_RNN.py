@@ -13,7 +13,7 @@ from utils import translate__
 
 MODEL_NAME = 'R_GRU'
 USE_GRU = True
-HAS_LABELS = True
+HAS_LABELS = False #True
 
 if USE_GRU:
 	from keras.layers import GRU as RNN_UNIT
@@ -29,8 +29,8 @@ class R_RNN(seq2seq_model__.seq2seq_ae__):
 
 		z = Input(shape=(self.latent_dim,))
 		decode_pose = Dense(self.motion_dim)
-		decode_name = Dense(self.label_dim, activation='relu')
-		decode_repete = RepeatVector(self.timesteps)
+		# decode_name = Dense(self.label_dim, activation='relu')
+		# decode_repete = RepeatVector(self.timesteps)
 		decode_residual = RNN_UNIT(self.data_dim, return_sequences=True, activation='linear')
 		decode_add = Add()
 
@@ -38,7 +38,8 @@ class R_RNN(seq2seq_model__.seq2seq_ae__):
 		residual = [None]*len(self.hierarchies)
 		for i, h in enumerate(self.hierarchies):
 			e = Lambda(lambda x: x[:,h], output_shape=(self.latent_dim,))(encoded)
-			decoded[i] = concatenate([decode_pose(e), decode_name(e)], axis=1)
+			# decoded[i] = concatenate([decode_pose(e), decode_name(e)], axis=1)
+			decoded[i] = decode_pose(e)
 			residual[i] = decode_repete(e)
 			residual[i] = decode_residual(residual[i])
 			decoded[i] = decode_add([decode_repete(decoded[i]), residual[i]])
@@ -46,24 +47,25 @@ class R_RNN(seq2seq_model__.seq2seq_ae__):
 		decoded = concatenate(decoded, axis=1)
 		residual = concatenate(residual, axis=1)
 
-		decoded_ = concatenate([decode_pose(z), decode_name(z)], axis=1)
+		# decoded_ = concatenate([decode_pose(z), decode_name(z)], axis=1)
+		decoded_ = decode_pose(z)
 		residual_ = decode_repete(z)
 		residual_ = decode_residual(residual_)
 		decoded_ = decode_add([decode_repete(decoded_), residual_])
 
-		def customLoss(yTrue, yPred):
-			yt = K.reshape(yTrue[:,:,-self.label_dim:], (-1, len(self.hierarchies), self.timesteps, self.label_dim))
-			yp = K.reshape(yPred[:,:,-self.label_dim:], (-1, len(self.hierarchies), self.timesteps, self.label_dim))
-			loss = 0
-			print K.int_shape(yTrue), K.int_shape(yPred)
-			yTrue = K.reshape(yTrue[:,:,:-self.label_dim], (-1, len(self.hierarchies), self.timesteps, self.motion_dim/3, 3))
-			yPred = K.reshape(yPred[:,:,:-self.label_dim], (-1, len(self.hierarchies), self.timesteps, self.motion_dim/3, 3))
-			# loss += K.mean(K.sqrt(K.sum(K.square(yTrue-yPred), axis=-1)))
-			# loss += K.mean(K.sqrt(K.sum(K.square(yt - yp), axis=-1)))/self.timesteps
-			loss += K.mean(K.sqrt(K.sum(K.square(yTrue-yPred), axis=-1))) + K.mean(K.abs(yt-yp))/len(self.hierarchies)
-			return loss
+		# def customLoss(yTrue, yPred):
+		# 	yt = K.reshape(yTrue[:,:,-self.label_dim:], (-1, len(self.hierarchies), self.timesteps, self.label_dim))
+		# 	yp = K.reshape(yPred[:,:,-self.label_dim:], (-1, len(self.hierarchies), self.timesteps, self.label_dim))
+		# 	loss = 0
+		# 	print K.int_shape(yTrue), K.int_shape(yPred)
+		# 	yTrue = K.reshape(yTrue[:,:,:-self.label_dim], (-1, len(self.hierarchies), self.timesteps, self.motion_dim/3, 3))
+		# 	yPred = K.reshape(yPred[:,:,:-self.label_dim], (-1, len(self.hierarchies), self.timesteps, self.motion_dim/3, 3))
+		# 	# loss += K.mean(K.sqrt(K.sum(K.square(yTrue-yPred), axis=-1)))
+		# 	# loss += K.mean(K.sqrt(K.sum(K.square(yt - yp), axis=-1)))/self.timesteps
+		# 	loss += K.mean(K.sqrt(K.sum(K.square(yTrue-yPred), axis=-1))) + K.mean(K.abs(yt-yp))/len(self.hierarchies)
+		# 	return loss
 
-		self.loss = customLoss
+		self.loss = 'mean_squared_error'
 
 		self.encoder = Model(inputs, encoded)
 		self.decoder = Model(z, decoded_)
