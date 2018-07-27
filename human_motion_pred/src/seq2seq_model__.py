@@ -298,7 +298,7 @@ if __name__ == '__main__':
     for k, x in train_set.iteritems():
       print 'save', k
       subject, action, subact, _ = k
-      xyz = (np.array(translate__.batch_expmap2xyz(np.array([x]), ae)[0]) - min_) / (max_ - min_) * 2 -1
+      xyz = (np.array(translate__.batch_expmap2xyz(np.array([x]), ae)[0])) / (max_ - min_) * 2
       np.save('../../data/h3.6/full/%s/%s_%d_%d.npy'%(data_name, action, subject, subact), xyz)
       image.plot_poses([xyz[:5], xyz[5:10]])
       print np.min(xyz), np.max(xyz)
