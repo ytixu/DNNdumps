@@ -89,8 +89,7 @@ def revert_coordinate_space(channels, R0, T0):
     try:
       channels_rec[ii, rootRotInd] = data_utils__.rotmat2expmap(R)
     except ValueError as e:
-     print ii, n
-     raise e
+      print ii
 
     T = T_prev + ((R_prev.T).dot( np.reshape(channels[ii,:3],[3,1]))).reshape(-1)
     channels_rec[ii,:3] = T

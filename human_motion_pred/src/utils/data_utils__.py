@@ -56,6 +56,7 @@ def quat2expmap(q):
   """
 
   if (np.abs(np.linalg.norm(q)-1)>1e-3):
+    print (np.abs(np.linalg.norm(q)-1), "quat2expmap: input quaternion is not norm 1")
     raise(ValueError, "quat2expmap: input quaternion is not norm 1")
 
   sinhalftheta = np.linalg.norm(q[1:])

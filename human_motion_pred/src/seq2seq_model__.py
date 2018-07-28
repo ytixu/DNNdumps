@@ -285,9 +285,8 @@ if __name__ == '__main__':
   for data_set in [train_set]:
     for k, x in data_set:
       print x.shape
-      x = x[16:-16]
       xyz = translate__.batch_expmap2xyz(np.array([x]), ae)[0]
-      image.plot_poses([xyz[:5], xyz[5:10], xyz[10:15]])
+      image.plot_poses([xyz[1157:1162], xyz[5:10], xyz[10:15]])
       new_max = np.max(np.abs(xyz))
       if new_max > max_:
         max_ = new_max
