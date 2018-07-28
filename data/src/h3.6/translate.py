@@ -165,15 +165,16 @@ def get_batch_srnn(data, action, subject, subsequence):
   # frames[ action ] = find_indices_srnn( data, action )
 
   batch_size = 1 # we always evaluate 8 seeds
-  subject    = 5 # we always evaluate on subject 5
-  source_seq_len = seq_length_in
-  target_seq_len = seq_length_out
+  #subject    = 5 # we always evaluate on subject 5
+  #source_seq_len = seq_length_in
+  #target_seq_len = seq_length_out
 
   # seeds = [( action, (i%2)+1, frames[action][i] ) for i in range(batch_size)]
 
   # encoder_inputs  = np.zeros( (batch_size, source_seq_len-1, input_size), dtype=float )
   # decoder_inputs  = np.zeros( (batch_size, target_seq_len, input_size), dtype=float )
   data_sel = data[ (subject, action, subsequence, 'even') ]
+  #print (subject, action, subsequence, 'even'), data[(subject, action, subsequence, 'even')].shape
   decoder_outputs = np.zeros( (batch_size, len(data_sel), input_size), dtype=float )
 
   # Compute the number of frames needed
@@ -216,7 +217,6 @@ def get_srnn_gts( actions, test_set, data_mean, data_std, dim_to_ignore, one_hot
       are the ground_truth, denormalized expected outputs of srnns's seeds.
   """
   srnn_gts_euler = {}
-
   for action in actions:
 
     srnn_gt_euler = []
@@ -252,20 +252,20 @@ if __name__ == '__main__':
     actions = define_actions(action)
 
     train_set, test_set, data_mean, data_std, dim_to_ignore, dim_to_use = read_all_data(actions, 
-      seq_length_in, seq_length_out, '../../../../human-motion-prediction/data/h3.6m/dataset', False)
+      seq_length_in, seq_length_out, '../../h3.6/raw/h3.6m/dataset', False)
 
-    for subject in [1,6,5,7,8,9,11]:
+    for subject in [1,6,7,8,9,11,5]:
       for subsequence in [1,2]:
         srnn_gts_expmap = get_srnn_gts( actions, test_set, data_mean, data_std, dim_to_ignore, 
           not omit_one_hot, subject, subsequence, to_euler=False )
 
-        data = np.zeros((len(srnn_gts_expmap[action][0]), len(relevant_coord)*3))
+        data = np.zeros((len(srnn_gts_expmap[action][0]), 96)) # len(relevant_coord)*3))
         for i in range(len(srnn_gts_expmap[action][0])):
-          import matplotlib.pyplot as plt
-          from mpl_toolkits.mplot3d import Axes3D
-          pose = foward_kinematics.get_coords(srnn_gts_expmap[action][:,i])/1020
+          #import matplotlib.pyplot as plt
+          #from mpl_toolkits.mplot3d import Axes3D
+          pose = foward_kinematics.get_coords(srnn_gts_expmap[action][:,i])/1120
           pose = np.reshape(pose, (-1,3))
-          data[i] = pose[relevant_coord].flatten()
+          data[i] = pose.flatten()
 
           # END_I = np.array([1,2,3,1,7,8,1, 13,14,15,14,18,19,14,26,27])-1
           # END_J = np.array([2,3,4,7,8,9,13,14,15,16,18,19,20,26,27,28])-1
@@ -297,7 +297,10 @@ if __name__ == '__main__':
         assert np.max(data) < 1
         assert np.min(data) > -1
 
-        np.save('../../h3.6/%s_%d_%d.npy'%(action, subject, subsequence), data)
+        folder = 'train'
+        if subject == 5:
+          folder = 'valid'
+        np.save('../../h3.6/full/%s/%s_%d_%d.npy'%(folder,action, subject, subsequence), data)
 
 else:
   import argparse

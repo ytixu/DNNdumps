@@ -60,21 +60,22 @@ def read_all_data( actions, seq_length, data_dir, one_hot ):
   data_mean, data_std, dim_to_ignore, dim_to_use = data_utils__.normalization_stats(complete_train)
 
   # Normalize -- subtract mean, divide by stdev
-  #train_set = data_utils__.normalize_data( train_set, data_mean, data_std, dim_to_use, actions, one_hot )
-  #test_set  = data_utils__.normalize_data( test_set,  data_mean, data_std, dim_to_use, actions, one_hot )
+  train_set = data_utils__.normalize_data( train_set, data_mean, data_std, dim_to_use, actions, one_hot )
+  test_set  = data_utils__.normalize_data( test_set,  data_mean, data_std, dim_to_use, actions, one_hot )
   print("done reading data.")
 
   return train_set, test_set, data_mean, data_std, dim_to_ignore, dim_to_use
 
 def train_data_for_testing( config, one_hot ):
   for key, train_set in data_utils__.load_data( config['data_dir'], TRAIN_SUBJECT_ID, config['actions'], one_hot, generator=True ):
-    train_set = np.array([train_set[i:i+config['timesteps']] for i in range(train_set.shape[0]-config['timesteps'])])
+    #train_set = np.array([train_set[i:i+config['timesteps']] for i in range(train_set.shape[0]-config['timesteps'])])
+    train_set = np.array([train_set])
 
     train_set = data_utils__.normalize_data( train_set, config['data_mean'],
       config['data_std'], config['dim_to_use'], config['actions'], one_hot,
       config['data_max'], config['data_min'] )
 
-    yield key, train_set
+    yield key, train_set[0]
 
 def train_data_randGen( config, one_hot ):
   for train_set in data_utils__.load_rand_data( config['data_dir'],
@@ -109,10 +110,10 @@ def batch_convert_expmap(batch_data, model):
     (to euler angles or to euclidean space)
   '''
   for i in np.arange( batch_data.shape[0] ):
-      #yield data_utils__.unNormalizeData(batch_data[i,:,:], model.data_mean,
-       # model.data_std, model.dim_to_ignore, model.labels, model.has_labels,
-       # model.data_max, model.data_min )
-      yield batch_data[i,:,:]
+      yield data_utils__.unNormalizeData(batch_data[i,:,:], model.data_mean,
+        model.data_std, model.dim_to_ignore, model.labels, model.has_labels,
+        model.data_max, model.data_min )
+      #yield batch_data[i,:,:]
 
 def batch_expmap2euler(batch_data, model, normalized=True):
   '''

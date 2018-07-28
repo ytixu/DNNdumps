@@ -277,30 +277,27 @@ class seq2seq_ae__:
 
 
 if __name__ == '__main__':
-  train_set, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS, create_params=True)
+  train_set, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS)
   ae = seq2seq_ae__(config, HAS_LABELS)
   #test_gt, test_pred_gt = test_set
-  min_ = 0
   max_ = 0
 
-  for data_set in [train_set, test_set]:
-    for k, x in data_set.iteritems():
-      print k
+  for data_set in [train_set]:
+    for k, x in data_set:
+      print x.shape
+      x = x[16:-16]
       xyz = translate__.batch_expmap2xyz(np.array([x]), ae)[0]
-      new_max = np.max(xyz)
-      new_min = np.min(xyz)
+      image.plot_poses([xyz[:5], xyz[5:10], xyz[10:15]])
+      new_max = np.max(np.abs(xyz))
       if new_max > max_:
         max_ = new_max
-      if new_min < min_:
-        min_ = new_min
 
-  for data_name, data_set in ({'train':train_set, 'valid':test_set}).iteritems():
-    for k, x in train_set.iteritems():
-      print 'save', k
+  for data_name, data_set in ({'train':train_set}).iteritems():
+    for k, x in data_set:
+      print 'save', k, x.shape
       subject, action, subact, _ = k
-      xyz = (np.array(translate__.batch_expmap2xyz(np.array([x]), ae)[0])) / (max_ - min_) * 2
+      xyz = (np.array(translate__.batch_expmap2xyz(np.array([x]), ae)[0])) / max_
       np.save('../../data/h3.6/full/%s/%s_%d_%d.npy'%(data_name, action, subject, subact), xyz)
-      image.plot_poses([xyz[:5], xyz[5:10]])
       print np.min(xyz), np.max(xyz)
 
   print config['woeirwoeiroiwer']
