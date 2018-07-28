@@ -1,18 +1,22 @@
 import numpy as np
 from glob import glob
-
+from tqdm import tqdm
 
 
 if __name__ == '__main__':
+	import json
 	for parameterization in ['_cart', '_euler']:
+		print parameterization
 		directory = '../../h3.6/full/'
-		files = glob(directory+'*'+parameterization'/*.npy')
+		files = glob(directory+'*'+parameterization+'/*.npy')
 
-		data = [None]*len(files)
+		data = []
 
-		for i,f in enumerate(files):
-			data[i] = np.load(f)
-
+		for i,f in enumerate(tqdm(files)):
+			if len(data) == 0:
+				data = np.load(f)
+			else:
+				data = np.concatenate([np.load(f), data], axis = 0)
 		print data.shape
 
 		data_mean = np.mean(data, axis=0)

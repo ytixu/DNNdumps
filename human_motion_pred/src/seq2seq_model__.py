@@ -286,14 +286,15 @@ if __name__ == '__main__':
   train_set, train_set_ = tee(train_set)
   test_set, test_set_ = tee(test_set)
 
-  #for data_set in [train_set, test_set]:
-  #  for k, x in data_set:
-  #    print x.shape
-  #    xyz = translate__.batch_expmap2xyz(np.array([x]), ae)[0]
-  #    #image.plot_poses([xyz[1157:1162], xyz[5:10], xyz[10:15]])
-  #    new_max = np.max(np.abs(xyz))
-  #    if new_max > max_:
-  #      max_ = new_max
+  for data_set in [train_set, test_set]:
+    for k, x in data_set:
+      print x.shape
+      xyz = translate__.batch_expmap2xyz(np.array([x]), ae)[0]
+      print xyz[:, :3]
+      #image.plot_poses([xyz[1157:1162], xyz[5:10], xyz[10:15]])
+      new_max = np.max(np.abs(xyz))
+      if new_max > max_:
+        max_ = new_max
 
   for data_name, data_set in ({'train':train_set_, 'valid':test_set_}).iteritems():
     for k, x in data_set:
