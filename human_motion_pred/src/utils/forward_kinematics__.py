@@ -82,7 +82,6 @@ def revert_coordinate_space(channels, R0, T0):
   rootRotInd = np.arange(3,6)
 
   # Loop through the passed posses
-  bad_pose = -1
   for ii in range(n):
     R_diff = data_utils__.expmap2rotmat( channels[ii, rootRotInd] )
     R = R_diff.dot( R_prev )
@@ -90,7 +89,6 @@ def revert_coordinate_space(channels, R0, T0):
     channels_rec[ii, rootRotInd], bad_quad = data_utils__.rotmat2expmap(R)
     if bad_quad:
       print ii
-      bad_pose = ii
 
     T = T_prev + ((R_prev.T).dot( np.reshape(channels[ii,:3],[3,1]))).reshape(-1)
     channels_rec[ii,:3] = T

@@ -66,8 +66,11 @@ def read_all_data( actions, seq_length, data_dir, one_hot ):
 
   return train_set, test_set, data_mean, data_std, dim_to_ignore, dim_to_use
 
-def train_data_for_testing( config, one_hot ):
-  for key, train_set in data_utils__.load_data( config['data_dir'], TRAIN_SUBJECT_ID, config['actions'], one_hot, generator=True ):
+def train_data_for_testing( config, one_hot, test_data=False ):
+  subject_id = TRAIN_SUBJECT_ID
+  if test_data:
+    subject_id = TEST_SUBJECT_ID
+  for key, train_set in data_utils__.load_data( config['data_dir'], subject_id, config['actions'], one_hot, generator=True ):
     #train_set = np.array([train_set[i:i+config['timesteps']] for i in range(train_set.shape[0]-config['timesteps'])])
     train_set = np.array([train_set])
 

@@ -277,27 +277,35 @@ class seq2seq_ae__:
 
 
 if __name__ == '__main__':
+  from itertools import tee
   train_set, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS)
   ae = seq2seq_ae__(config, HAS_LABELS)
   #test_gt, test_pred_gt = test_set
   max_ = 0
 
-  for data_set in [train_set]:
-    for k, x in data_set:
-      print x.shape
-      xyz = translate__.batch_expmap2xyz(np.array([x]), ae)[0]
-      image.plot_poses([xyz[1157:1162], xyz[5:10], xyz[10:15]])
-      new_max = np.max(np.abs(xyz))
-      if new_max > max_:
-        max_ = new_max
+  train_set, train_set_ = tee(train_set)
+  test_set, test_set_ = tee(test_set)
 
-  for data_name, data_set in ({'train':train_set}).iteritems():
+  #for data_set in [train_set, test_set]:
+  #  for k, x in data_set:
+  #    print x.shape
+  #    xyz = translate__.batch_expmap2xyz(np.array([x]), ae)[0]
+  #    #image.plot_poses([xyz[1157:1162], xyz[5:10], xyz[10:15]])
+  #    new_max = np.max(np.abs(xyz))
+  #    if new_max > max_:
+  #      max_ = new_max
+
+  for data_name, data_set in ({'train':train_set_, 'valid':test_set_}).iteritems():
     for k, x in data_set:
       print 'save', k, x.shape
-      subject, action, subact, _ = k
-      xyz = (np.array(translate__.batch_expmap2xyz(np.array([x]), ae)[0])) / max_
-      np.save('../../data/h3.6/full/%s/%s_%d_%d.npy'%(data_name, action, subject, subact), xyz)
-      print np.min(xyz), np.max(xyz)
+      subject, action, subact = k
+      xyz = np.array(translate__.batch_expmap2euler(np.array([x]), ae)[0])
+      #np.save('../../data/h3.6/full/%s/%s_%d_%d.npy'%(data_name, action, subject, subact), xyz)
+      #np.save('../../data/h3.6/full/%s_expmap/%s_%d_%d.npy'%(data_name, action, subject, subact), x)
+      print xyz.shape
+      np.save('../../data/h3.6/full/%s_euler/%s_%d_%d.npy'%(data_name, action, subject, subact), xyz)
+
+      #print np.min(xyz), np.max(xyz)
 
   print config['woeirwoeiroiwer']
 
