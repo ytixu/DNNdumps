@@ -54,10 +54,11 @@ def quat2expmap(q):
   Raises
     ValueError if the l2 norm of the quaternion is not close to 1
   """
-
+  bad_quad = False
   if (np.abs(np.linalg.norm(q)-1)>1e-3):
     print (np.abs(np.linalg.norm(q)-1), "quat2expmap: input quaternion is not norm 1")
-    raise(ValueError, "quat2expmap: input quaternion is not norm 1")
+    bad_quad = True
+    #raise(ValueError, "quat2expmap: input quaternion is not norm 1")
 
   sinhalftheta = np.linalg.norm(q[1:])
   coshalftheta = q[0]
@@ -71,7 +72,7 @@ def quat2expmap(q):
     r0    = -r0
 
   r = r0 * theta
-  return r
+  return r, bad_quad
 
 def rotmat2quat(R):
   """
