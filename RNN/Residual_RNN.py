@@ -8,6 +8,7 @@ from keras.layers import Input, RepeatVector, Lambda, concatenate, Dense, Add
 from keras.models import Model
 from keras.optimizers import RMSprop
 import keras.backend as K
+import math
 
 from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines, association_evaluation
 from Forward import NN
@@ -39,8 +40,8 @@ class R_LSTM:
 		print self.labels, self.label_dim
 		self.input_dim = args['input_dim'] + self.label_dim
 		self.output_dim = args['output_dim'] + self.label_dim
-		self.motion_dim = args['input_dim']
-		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [9, 14,24]
+		self.motion_dim = args['output_dim']
+		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
 		self.load_path = args['load_path']
@@ -61,6 +62,7 @@ class R_LSTM:
 		z = Input(shape=(self.latent_dim,))
 		decode_pose = Dense(self.motion_dim, activation='tanh')
 		decode_name = Dense(self.label_dim, activation='relu')
+		euler_mult = Lambda(lambda x: x * math.pi)
 		decode_repete = RepeatVector(self.timesteps)
 		decode_residual = GRU(self.output_dim, return_sequences=True)
 		decode_add = Add()
@@ -69,7 +71,7 @@ class R_LSTM:
 		residual = [None]*len(self.hierarchies)
 		for i, h in enumerate(self.hierarchies):
 			e = Lambda(lambda x: x[:,h], output_shape=(self.latent_dim,))(encoded)
-			decoded[i] = concatenate([decode_pose(e), decode_name(e)], axis=1)
+			decoded[i] = concatenate([euler_mult(decode_pose(e)), decode_name(e)], axis=1)
 			residual[i] = decode_repete(e)
 			residual[i] = decode_residual(residual[i])
 			decoded[i] = decode_add([decode_repete(decoded[i]), residual[i]])
@@ -77,7 +79,7 @@ class R_LSTM:
 		decoded = concatenate(decoded, axis=1)
 		residual = concatenate(residual, axis=1)
 
-		decoded_ = concatenate([decode_pose(z), decode_name(z)], axis=1)
+		decoded_ = concatenate([euler_mult(decode_pose(z)), decode_name(z)], axis=1)
 		residual_ = decode_repete(z)
 		residual_ = decode_residual(residual_)
 		decoded_ = decode_add([decode_repete(decoded_), residual_])
@@ -85,13 +87,13 @@ class R_LSTM:
 		def customLoss(yTrue, yPred):
 			yt = K.reshape(yTrue[:,:,-self.label_dim:], (-1, len(self.hierarchies), self.timesteps, self.label_dim))
 			yp = K.reshape(yPred[:,:,-self.label_dim:], (-1, len(self.hierarchies), self.timesteps, self.label_dim))
-			loss = 0
+			loss = K.mean(K.abs(yt-yp))/len(self.hierarchies)
 			print K.int_shape(yTrue), K.int_shape(yPred)
 			yTrue = K.reshape(yTrue[:,:,:-self.label_dim], (-1, len(self.hierarchies), self.timesteps, self.motion_dim/3, 3))
 			yPred = K.reshape(yPred[:,:,:-self.label_dim], (-1, len(self.hierarchies), self.timesteps, self.motion_dim/3, 3))
 			# loss += K.mean(K.sqrt(K.sum(K.square(yTrue-yPred), axis=-1)))
 			# loss += K.mean(K.sqrt(K.sum(K.square(yt - yp), axis=-1)))/self.timesteps
-			loss += K.mean(K.sqrt(K.sum(K.square(yTrue-yPred), axis=-1))) + K.mean(K.abs(yt-yp))/len(self.hierarchies)
+			loss += K.mean(K.sqrt(K.sum(K.square(K.sin(yTrue)-K.sin(yPred)) + K.square(K.cos(yTrue)-K.cos(yPred)), axis=-1))) * 2
 			return loss
 
 		self.encoder = Model(inputs, encoded)
@@ -159,13 +161,16 @@ class R_LSTM:
 					if new_loss < loss:
 						print 'Saved model - ', loss
 						loss = new_loss
-						#y_test_decoded = self.autoencoder.predict(x_test[:1])
-						#y_test_decoded = np.reshape(y_test_decoded, (len(self.hierarchies), self.timesteps, -1))
-						#image.plot_poses(x_test[:1,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
+						# y_test_decoded = self.autoencoder.predict(x_test[:1])
+						# y_test_decoded = np.reshape(y_test_decoded, (len(self.hierarchies), self.timesteps, -1))
+						# image.plot_poses(x_test[:1,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
 						# image.plot_hierarchies(y_test_orig[:,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
 						self.autoencoder.save_weights(self.save_path, overwrite=True)
 					rand_idx = np.random.choice(x_test.shape[0], 25, replace=False)
-					metrics.validate(x_test[rand_idx], self, self.log_path, history.history['loss'])
+					#metrics.validate(x_test[rand_idx], self, self.log_path, history.history['loss'])
+					y_test_pred = self.encoder.predict(x_test[rand_idx])[:,-1]
+					y_test_pred = self.decoder.predict(y_test_pred)
+					print 'MSE', np.mean(np.abs((y_test_pred[:,:,:-self.label_dim] - y_test[rand_idx, -self.timesteps:,:-self.label_dim])%(2*math.pi)))
 
 					del x_train, x_test, y_train, y_test
 				iter1, iter2 = tee(iter2)

@@ -26,8 +26,8 @@ def data_dimensions(input_dir, output_dir):
 		name_id = os.path.basename(input_file)
 		# 2D arrays
 		input_data = np.load(input_file)
-		#output_data = np.load(output_dir+name_id)
-		return input_data.shape[1], input_data.shape[1] # output_data.shape[1]
+		output_data = np.load(output_dir+name_id)
+		return input_data.shape[1], output_data.shape[1]
 
 def get_one_hot_labels(files):
 	labels = set(map(lambda x: os.path.basename(x).split('_')[0], files))
@@ -36,32 +36,33 @@ def get_one_hot_labels(files):
 
 def data_generator_random(input_dir, output_dir, timesteps, batch_size, n, label=False, ls=[], ld=0):
 	data = {}
-	total_i, x = None, None
+	total_i, x, y = None, None, None
 
 	for i, input_file in enumerate(glob.glob(input_dir+'*')):
 		name_id = os.path.basename(input_file)
+		output_file = output_dir + name_id
 		if label:
 			name_label = name_id.split('_')[0]
 			new_l = np.zeros(ld)
 			new_l[ls[name_label]] = 1
-			data[i] = (np.load(input_file), new_l)
+			data[i] = (np.load(input_file), np.load(output_file), new_l)
 		else:
-			data[i] = np.load(input_file)
+			data[i] = (np.load(input_file), np.load(output_file))
 		total_i = i
 
 	def get_k(x):
+		k = np.random.choice(data[x][0].shape[0]-timesteps, replace=False)
 		if label:
-			k = np.random.choice(data[x][0].shape[0]-timesteps, replace=False)
-			return np.array([np.concatenate((data[x][0][k+t], data[x][1])) for t in range(timesteps)])
+			return (np.array([np.concatenate((data[x][0][k+t], data[x][2])) for t in range(timesteps)]),
+				np.array([np.concatenate((data[x][1][k+t], data[x][2])) for t in range(timesteps)]))
 
-		k = np.random.choice(data[x].shape[0]-timesteps, replace=False)
-		return data[x][k:k+timesteps]
+		return (data[x][0][k:k+timesteps], data[x][1][k:k+timesteps])
 
 	for i in range(n):
 		idx = np.random.choice(total_i+1, batch_size)
-		x = np.array([get_k(j) for j in idx])
-
-		yield x, x
+		dd = [get_k(j) for j in idx]
+		x, y = np.array([xx for xx,_ in dd]), np.array([yy for _,yy in dd])
+		yield x, y
 
 def data_generator(input_dir, output_dir, timesteps, batch_size, label=False, ls=[], ld=0, only_label=''):
 	# files must be in different directories,
@@ -87,7 +88,7 @@ def data_generator(input_dir, output_dir, timesteps, batch_size, label=False, ls
 
 		# 2D arrays
 		input_data = np.load(input_file)
-		output_data = np.load(input_file) # output_dir+name_id)
+		output_data = np.load(output_dir+name_id)
 
 		batch = batch_size-batch_count
 		for i in range(0, input_data.shape[0], batch):
