@@ -15,3 +15,4 @@ results/Prior_GRU_t30_l200/*
 results/t30-l150/*
 results/t30-l200/*
 tb_graphs/*
+human_motion_pred/baselines/*

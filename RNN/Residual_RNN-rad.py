@@ -9,7 +9,12 @@ from keras.models import Model
 from keras.optimizers import RMSprop
 import keras.backend as K
 import tensorflow as tf
-import math
+import csv
+
+
+config = tf.ConfigProto()
+config.gpu_options.allow_growth=True
+K.tensorflow_backend.set_session(tf.Session(config=config))
 
 from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines, association_evaluation
 from Forward import NN
@@ -36,11 +41,11 @@ class R_LSTM:
 		self.cv_splits = args['cv_splits'] if 'cv_splits' in args else 0.2
 
 		self.timesteps = args['timesteps'] if 'timesteps' in args else 5
-		self.label_dim = args['label_dim']
-		self.labels = args['labels']
-		print self.labels, self.label_dim
-		self.input_dim = args['input_dim'] + self.label_dim
-		self.output_dim = args['output_dim'] + self.label_dim
+		#self.label_dim = args['label_dim']
+		#self.labels = args['labels']
+		#print self.labels, self.label_dim
+		self.input_dim = args['input_dim'] # + self.label_dim
+		self.output_dim = args['output_dim'] # + self.label_dim
 		self.motion_dim = args['output_dim']
 		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
@@ -62,17 +67,19 @@ class R_LSTM:
 			data = json.load(data_file)
 			self.dim_to_ignore = data['dim_to_ignore']
 			self.dim_to_use = data['dim_to_use']
-			self.data_mean = np.array(['data_mean'])[self.dim_to_ignore]
+			self.data_mean = np.array(data['data_mean'])[self.dim_to_ignore]
 
 		self._output_dim = self.output_dim
 		self.output_dim = len(self.dim_to_use)*2
+
+		self.input_dim = self.output_dim
 
 	def make_model(self):
 		inputs = Input(shape=(self.timesteps, self.input_dim))
 		encoded = GRU(self.latent_dim, return_sequences=True)(inputs)
 
 		z = Input(shape=(self.latent_dim,))
-		decode_pose = Dense(self.motion_dim, activation='tanh')
+		decode_pose = Dense(self.output_dim, activation='tanh')
 		# decode_name = Dense(self.label_dim, activation='relu')
 		decode_repete = RepeatVector(self.timesteps)
 		decode_residual = GRU(self.output_dim, return_sequences=True)
@@ -97,8 +104,10 @@ class R_LSTM:
 		residual_ = decode_residual(residual_)
 		decoded_ = decode_add([decode_repete(decoded_), residual_])
 
-		# def customLoss(yTrue, yPred):
-		# 	tf.reduce_mean(tf.abs(tf.atan2(tf.sin(yTrue - yPred), tf.cos(yTrue - yPred))))
+		def customLoss(yTrue, yPred):
+			loss = K.mean(K.square(yTrue - yPred))
+			loss += K.mean(K.abs(K.sqrt(K.square(yPred[:,:,:-self.output_dim/2]) + K.square(yPred[:,:,-self.output_dim/2:]))-1))
+			return loss
 		# 	# yt = K.reshape(yTrue[:,:,-self.label_dim:], (-1, len(self.hierarchies), self.timesteps, self.label_dim))
 		# 	# yp = K.reshape(yPred[:,:,-self.label_dim:], (-1, len(self.hierarchies), self.timesteps, self.label_dim))
 		# 	# loss = K.mean(K.abs(yt-yp))/len(self.hierarchies)
@@ -114,7 +123,7 @@ class R_LSTM:
 		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
 		opt = RMSprop(lr=LEARNING_RATE)
-		self.autoencoder.compile(optimizer=opt, loss='mean_squared_error') #customLoss)
+		self.autoencoder.compile(optimizer=opt, loss=customLoss)
 
 		self.autoencoder.summary()
 		self.encoder.summary()
@@ -152,19 +161,23 @@ class R_LSTM:
 	# 	return x, y
 
 	def __alter_parameterization(self, y):
-		used_y = y[self.dim_to_use]
+		used_y = y[:,:,self.dim_to_use]
 		return np.concatenate([np.sin(used_y), np.cos(used_y)], axis=-1)
 
 	def __recover_parameterization(self, y):
 		euler = np.zeros((y.shape[0], self.timesteps, self._output_dim))
-		euler[self.dim_to_use] = np.arctan2(y[:,:,-self.output_dim/2:], y[:,:,:-self.output_dim/2])
-		euler[self.dim_to_ignore] = self.data_mean[self.dim_to_ignore]
+		euler[:,:,self.dim_to_use] = np.arctan2(y[:,:,:-self.output_dim/2], y[:,:,-self.output_dim/2:])
+		euler[:,:,self.dim_to_ignore] = self.data_mean
 		return euler
 
 	def run(self, data_iterator, valid_data):
 		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
 		self.get_ignored_dims()
-		if not self.load():
+
+		def wrap_angle(rad):
+			return ( rad + np.pi) % (2 * np.pi ) - np.pi
+
+		if self.load():
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			loss = 10000
@@ -173,16 +186,16 @@ class R_LSTM:
 				for x_data, y_data in iter1:
 					# x_data, y_data = self.__alter_label(x, y)
 					x_train, x_test, y_train_, y_test_ = cross_validation.train_test_split(x_data, y_data, test_size=self.cv_splits)
-					y_train = self.__alter_parameterization(y_train_)
-					y_test = self.__alter_parameterization(y_test_)
-					y_train = self.__alter_y(y_train)
-					y_test = self.__alter_y(y_test)
+					_y_train = self.__alter_parameterization(y_train_)
+					_y_test = self.__alter_parameterization(y_test_)
+					y_train = self.__alter_y(_y_train)
+					y_test = self.__alter_y(_y_test)
 					# print np.sum(y_train[:,0,-self.label_dim:], axis=0)
-					history = self.autoencoder.fit(x_train, y_train,
+					history = self.autoencoder.fit(_y_train, y_train,
 								shuffle=True,
 								epochs=self.epochs,
 								batch_size=self.batch_size,
-								validation_data=(x_test, y_test))
+								validation_data=(_y_test, y_test))
 
 					new_loss = np.mean(history.history['loss'])
 					if new_loss < loss:
@@ -195,12 +208,26 @@ class R_LSTM:
 						self.autoencoder.save_weights(self.save_path, overwrite=True)
 					rand_idx = np.random.choice(x_test.shape[0], 25, replace=False)
 					#metrics.validate(x_test[rand_idx], self, self.log_path, history.history['loss'])
-					y_test_pred = self.encoder.predict(x_test[rand_idx])[:,-1]
-					y_test_pred = __recover_parameterization(self.decoder.predict(y_test_pred))
-					y_test_gt = y_test_[rand_idx]
-					print 'MSE', np.mean(np.abs(np.arctan2(np.sin(y_test_gt - y_test_pred), np.cos(y_test_gt - y_test_pred))))
+					y_test_pred = self.encoder.predict(_y_test[rand_idx])[:,-1]
+					y_test_pred = self.decoder.predict(y_test_pred)
+					mse_ = np.mean(np.square(y_test[rand_idx, -self.timesteps:] - y_test_pred))
 
-					del x_train, x_test, y_train, y_test
+					y_test_pred = self.__recover_parameterization(y_test_pred)
+					y_test_gt = y_test_[rand_idx]
+					mae = np.mean(np.abs(np.arctan2(np.sin(y_test_gt - y_test_pred), np.cos(y_test_gt - y_test_pred))))
+					wrap_mse = np.mean(np.square(wrap_angle(y_test_gt) - y_test_pred))
+					mse = np.mean(np.square(y_test_gt - y_test_pred))
+					print 'MSE_Sin_Cos', mse_
+					print 'MAE', mae
+					print 'Wrap_MSE', wrap_mse
+					print 'MSE', mse
+
+					with open('../new_out/%s_t%d_l%d_log.csv'%(NAME, self.timesteps, self.latent_dim), 'a+') as f:
+						spamwriter = csv.writer(f)
+						spamwriter.writerow([new_loss, mse_, mae, wrap_mse, mse, LEARNING_RATE])
+
+
+					del x_train, x_test, y_train, y_test, y_train_, y_test_
 				iter1, iter2 = tee(iter2)
 
 			data_iterator = iter2
@@ -229,7 +256,7 @@ class R_LSTM:
 		# evaluate.eval_pattern_reconstruction(self.encoder, self.decoder, iter2)
 
 if __name__ == '__main__':
-	data_iterator, valid_data, config = parser.get_parse(NAME, labels=True)
+	data_iterator, valid_data, config = parser.get_parse(NAME, labels=False)
 	ae = R_LSTM(config)
 	ae.run(data_iterator, valid_data)
 

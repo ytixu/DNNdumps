@@ -275,12 +275,7 @@ class seq2seq_ae__:
       metrics.get_mesures(self, embedding, test_x, test_y)
 
 
-
-if __name__ == '__main__':
-  from itertools import tee
-  train_set, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS)
-  ae = seq2seq_ae__(config, HAS_LABELS)
-  #test_gt, test_pred_gt = test_set
+def convert__(ae, train_set, test_set):
   max_ = 0
 
   train_set, train_set_ = tee(train_set)
@@ -308,9 +303,12 @@ if __name__ == '__main__':
 
       #print np.min(xyz), np.max(xyz)
 
-  print config['woeirwoeiroiwer']
 
-
+if __name__ == '__main__':
+  from itertools import tee
+  train_set, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS)
+  ae = seq2seq_ae__(config, HAS_LABELS)
+  #test_gt, test_pred_gt = test_set
 
   '''
   test conversions
@@ -342,27 +340,48 @@ if __name__ == '__main__':
 
   import h5py
   # numpy implementation
-  n = ae.timesteps-ae.conditioned_pred_steps
+  n = 100 # ae.timesteps - ae.conditioned_pred_steps
+  expmap_cond = np.zeros((8, n, 99))
   expmap_gt = np.zeros((8, n, 99))
   expmap_pred = np.zeros((8, n, 99))
   with h5py.File( '../baselines/samples.h5', 'r' ) as h5f:
     for i, action in enumerate(config['actions']):
       for j in range(8):
-        expmap_gt[j] = h5f['expmap/preds_gt/%s_%d'%(action, j)][:n]
-        expmap_pred[j] = h5f['expmap/preds/%s_%d'%(action, j)][:n]
+        expmap_cond[j] = h5f['expmap/gt/%s_%d'%(action, j)] # [:n/2]
+        expmap_gt[j] = h5f['expmap/preds_gt/%s_%d'%(action, j)] # [:n]
+        expmap_pred[j] = h5f['expmap/preds/%s_%d'%(action, j)] # [:n]
 
       # batch_data = ae.get_batch_srnn( test_set, action)
       # print batch_data.shape
-      print [i*8+k for k in [0,4,1,5,2,6,3,7]]
-      loaded_batch = test_pred_gt[[i*8+k for k in [0,4,1,5,2,6,3,7]],:n]
-      xyz = translate__.batch_expmap2xyz(loaded_batch, ae)
-      image.plot_poses(xyz[:,:5])
+      #print [i*8+k for k in [0,4,1,5,2,6,3,7]]
+      #loaded_batch = test_pred_gt[[i*8+k for k in [0,4,1,5,2,6,3,7]],:n]
+      #xyz = translate__.batch_expmap2xyz(loaded_batch, ae)
+      #image.plot_poses(xyz[:,:5])
       #xyz_p = translate__.batch_expmap2xyz(expmap_gt[:,:5], ae, normalized=False)
       #image.plot_poses(xyz[:,:5])
 
       print action, n
-      print translate__.euler_diff(expmap_gt, expmap_pred, ae, normalized=[False, False])[0]
+      error = translate__.euler_diff(expmap_gt, expmap_pred, ae, normalized=[False, False])[0]
+
+      euler_cond = np.array(translate__.batch_expmap2euler(expmap_cond, ae, normalized=False))
+      euler_gt = np.array(translate__.batch_expmap2euler(expmap_gt, ae, normalized=False))
+      euler_pred = np.array(translate__.batch_expmap2euler(expmap_pred, ae, normalized=False))
+
+      # euler_gt[0][:,0:6] = 0
+      # idx_to_use = np.where( np.std(euler_gt[0], 0 ) > 1e-4 )[0]
+      #idx_to_use = [6,7,8,9,12,13,14,15,21,22,23,24,27,28,29,30,36,37,38,39,40,41,42,43,44,45,46,47,51,52,53,54,55,56,57,60,61,62,75,76,77,78,79,80,81,84,85,86]
+
+      #euc_error = np.power(euler_gt[:,:,idx_to_use] - euler_pred[:,:,idx_to_use], 2)
+      #euc_error = np.sum(euc_error, -1)
+      #euc_error = np.mean(np.sqrt(euc_error), 0)
+      #print euc_error - error
+
+      np.save('../baselines/euler/%s_gt.npy'%(action), euler_gt)
+      np.save('../baselines/euler/%s_cond.npy'%(action), euler_cond)
+      np.save('../baselines/euler/%s_pred.npy'%(action), euler_pred)
+
       #print translate__.euler_diff(expmap_gt, batch_data[:,-n:], ae, normalized=[False, True])
-      print translate__.euler_diff(expmap_gt, loaded_batch, ae, normalized=[False, True])[0]
+      #print translate__.euler_diff(expmap_gt, loaded_batch, ae, normalized=[False, True])[0]
       #break
+
 

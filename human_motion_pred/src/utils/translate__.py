@@ -159,6 +159,9 @@ def batch_expmap2xyz(batch_data, model, normalized=True):
   print 'xyz', xyz.shape
   return xyz
 
+def wrap_angle(rad):
+  return ( rad + np.pi) % (2 * np.pi ) - np.pi
+
 def euler_diff(batch_expmap1, batch_expmap2, model, normalized=[True, True]):
   '''
     Get the mean euler angle difference between two batches
@@ -184,7 +187,8 @@ def euler_diff(batch_expmap1, batch_expmap2, model, normalized=[True, True]):
     # https://github.com/asheshjain399/RNNexp/blob/srnn/structural_rnn/CRFProblems/H3.6m/dataParser/Utils/motionGenerationError.m#L40-L54
     idx_to_use = np.where( np.std( srnn_euler, 0 ) > 1e-4 )[0]
 
-    euc_error = np.power( srnn_euler[:,idx_to_use] - batch_euler2[i][:,idx_to_use], 2)
+    wraped_euc_error = wrap_angle(srnn_euler[:,idx_to_use]) - wrap_angle(batch_euler2[i][:,idx_to_use])
+    euc_error = np.power(wraped_euc_error, 2)
     euc_error = np.sum(euc_error, 1)
     euc_error = np.sqrt( euc_error )
     mean_errors[i,:] = euc_error

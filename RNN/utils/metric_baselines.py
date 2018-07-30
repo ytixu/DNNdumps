@@ -347,7 +347,6 @@ def compare(model, data_iterator):
 		plt.close()
 
 
-
 if __name__ == '__main__':
 	#get_baselines('../')
 	#
