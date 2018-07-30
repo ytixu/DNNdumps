@@ -69,7 +69,7 @@ def __get_weights(embedding, z_ref, mode=1):
 
 # Pattern matching methods
 
-def __closest(embedding, z_ref, weights=[], return_weight=False):
+def closest(embedding, z_ref, weights=[], return_weight=False):
 	if not any(weights):
 		weights = __get_dist(embedding, z_ref)
 	idx = np.argmin(weights)
@@ -110,7 +110,7 @@ def __multi_match(embedding, z_refs, weights={}):
 			z_matches[n-i-1,:], w_i[i] = __closest(embedding, z, return_weight=True)
 	return __normalized_distance_mean(z_matches, w_i, range(n))
 
-def __closest_partial_index(embedding_partial, z_ref, weights={}):
+def closest_partial_index(embedding_partial, z_ref, weights={}):
 	if not any(weights):
 		weights = __get_dist(embedding_partial, z_ref)
 	return np.argmin(weights)

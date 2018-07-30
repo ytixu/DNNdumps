@@ -144,7 +144,7 @@ def get_parse(model_name, labels=False):
 	ap.add_argument('-ld', '--latent_dim', required=False, help='Embedding size', default='100', type=int)
 	ap.add_argument('-o', '--option_dim', required=False, help='Number of options', default='2', type=int)
 	ap.add_argument('-l', '--log_path', required=False, help='Log file for loss history', default=get_log_name(model_name))
-    ap.add_argument('-only', '--only_label', required=False, help='Only load data with this label', default='')
+	ap.add_argument('-only', '--only_label', required=False, help='Only load data with this label', default='')
 
 
 	# ap.add_argument('-lr', '--learning_rate', required=False, help='Learning rate', default='5000', choices=list_of_modes)

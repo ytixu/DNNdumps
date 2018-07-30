@@ -20,7 +20,7 @@ K.tensorflow_backend.set_session(tf.Session(config=config))
 from utils import parser, image, embedding_plotter, recorder, metrics, metric_baselines, association_evaluation
 from Forward import NN
 
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.00001
 NAME = 'RR_LSTM'
 USE_GRU = True
 if USE_GRU:
@@ -166,7 +166,8 @@ class RR_LSTM:
 		return np.concatenate([np.sin(used_y), np.cos(used_y)], axis=-1)
 
 	def __recover_parameterization(self, y):
-		euler = np.zeros((y.shape[0], self.timesteps, self._output_dim))
+		euler = np.zeros((y.shape[0], y.shape[1], self._output_dim))
+		print euler.shape, y.shape
 		euler[:,:,self.dim_to_use] = np.arctan2(y[:,:,:-self.output_dim/2], y[:,:,-self.output_dim/2:])
 		euler[:,:,self.dim_to_ignore] = self.data_mean
 		return euler
@@ -175,10 +176,22 @@ class RR_LSTM:
 		model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
 		self.get_ignored_dims()
 
+		used_idx = [6,7,8,9,12,13,14,15,21,22,23,24,27,28,29,30,36,37,38,39,40,41,42,43,44,45,46,47,51,52,53,54,55,56,57,60,61,62,75,76,77,78,79,80,81,84,85,86]
+
+
+		def euler_error(yTrue, yPred):
+		        yPred = self.__recover_parameterization(yPred)[:,:,used_idx]
+			print np.mean(np.abs(wrap_angle(yTrue[:,:,used_idx]) - yPred))
+		        error = np.square(wrap_angle(yTrue[:,:,used_idx]) - yPred)
+		        error = np.sum(error, -1)
+		        error = np.sqrt(error)
+		        return np.mean(error, 0)
+
+
 		def wrap_angle(rad):
 			return ( rad + np.pi) % (2 * np.pi ) - np.pi
 
-		if not self.load():
+		if self.load():
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			loss = 10000
@@ -206,26 +219,26 @@ class RR_LSTM:
 						# y_test_decoded = np.reshape(y_test_decoded, (len(self.hierarchies), self.timesteps, -1))
 						# image.plot_poses(x_test[:1,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
 						# image.plot_hierarchies(y_test_orig[:,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
-						self.autoencoder.save_weights(self.save_path, overwrite=True)
+						#self.autoencoder.save_weights(self.save_path, overwrite=True)
 					rand_idx = np.random.choice(x_test.shape[0], 25, replace=False)
 					#metrics.validate(x_test[rand_idx], self, self.log_path, history.history['loss'])
 					y_test_pred = self.encoder.predict(_y_test[rand_idx])[:,-1]
 					y_test_pred = self.decoder.predict(y_test_pred)
 					mse_ = np.mean(np.square(y_test[rand_idx, -self.timesteps:] - y_test_pred))
 
-					y_test_pred = self.__recover_parameterization(y_test_pred)
 					y_test_gt = y_test_[rand_idx]
+					mse = euler_error(y_test_gt, y_test_pred)
+					y_test_pred = self.__recover_parameterization(y_test_pred)
 					mae = np.mean(np.abs(np.arctan2(np.sin(y_test_gt - y_test_pred), np.cos(y_test_gt - y_test_pred))))
-					wrap_mse = np.mean(np.square(wrap_angle(y_test_gt) - y_test_pred))
-					mse = np.mean(np.square(y_test_gt - y_test_pred))
+					wrap_mae = np.mean(np.abs(wrap_angle(y_test_gt[:,:,used_idx]) - y_test_pred[:,:,used_idx]))
 					print 'MSE_Sin_Cos', mse_
 					print 'MAE', mae
-					print 'Wrap_MSE', wrap_mse
+					print 'Wrap_MAE', wrap_mae
 					print 'MSE', mse
 
-					with open('../new_out/%s_t%d_l%d_log.csv'%(NAME, self.timesteps, self.latent_dim), 'a+') as f:
-						spamwriter = csv.writer(f)
-						spamwriter.writerow([new_loss, mse_, mae, wrap_mse, mse, LEARNING_RATE])
+					#with open('../new_out/%s_t%d_l%d_log.csv'%(NAME, self.timesteps, self.latent_dim), 'a+') as f:
+					#	spamwriter = csv.writer(f)
+					#	spamwriter.writerow([new_loss, mse_, mae, wrap_mse, mse, LEARNING_RATE])
 
 
 					del x_train, x_test, y_train, y_test, y_train_, y_test_
@@ -234,18 +247,17 @@ class RR_LSTM:
 			data_iterator = iter2
 		else:
 			# load embedding
-			used_idx = [6,7,8,9,12,13,14,15,21,22,23,24,27,28,29,30,36,37,38,39,40,41,42,43,44,45,46,47,51,52,53,54,55,56,57,60,61,62,75,76,77,78,79,80,81,84,85,86]
-
 			embedding = []
 			for _,y in data_iterator:
 				y = self.__alter_parameterization(y)
-				e = model.encoder.predict(y)
+				e = self.encoder.predict(y)
 				if len(embedding) == 0:
 					embedding = e[:, self.hierarchies]
 				else:
-					embedding = np.concatenate((embedding, e[:,model.hierarchies]), axis=0)
-				# break
+					embedding = np.concatenate((embedding, e[:,self.hierarchies]), axis=0)
+				break
 			embedding = np.array(embedding)
+			print 'emb', embedding.shape
 			mean_diff, diff = metrics.get_embedding_diffs(embedding[:,1], embedding[:,0])
 
 			load_path = '../human_motion_pred/baselines/euler/'
@@ -254,39 +266,36 @@ class RR_LSTM:
 			_N = 8
 			pred_n = self.hierarchies[1]-cut
 
-			def euler_error(yTrue, yPred):
-				yPred = self.__recover_parameterization(yPred)[:,:,used_idx]
-				error = np.square(wrap_angle(y_test_gt[:,:,used_idx]) - yPred)
-				error = np.sum(error, -1)
-				error = np.sqrt(error)
-				return np.mean(error, 0)
-
 			error = {m: np.zeros((15, pred_n)) for m in methods}
 			a_n = 0
 			for basename in metric_baselines.iter_actions():
 				print basename, '================='
 
-				cond = np.load(load_path + basename + '_cond-%d.npy'%i)[-cut-1:]
-				# pd = np.load(load_path + basename + '_pred-%d.npy'%i)
-				gtp = np.load(load_path + basename + '_gt-%d.npy'%i)[:pred_n]
+				cond = np.zeros((_N, self.timesteps, self.input_dim))
+				cond[:,-cut-1:] = self.__alter_parameterization(np.load(load_path + basename + '_cond.npy')[:,-cut-1:])
+				# pd = np.load(load_path + basename + '_pred.npy')
+				gtp = np.load(load_path + basename + '_gt.npy')[:,:pred_n]
 
-				cond = __alter_parameterization(cond)
-				enc = self..encoder.predict(cond)[:,cut]
+				enc = self.encoder.predict(cond)[:,cut]
+
+				# autoencoding error
+				autoenc = self.decoder.predict(enc)[:,:cut+1]
+				print euler_error(cond[:,:cut+1], autoenc)
 
 				for method in methods:
 					new_enc = np.zeros(enc.shape)
-					for i in tqdm(range(_N)):
+					for i in range(_N):
 						if method == 'closest_partial':
-							new_enc[i] = metrics.__closest_partial_index(embedding[:,0], enc[i])
+							new_enc[i] = metrics.closest_partial_index(embedding[:,0], enc[i])
 						elif method == 'closest':
-							new_enc[i] = metrics.__closest(embedding[:,1], enc[i])
+							new_enc[i] = metrics.closest(embedding[:,1], enc[i])
 						elif method == 'add':
 							new_enc[i] = enc[i]+mean_diff
 
 					model_pred = self.decoder.predict(new_enc)[:,cut+1:]
 					error[method][a_n] = euler_error(gtp, model_pred)
-					print method
-					print error[method][a_n]
+					#print method
+					#print error[method][a_n]
 
 				a_n += 1
 			print 'total ================='
