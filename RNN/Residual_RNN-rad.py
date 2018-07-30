@@ -10,6 +10,7 @@ from keras.optimizers import RMSprop
 import keras.backend as K
 import tensorflow as tf
 import csv
+import json
 
 
 config = tf.ConfigProto()
@@ -20,15 +21,15 @@ from utils import parser, image, embedding_plotter, recorder, metrics, metric_ba
 from Forward import NN
 
 LEARNING_RATE = 0.001
-NAME = 'R_LSTM'
+NAME = 'RR_LSTM'
 USE_GRU = True
 if USE_GRU:
 	from keras.layers import GRU
-	NAME = 'R_GRU'
+	NAME = 'RR_GRU'
 else:
 	from keras.layers import LSTM
 
-class R_LSTM:
+class RR_LSTM:
 	def __init__(self, args):
 		self.autoencoder = None
 		self.encoder = None
@@ -177,7 +178,7 @@ class R_LSTM:
 		def wrap_angle(rad):
 			return ( rad + np.pi) % (2 * np.pi ) - np.pi
 
-		if self.load():
+		if not self.load():
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			loss = 10000
@@ -231,32 +232,73 @@ class R_LSTM:
 				iter1, iter2 = tee(iter2)
 
 			data_iterator = iter2
+		else:
+			# load embedding
+			used_idx = [6,7,8,9,12,13,14,15,21,22,23,24,27,28,29,30,36,37,38,39,40,41,42,43,44,45,46,47,51,52,53,54,55,56,57,60,61,62,75,76,77,78,79,80,81,84,85,86]
 
-		# metric_baselines.compare(self)
-		# metrics.gen_long_sequence(valid_data, self)
+			embedding = []
+			for _,y in data_iterator:
+				y = self.__alter_parameterization(y)
+				e = model.encoder.predict(y)
+				if len(embedding) == 0:
+					embedding = e[:, self.hierarchies]
+				else:
+					embedding = np.concatenate((embedding, e[:,model.hierarchies]), axis=0)
+				# break
+			embedding = np.array(embedding)
+			mean_diff, diff = metrics.get_embedding_diffs(embedding[:,1], embedding[:,0])
 
-		# embedding_plotter.see_hierarchical_embedding(self.encoder, self.decoder, data_iterator, valid_data, model_vars, self.label_dim)
-		# iter1, iter2 = tee(data_iterator)
-		# metrics.validate(valid_data, self)
+			load_path = '../human_motion_pred/baselines/euler/'
+			cut = self.hierarchies[0]
+			methods = ['closest_partial', 'closest', 'add']
+			_N = 8
+			pred_n = self.hierarchies[1]-cut
 
-		#nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
-		#nn.run(None)
-		metrics.plot_metrics(self, data_iterator, valid_data, None)
-		#association_evaluation.plot_best_distance_function(self, valid_data, data_iterator, nn)
-		# association_evaluation.eval_generation(self, valid_data, data_iterator)
-		# association_evaluation.eval_center(self, valid_data, 'sitting')
-		# association_evaluation.transfer_motion(self, valid_data, 'sitting', 'walking', data_iterator)
-		# association_evaluation.plot_transfer_motion(self, '../new_out/transfer_motion-sitting-to-greeting-scores.npy')
-		# association_evaluation.plot_transfer_motion(self, '../new_out/transfer_motion-sitting-to-walking-scores.npy')
-		# association_evaluation.eval_generation_from_label(self, data_iterator)
-		# association_evaluation.plot_add(self, data_iterator)
-		# metrics.plot_metrics_labels(self, data_iterator, valid_data)
-		# metric_baselines.compare_label_embedding(self, nn, data_iterator)
-		# association_evaluation.eval_distance(self, valid_data)
-		# evaluate.eval_pattern_reconstruction(self.encoder, self.decoder, iter2)
+			def euler_error(yTrue, yPred):
+				yPred = self.__recover_parameterization(yPred)[:,:,used_idx]
+				error = np.square(wrap_angle(y_test_gt[:,:,used_idx]) - yPred)
+				error = np.sum(error, -1)
+				error = np.sqrt(error)
+				return np.mean(error, 0)
+
+			error = {m: np.zeros((15, pred_n)) for m in methods}
+			a_n = 0
+			for basename in metric_baselines.iter_actions():
+				print basename, '================='
+
+				cond = np.load(load_path + basename + '_cond-%d.npy'%i)[-cut-1:]
+				# pd = np.load(load_path + basename + '_pred-%d.npy'%i)
+				gtp = np.load(load_path + basename + '_gt-%d.npy'%i)[:pred_n]
+
+				cond = __alter_parameterization(cond)
+				enc = self..encoder.predict(cond)[:,cut]
+
+				for method in methods:
+					new_enc = np.zeros(enc.shape)
+					for i in tqdm(range(_N)):
+						if method == 'closest_partial':
+							new_enc[i] = metrics.__closest_partial_index(embedding[:,0], enc[i])
+						elif method == 'closest':
+							new_enc[i] = metrics.__closest(embedding[:,1], enc[i])
+						elif method == 'add':
+							new_enc[i] = enc[i]+mean_diff
+
+					model_pred = self.decoder.predict(new_enc)[:,cut+1:]
+					error[method][a_n] = euler_error(gtp, model_pred)
+					print method
+					print error[method][a_n]
+
+				a_n += 1
+			print 'total ================='
+			for method in methods:
+				print np.mean(error[method], 0)
+				error[method] = error[method].tolist()
+
+			with open('../new_out/%s_t%d_l%d_compared.json'%(NAME, self.timesteps, self.latent_dim), 'wb') as result_file:
+				json.dump(error, result_file)
 
 if __name__ == '__main__':
 	data_iterator, valid_data, config = parser.get_parse(NAME, labels=False)
-	ae = R_LSTM(config)
+	ae = RR_LSTM(config)
 	ae.run(data_iterator, valid_data)
 
