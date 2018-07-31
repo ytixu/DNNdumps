@@ -116,10 +116,13 @@ class H_RNN_R:
 		return np.reshape(y, (-1, self.timesteps*len(self.hierarchies), y.shape[-1]))
 
 
-	def __merge_n_reparameterize(self, x, y):
+	def __merge_n_reparameterize(self, x, y, return_orig=False):
 		y = normalize_angle(wrap_angle(y[:,:,self.used_euler_idx]))
 		x = x[:,:,self.used_xyz_idx]
-		return np.concatenate([x,y], -1)
+		xy = np.concatenate([x,y], -1)
+		if return_orig:
+			return x, y, xy
+		return xy
 
 	def euler_error(self, yTrue, yPred):
 		return np.mean(np.sqrt(np.sum(np.square(yTrue - yPred), -1)), 0)
@@ -196,17 +199,15 @@ class H_RNN_R:
 
 			x, y = valid_data
 			rand_idx = np.random.choice(x.shape[0], _N, replace=False)
-			x = x[rand_idx]
-			y = y[rand_idx]
-			valid_data = self.__merge_n_reparameterize(x,y)
+			x, y, valid_data = self.__merge_n_reparameterize(x,y, True)
 			enc = self.encoder.predict(valid_data)
 			partial_enc = enc[:,cut]
 
 			# autoencoding error for partial seq
-			dec = self.decoder.predict(partial_enc)[:,:cut+1,self.euler_start:]
-			dec = unormalize_angle(dec)
-			y = wrap_angle(y[:,:,self.used_euler_idx])
-			print self.euler_error(y[:,:cut+1], dec)
+			dec = self.decoder.predict(partial_enc)[:,:cut+1]
+			dec_euler = unormalize_angle(dec[:,:,self.euler_start:])
+			print self.euler_error(y[:,:cut+1], dec_euler)
+			image.plot_poses_euler(x[:2,:cut+1], dec[:2,:,:self.euler_start], title='autoencoding', image_dir='../new_out/')
 
 			for method in methods:
 				new_enc = np.zeros(partial_enc.shape)
@@ -224,6 +225,8 @@ class H_RNN_R:
 				error[method]['euler'] = self.euler_error(y[:,cut+1:], model_pred_euler)
 				print method
 				print error[method]['euler']
+
+				image.plot_poses_euler(x[:2,cut+1:], model_pred[:2,:,:self.euler_start], title=method, image_dir='../new_out/')
 
 				for i in range(_N):
 					pose_err = metrics.pose_seq_error(x[i,cut+1:], model_pred[i,:,:self.euler_start], cumulative=True)

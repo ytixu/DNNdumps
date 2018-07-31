@@ -46,7 +46,7 @@ def __plot(x, ys, errs, labels, x_label, y_label, x_ticks, title, model_name, ba
 def __dist_name__(mode):
 	return ['l2', 'l1', 'cos', 'max', 'min'][mode]
 
-def __distance__(e1, e2, mode=0):
+def __distance__(e1, e2, mode=1):
 	if mode == 0:
 		return np.linalg.norm(e1-e2)
 	elif mode == 1:
@@ -58,7 +58,7 @@ def __distance__(e1, e2, mode=0):
 	elif mode == 4:
 		return np.amin(np.abs(e1-e2))
 
-def __get_dist(embedding, z_ref, mode=0):
+def __get_dist(embedding, z_ref, mode=1):
 	return [__distance__(embedding[i], z_ref, mode) for i in range(len(embedding))]
 
 def __get_weights(embedding, z_ref, mode=1):
