@@ -9,6 +9,7 @@ from keras.models import Model
 from keras.callbacks import TensorBoard
 from keras.optimizers import RMSprop
 import csv
+from tqdm import tqdm
 
 from utils import parser, image, embedding_plotter, metrics, metric_baselines, fk_animate, association_evaluation, evaluate
 
@@ -124,7 +125,7 @@ class H_RNN_R:
 
 	def run(self, data_iterator, valid_data):
 		# model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
-		if self.load():
+		if not self.load():
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			loss = 10000
@@ -170,6 +171,61 @@ class H_RNN_R:
 				iter1, iter2 = tee(iter2)
 
 			data_iterator = iter2
+		else:
+			# load embedding
+			embedding = []
+			for x,y in data_iterator:
+				x = self.__merge_n_reparameterize(x,y)
+				e = self.encoder.predict(x)
+				if len(embedding) == 0:
+					embedding = e[:, self.hierarchies]
+				else:
+					embedding = np.concatenate((embedding, e[:,self.hierarchies]), axis=0)
+				break
+			embedding = np.array(embedding)
+			print 'emb', embedding.shape
+			mean_diff, diff = metrics.get_embedding_diffs(embedding[:,1], embedding[:,0])
+
+			_N = 100
+			methods = ['closest_partial', 'closest', 'add']
+			cut = self.hierarchies[0]
+			pred_n = self.hierarchies[1]-cut
+			error = {m: np.zeros((_N, pred_n)) for m in methods}
+
+			x, y = valid_data
+			x = self.__merge_n_reparameterize(x,y)
+			rand_idx = np.random.choice(x.shape[0], _N, replace=False)
+			valid_data = x[rand_idx]
+			enc = self.encoder.predict(valid_data)
+			partial_enc = enc[:,cut]
+
+			# autoencoding error for partial seq
+			dec = self.decoder.predict(partial_enc)[:,:cut+1,self.euler_start:]
+			dec = unormalize_angle(dec)
+			y = wrap_angle(y[rand_idx])
+			print self.euler_error(y[:,:cut+1], dec)
+
+			for method in methods:
+				new_enc = np.zeros(partial_enc.shape)
+				for i in tqdm(range(_N)):
+					if method == 'closest_partial':
+						new_enc[i] = metrics.closest_partial_index(embedding[:,0], partial_enc[i])
+					elif method == 'closest':
+						new_enc[i] = metrics.closest(embedding[:,1], partial_enc[i])
+					elif method == 'add':
+						new_enc[i] = partial_enc[i]+mean_diff
+
+				model_pred = self.decoder.predict(new_enc)[:,cut+1:]
+				model_pred = unormalize_angle(model_pred)
+				error[method] = euler_error(y[:,cut+1:], model_pred)
+				print method
+				print error[method]
+				error[method] = error[method].tolist()
+
+			with open('../new_out/%s_t%d_l%d_validation.json'%(NAME, self.timesteps, self.latent_dim), 'wb') as result_file:
+				json.dump(error, result_file)
+
+
 
 if __name__ == '__main__':
 	data_iterator, valid_data, config = parser.get_parse(NAME)

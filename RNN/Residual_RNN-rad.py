@@ -180,12 +180,11 @@ class RR_LSTM:
 
 
 		def euler_error(yTrue, yPred):
-		        yPred = self.__recover_parameterization(yPred)[:,:,used_idx]
-			print np.mean(np.abs(wrap_angle(yTrue[:,:,used_idx]) - yPred))
-		        error = np.square(wrap_angle(yTrue[:,:,used_idx]) - yPred)
-		        error = np.sum(error, -1)
-		        error = np.sqrt(error)
-		        return np.mean(error, 0)
+			yPred = self.__recover_parameterization(yPred)[:,:,used_idx]
+			error = np.square(wrap_angle(yTrue[:,:,used_idx]) - yPred)
+			error = np.sum(error, -1)
+			error = np.sqrt(error)
+			return np.mean(error, 0)
 
 
 		def wrap_angle(rad):
@@ -236,9 +235,9 @@ class RR_LSTM:
 					print 'Wrap_MAE', wrap_mae
 					print 'MSE', mse
 
-					#with open('../new_out/%s_t%d_l%d_log.csv'%(NAME, self.timesteps, self.latent_dim), 'a+') as f:
-					#	spamwriter = csv.writer(f)
-					#	spamwriter.writerow([new_loss, mse_, mae, wrap_mse, mse, LEARNING_RATE])
+					with open('../new_out/%s_t%d_l%d_log.csv'%(NAME, self.timesteps, self.latent_dim), 'a+') as f:
+						spamwriter = csv.writer(f)
+						spamwriter.writerow([new_loss, mse_, mae, wrap_mse, mse, LEARNING_RATE])
 
 
 					del x_train, x_test, y_train, y_test, y_train_, y_test_
