@@ -199,7 +199,8 @@ class H_RNN_R:
 
 			x, y = valid_data
 			rand_idx = np.random.choice(x.shape[0], _N, replace=False)
-			x, y, valid_data = self.__merge_n_reparameterize(x,y, True)
+			x, y, valid_data = self.__merge_n_reparameterize(x[rand_idx],y[rand_idx], True)
+			y = unormalize_angle(y)
 			enc = self.encoder.predict(valid_data)
 			partial_enc = enc[:,cut]
 
@@ -207,7 +208,7 @@ class H_RNN_R:
 			dec = self.decoder.predict(partial_enc)[:,:cut+1]
 			dec_euler = unormalize_angle(dec[:,:,self.euler_start:])
 			print self.euler_error(y[:,:cut+1], dec_euler)
-			image.plot_poses_euler(x[:2,:cut+1], dec[:2,:,:self.euler_start], title='autoencoding', image_dir='../new_out/')
+			#image.plot_poses_euler(x[:2,:cut+1], dec[:2,:,:self.euler_start], title='autoencoding', image_dir='../new_out/')
 
 			for method in methods:
 				new_enc = np.zeros(partial_enc.shape)
