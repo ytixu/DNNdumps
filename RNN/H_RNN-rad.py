@@ -10,6 +10,7 @@ from keras.callbacks import TensorBoard
 from keras.optimizers import RMSprop
 import csv
 from tqdm import tqdm
+import json
 
 from utils import parser, image, embedding_plotter, metrics, metric_baselines, fk_animate, association_evaluation, evaluate
 
@@ -44,7 +45,7 @@ class H_RNN_R:
 		self.cv_splits = args['cv_splits'] if 'cv_splits' in args else 0.2
 
 		self.timesteps = args['timesteps'] if 'timesteps' in args else 10
-		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
+		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [14,24]
 		# self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
@@ -181,7 +182,7 @@ class H_RNN_R:
 					embedding = e[:, self.hierarchies]
 				else:
 					embedding = np.concatenate((embedding, e[:,self.hierarchies]), axis=0)
-				break
+				#break
 			embedding = np.array(embedding)
 			print 'emb', embedding.shape
 			mean_diff, diff = metrics.get_embedding_diffs(embedding[:,1], embedding[:,0])
@@ -190,37 +191,49 @@ class H_RNN_R:
 			methods = ['closest_partial', 'closest', 'add']
 			cut = self.hierarchies[0]
 			pred_n = self.hierarchies[1]-cut
-			error = {m: np.zeros((_N, pred_n)) for m in methods}
+			error = {m: {'euler': np.zeros(pred_n),
+					'pose': np.zeros(pred_n)}  for m in methods}
 
 			x, y = valid_data
-			x = self.__merge_n_reparameterize(x,y)
 			rand_idx = np.random.choice(x.shape[0], _N, replace=False)
-			valid_data = x[rand_idx]
+			x = x[rand_idx]
+			y = y[rand_idx]
+			valid_data = self.__merge_n_reparameterize(x,y)
 			enc = self.encoder.predict(valid_data)
 			partial_enc = enc[:,cut]
 
 			# autoencoding error for partial seq
 			dec = self.decoder.predict(partial_enc)[:,:cut+1,self.euler_start:]
 			dec = unormalize_angle(dec)
-			y = wrap_angle(y[rand_idx])
+			y = wrap_angle(y[:,:,self.used_euler_idx])
 			print self.euler_error(y[:,:cut+1], dec)
 
 			for method in methods:
 				new_enc = np.zeros(partial_enc.shape)
 				for i in tqdm(range(_N)):
 					if method == 'closest_partial':
-						new_enc[i] = metrics.closest_partial_index(embedding[:,0], partial_enc[i])
+						idx = metrics.closest_partial_index(embedding[:,0], partial_enc[i])
+						new_enc[i] = embedding[idx,1]
 					elif method == 'closest':
 						new_enc[i] = metrics.closest(embedding[:,1], partial_enc[i])
 					elif method == 'add':
 						new_enc[i] = partial_enc[i]+mean_diff
 
 				model_pred = self.decoder.predict(new_enc)[:,cut+1:]
-				model_pred = unormalize_angle(model_pred)
-				error[method] = euler_error(y[:,cut+1:], model_pred)
+				model_pred_euler = unormalize_angle(model_pred[:,:,self.euler_start:])
+				error[method]['euler'] = self.euler_error(y[:,cut+1:], model_pred_euler)
 				print method
-				print error[method]
-				error[method] = error[method].tolist()
+				print error[method]['euler']
+
+				for i in range(_N):
+					pose_err = metrics.pose_seq_error(x[i,cut+1:], model_pred[i,:,:self.euler_start], cumulative=True)
+					error[method]['pose'] = error[method]['pose'] + np.array(pose_err)
+				error[method]['pose'] = error[method]['pose']/_N
+
+				print error[method]['pose']
+				error[method]['euler'] = error[method]['euler'].tolist()
+				error[method]['pose'] = error[method]['pose'].tolist()
+
 
 			with open('../new_out/%s_t%d_l%d_validation.json'%(NAME, self.timesteps, self.latent_dim), 'wb') as result_file:
 				json.dump(error, result_file)

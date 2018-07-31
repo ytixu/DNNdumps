@@ -46,7 +46,7 @@ def __plot(x, ys, errs, labels, x_label, y_label, x_ticks, title, model_name, ba
 def __dist_name__(mode):
 	return ['l2', 'l1', 'cos', 'max', 'min'][mode]
 
-def __distance__(e1, e2, mode=1):
+def __distance__(e1, e2, mode=0):
 	if mode == 0:
 		return np.linalg.norm(e1-e2)
 	elif mode == 1:
@@ -58,7 +58,7 @@ def __distance__(e1, e2, mode=1):
 	elif mode == 4:
 		return np.amin(np.abs(e1-e2))
 
-def __get_dist(embedding, z_ref, mode=1):
+def __get_dist(embedding, z_ref, mode=0):
 	return [__distance__(embedding[i], z_ref, mode) for i in range(len(embedding))]
 
 def __get_weights(embedding, z_ref, mode=1):
@@ -189,7 +189,7 @@ def __pose_error(pose_ref, pose_pred, reshaped=False):
 	pose_y = np.reshape(pose_pred, (-1, 3))
 	return np.mean([np.linalg.norm(pose_x[x]-pose_y[x]) for x in range(pose_x.shape[0])])
 
-def __pose_seq_error(pose_ref, pose_pred, fixed=False, cumulative=False):
+def pose_seq_error(pose_ref, pose_pred, fixed=False, cumulative=False):
 	ts = pose_ref.shape[0]
 	pose_x = np.reshape(pose_ref, (ts,-1, 3))
 	if fixed:
