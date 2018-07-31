@@ -8,12 +8,13 @@ from keras.layers import Input, RepeatVector, Lambda, concatenate
 from keras.models import Model
 from keras.callbacks import TensorBoard
 from keras.optimizers import RMSprop
+import csv
 
 from utils import parser, image, embedding_plotter, metrics, metric_baselines, fk_animate, association_evaluation, evaluate
 
 NAME = 'H_LSTM_R'
 USE_GRU = True
-L_RATE = 0.001
+L_RATE = 0.0005
 
 if USE_GRU:
 	from keras.layers import GRU as RNN_UNIT
@@ -44,8 +45,6 @@ class H_RNN_R:
 		self.timesteps = args['timesteps'] if 'timesteps' in args else 10
 		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
 		# self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
-		self.input_dim = args['input_dim']
-		self.output_dim = args['output_dim']
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
 		self.load_path = args['load_path']
@@ -56,7 +55,10 @@ class H_RNN_R:
 		self.used_xyz_idx =   [3,4,5,6, 7, 8, 9,10,11,18,19,20,21,22,23,24,25,26,36,37,38,39,40,41,42,43,44,45,46,47,51,52,53,54,55,56,57,58,59,75,76,77,78,79,80,81,82,83]
 		self.euler_start = len(self.used_xyz_idx)
 
-		self.MODEL_CODE = metrics.H_RNN_R
+		self.input_dim = len(self.used_euler_idx) + len(self.used_xyz_idx)
+                self.output_dim = self.input_dim
+
+		self.MODEL_CODE = metrics.H_LSTM
 
 		# self.history = recorder.LossHistory()
 
@@ -143,7 +145,7 @@ class H_RNN_R:
 					print history.history['loss']
 					new_loss = np.mean(history.history['loss'])
 					if new_loss < loss:
-						# self.autoencoder.save_weights(self.save_path, overwrite=True)
+						self.autoencoder.save_weights(self.save_path, overwrite=True)
 						loss = new_loss
 						print 'Saved model - ', loss
 
@@ -151,14 +153,19 @@ class H_RNN_R:
 					y_test_pred = self.encoder.predict(x[rand_idx])[:,-1]
 					y_test_pred = self.decoder.predict(y_test_pred)[:,:,self.euler_start:]
 
-					y_test_pred = self.unormalize_angle(y_test_pred)
-					y_gt = wrap_angle(y[rand_idx,:,self.used_euler_idx])
+					y_test_pred = unormalize_angle(y_test_pred)
+					y_gt = wrap_angle(y[rand_idx][:,:,self.used_euler_idx])
 
 					mae = np.mean(np.abs(y_gt-y_test_pred))
 					mse = self.euler_error(y_gt, y_test_pred)
 
 					print 'MAE', mae
 					print 'MSE', mse
+
+					with open('../new_out/%s_t%d_l%d_log.csv'%(NAME, self.timesteps, self.latent_dim), 'a+') as f:
+						spamwriter = csv.writer(f)
+						spamwriter.writerow([new_loss, mae, mse, L_RATE])
+
 
 				iter1, iter2 = tee(iter2)
 
