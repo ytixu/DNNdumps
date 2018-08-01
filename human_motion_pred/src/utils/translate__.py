@@ -189,7 +189,7 @@ def euler_diff(batch_expmap1, batch_expmap2, model, normalized=[True, True]):
 
     # wraped_euc_error = wrap_angle(srnn_euler[:,idx_to_use]) - wrap_angle(batch_euler2[i][:,idx_to_use])
     # euc_error = np.power(wraped_euc_error, 2)
-    euc_error = np.power(srnn_euler[:,idx_to_use]) - wrap_angle(batch_euler2[i][:,idx_to_use], 2)
+    euc_error = np.power(srnn_euler[:,idx_to_use] - wrap_angle(batch_euler2[i][:,idx_to_use]), 2)
     euc_error = np.sum(euc_error, 1)
     euc_error = np.sqrt( euc_error )
     mean_errors[i,:] = euc_error

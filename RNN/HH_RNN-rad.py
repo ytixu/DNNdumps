@@ -207,12 +207,12 @@ class HH_RNN_R:
 
 			data_iterator = iter2
 		else:
-			x, y = valid_data
-                        rand_idx = np.random.choice(x.shape[0], 2, replace=False)
-			xy  = self.__merge_n_reparameterize(x[rand_idx],y[rand_idx])
-			zs = self.encoder.predict(xy)[:,-1]
-			self.interpolate(zs[0], zs[1])
-			return
+			#x, y = valid_data
+                        #rand_idx = np.random.choice(x.shape[0], 2, replace=False)
+			#xy  = self.__merge_n_reparameterize(x[rand_idx],y[rand_idx])
+			#zs = self.encoder.predict(xy)[:,-1]
+			#self.interpolate(zs[0], zs[1])
+			#return
 
 
 			# load embedding
@@ -230,7 +230,7 @@ class HH_RNN_R:
 			mean_diff, diff = metrics.get_embedding_diffs(embedding[:,1], embedding[:,0])
 
 			_N = 100
-			methods = ['mean-100', 'mean-500', 'mean-1000', 'mean-100000', 'add']
+			methods = ['closest', 'closest_partial', 'add']
 			cut_e = self.predict_hierarchies[0]
 			cut_x = self.hierarchies[0]
 			pred_n = self.hierarchies[1]-cut_x
@@ -262,6 +262,8 @@ class HH_RNN_R:
                                                 new_enc[i] = metrics.closest_mean(embedding[:,1], partial_enc[i], n=n)
 					elif method == 'add':
 						new_enc[i] = partial_enc[i]+mean_diff
+					elif method == 'closest':
+						new_enc[i] = metrics.closest(embedding[:,1], partial_enc[i])
 
 				model_pred = self.decoder.predict(new_enc)[:,cut_x+1:]
 				model_pred_euler = unormalize_angle(model_pred[:,:,self.euler_start:])
@@ -284,7 +286,7 @@ class HH_RNN_R:
 				error[method]['pose'] = error[method]['pose'].tolist()
 
 
-			with open('../new_out/%s_t%d_l%d_validation2.json'%(NAME, self.timesteps, self.latent_dim), 'wb') as result_file:
+			with open('../new_out/%s_t%d_l%d_validation-train.json'%(NAME, self.timesteps, self.latent_dim), 'wb') as result_file:
 				json.dump(error, result_file)
 
 
