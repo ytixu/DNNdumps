@@ -150,6 +150,14 @@ class HH_RNN_R:
 	def euler_error(self, yTrue, yPred):
 		return np.mean(np.sqrt(np.sum(np.square(yTrue - yPred), -1)), 0)
 
+
+	def interpolate(self, z_a, z_b, l=8):
+	        dist = (z_b - z_a)/l
+		zs = np.array([z_a+i*dist for i in range(l+1)])
+		interpolation = self.decoder.predict(zs)[:,:,:self.euler_start]
+		image.plot_poses_euler(interpolation, title='interpolation', image_dir='../new_out/')
+
+
 	def run(self, data_iterator, valid_data):
 		# model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
 		if not self.load():
@@ -199,6 +207,14 @@ class HH_RNN_R:
 
 			data_iterator = iter2
 		else:
+			x, y = valid_data
+                        rand_idx = np.random.choice(x.shape[0], 2, replace=False)
+			xy  = self.__merge_n_reparameterize(x[rand_idx],y[rand_idx])
+			zs = self.encoder.predict(xy)[:,-1]
+			self.interpolate(zs[0], zs[1])
+			return
+
+
 			# load embedding
 			embedding = []
 			for x,y in data_iterator:
