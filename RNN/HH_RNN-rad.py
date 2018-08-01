@@ -219,7 +219,7 @@ class HH_RNN_R:
 			cut_x = self.hierarchies[0]
 			pred_n = self.hierarchies[1]-cut_x
 			error = {m: {'euler': None,
-					'z': None
+					'z': None,
 					'pose': np.zeros(pred_n)}  for m in methods}
 
 			x, y = valid_data
@@ -252,10 +252,10 @@ class HH_RNN_R:
 				print method
 				print error[method]['euler']
 
-				#image.plot_poses_euler(x[:2,cut_x+1:], model_pred[:2,:,:self.euler_start], title=method, image_dir='../new_out/')
+				# image.plot_poses_euler(x[:2,cut_x+1:], model_pred[:2,:,:self.euler_start], title=method, image_dir='../new_out/')
 
 				error[method]['z'] = np.mean([np.linalg.norm(new_enc[i] - enc[i,-1]) for i in range(_N)])
-				print error[method['z']
+				print error[method]['z']
 
 				for i in range(_N):
 					pose_err = metrics.pose_seq_error(x[i,cut_x+1:], model_pred[i,:,:self.euler_start], cumulative=True)
