@@ -214,7 +214,7 @@ class HH_RNN_R:
 			mean_diff, diff = metrics.get_embedding_diffs(embedding[:,1], embedding[:,0])
 
 			_N = 100
-			methods = ['closest_partial', 'closest', 'add']
+			methods = ['mean-100', 'mean-500', 'mean-1000', 'mean-100000', 'add']
 			cut_e = self.predict_hierarchies[0]
 			cut_x = self.hierarchies[0]
 			pred_n = self.hierarchies[1]-cut_x
@@ -241,8 +241,9 @@ class HH_RNN_R:
 					if method == 'closest_partial':
 						idx = metrics.closest_partial_index(embedding[:,0], partial_enc[i])
 						new_enc[i] = embedding[idx,1]
-					elif method == 'closest':
-						new_enc[i] = metrics.closest(embedding[:,1], partial_enc[i])
+					elif 'mean' in method:
+						n = int(method.split('-')[1])
+                                                new_enc[i] = metrics.closest_mean(embedding[:,1], partial_enc[i], n=n)
 					elif method == 'add':
 						new_enc[i] = partial_enc[i]+mean_diff
 
@@ -252,7 +253,7 @@ class HH_RNN_R:
 				print method
 				print error[method]['euler']
 
-				# image.plot_poses_euler(x[:2,cut_x+1:], model_pred[:2,:,:self.euler_start], title=method, image_dir='../new_out/')
+				image.plot_poses_euler(x[:2,cut_x+1:], model_pred[:2,:,:self.euler_start], title=method, image_dir='../new_out/')
 
 				error[method]['z'] = np.mean([np.linalg.norm(new_enc[i] - enc[i,-1]) for i in range(_N)])
 				print error[method]['z']
@@ -267,7 +268,7 @@ class HH_RNN_R:
 				error[method]['pose'] = error[method]['pose'].tolist()
 
 
-			with open('../new_out/%s_t%d_l%d_validation.json'%(NAME, self.timesteps, self.latent_dim), 'wb') as result_file:
+			with open('../new_out/%s_t%d_l%d_validation2.json'%(NAME, self.timesteps, self.latent_dim), 'wb') as result_file:
 				json.dump(error, result_file)
 
 

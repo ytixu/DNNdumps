@@ -48,7 +48,7 @@ class RR_LSTM:
 		self.input_dim = args['input_dim'] # + self.label_dim
 		self.output_dim = args['output_dim'] # + self.label_dim
 		self.motion_dim = args['output_dim']
-		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
+		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else [14,24]
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
 		self.load_path = args['load_path']
@@ -190,7 +190,7 @@ class RR_LSTM:
 		def wrap_angle(rad):
 			return ( rad + np.pi) % (2 * np.pi ) - np.pi
 
-		if self.load():
+		if not self.load():
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			loss = 10000
@@ -261,7 +261,7 @@ class RR_LSTM:
 
 			load_path = '../human_motion_pred/baselines/euler/'
 			cut = self.hierarchies[0]
-			methods = ['closest_partial', 'closest', 'add']
+			methods = ['closest_partial', 'mean-100', 'add']
 			_N = 8
 			pred_n = self.hierarchies[1]-cut
 
@@ -286,8 +286,8 @@ class RR_LSTM:
 					for i in range(_N):
 						if method == 'closest_partial':
 							new_enc[i] = metrics.closest_partial_index(embedding[:,0], enc[i])
-						elif method == 'closest':
-							new_enc[i] = metrics.closest(embedding[:,1], enc[i])
+						elif method == 'mean-100':
+							new_enc[i] = metrics.closest_mean(embedding[:,1], enc[i], n=100)
 						elif method == 'add':
 							new_enc[i] = enc[i]+mean_diff
 

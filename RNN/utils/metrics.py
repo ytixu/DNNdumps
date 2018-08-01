@@ -61,7 +61,7 @@ def __distance__(e1, e2, mode=1):
 def __get_dist(embedding, z_ref, mode=1):
 	return [__distance__(embedding[i], z_ref, mode) for i in range(len(embedding))]
 
-def __get_weights(embedding, z_ref, mode=1):
+def get_weights(embedding, z_ref, mode=1):
 	weights = __get_dist(embedding, z_ref, mode)
 	w_i = np.argsort(weights)
 	return weights, w_i
@@ -82,14 +82,14 @@ def __normalized_distance_mean(embedding, weights, w_i):
 		return embedding[w_i[0]]
 	return np.sum([embedding[d]/weights[d] for d in w_i], axis=0)/np.sum([1.0/weights[d] for d in w_i])
 
-def __mean(embedding, z_ref, n=45, weights=[], w_i=[]):
+def closest_mean(embedding, z_ref, n=5, weights=[], w_i=[]):
 	if not any(weights):
-		weights, w_i = __get_weights(embedding, z_ref)
+		weights, w_i = get_weights(embedding, z_ref)
 	if n > 0:
 		w_i = w_i[:n]
 	return __normalized_distance_mean(embedding, weights, w_i)
 
-def __random(embedding, z_ref, n=-1, weights=[], w_i=[]):
+def closest_random(embedding, z_ref, n=-1, weights=[], w_i=[]):
 	if n > 0:
 		if not any(weights):
 			embedding = embedding[np.random.choice(embedding.shape[0], n, replace=False)]
@@ -97,7 +97,7 @@ def __random(embedding, z_ref, n=-1, weights=[], w_i=[]):
 			w_idx = sorted(np.random.choice(len(w_i), n, replace=False).tolist())
 			w_i = [w_i[i] for i in w_idx]
 
-	return __mean(embedding, z_ref, weights=weights, w_i=w_i)
+	return closest_mean(embedding, z_ref, weights=weights, w_i=w_i)
 
 def __multi_match(embedding, z_refs, weights={}):
 	z_matches = np.zeros(z_refs.shape)
