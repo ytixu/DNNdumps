@@ -151,8 +151,14 @@ class HH_RNN_R:
 		return np.mean(np.sqrt(np.sum(np.square(yTrue - yPred), -1)), 0)
 
 
-	def interpolate(self, z_a, z_b, l=8):
-	        dist = (z_b - z_a)/l
+	def interpolate(self, valid_data, l=8):
+		x, y = valid_data
+        rand_idx = np.random.choice(x.shape[0], 2, replace=False)
+		xy  = self.__merge_n_reparameterize(x[rand_idx],y[rand_idx])
+		zs = self.encoder.predict(xy)[:,-1]
+		z_a = zs[0]
+		z_b = zs[1]
+		dist = (z_b - z_a)/l
 		zs = np.array([z_a+i*dist for i in range(l+1)])
 		interpolation = self.decoder.predict(zs)[:,:,:self.euler_start]
 		image.plot_poses_euler(interpolation, title='interpolation', image_dir='../new_out/')
@@ -207,14 +213,6 @@ class HH_RNN_R:
 
 			data_iterator = iter2
 		else:
-			#x, y = valid_data
-                        #rand_idx = np.random.choice(x.shape[0], 2, replace=False)
-			#xy  = self.__merge_n_reparameterize(x[rand_idx],y[rand_idx])
-			#zs = self.encoder.predict(xy)[:,-1]
-			#self.interpolate(zs[0], zs[1])
-			#return
-
-
 			# load embedding
 			embedding = []
 			for x,y in data_iterator:
@@ -229,65 +227,78 @@ class HH_RNN_R:
 			print 'emb', embedding.shape
 			mean_diff, diff = metrics.get_embedding_diffs(embedding[:,1], embedding[:,0])
 
-			_N = 100
+			_N = 8
 			methods = ['closest', 'closest_partial', 'add']
 			cut_e = self.predict_hierarchies[0]
 			cut_x = self.hierarchies[0]
 			pred_n = self.hierarchies[1]-cut_x
-			error = {m: {'euler': None,
-					'z': None,
-					'pose': np.zeros(pred_n)}  for m in methods}
 
-			x, y = valid_data
-			rand_idx = np.random.choice(x.shape[0], _N, replace=False)
-			x, y, valid_data = self.__merge_n_reparameterize(x[rand_idx],y[rand_idx], True)
-			y = unormalize_angle(y)
-			enc = self.encoder.predict(valid_data)
-			partial_enc = enc[:,cut_e]
+			# a_n = 0
+			load_path = '../human_motion_pred/baselines/'
+			for basename in metric_baselines.iter_actions():
+				print basename, '================='
 
-			# autoencoding error for partial seq
-			dec = self.decoder.predict(partial_enc)[:,:cut_x+1]
-			dec_euler = unormalize_angle(dec[:,:,self.euler_start:])
-			print self.euler_error(y[:,:cut_x+1], dec_euler)
-			#image.plot_poses_euler(x[:2,:cut+1], dec[:2,:,:self.euler_start], title='autoencoding', image_dir='../new_out/')
+				error = {m: {'euler': None,
+						# 'z': None
+						'pose': np.zeros(pred_n)}  for m in methods}
 
-			for method in methods:
-				new_enc = np.zeros(partial_enc.shape)
-				for i in tqdm(range(_N)):
-					if method == 'closest_partial':
-						idx = metrics.closest_partial_index(embedding[:,0], partial_enc[i])
-						new_enc[i] = embedding[idx,1]
-					elif 'mean' in method:
-						n = int(method.split('-')[1])
-                                                new_enc[i] = metrics.closest_mean(embedding[:,1], partial_enc[i], n=n)
-					elif method == 'add':
-						new_enc[i] = partial_enc[i]+mean_diff
-					elif method == 'closest':
-						new_enc[i] = metrics.closest(embedding[:,1], partial_enc[i])
+				# x, y = valid_data
+				x = np.load(load_path + 'xyz/' + basename + '_cond.npy')[:,-cut_x-1:])
+				y = np.zeros((_N, self.timesteps, 96))
+				y[:,:cut_x+1] = np.load(load_path + 'euler/' + basename + '_cond.npy')[:,-cut_x-1:])
+				gtp_x = np.load(load_path + 'xyz/' + basename + '_gt.npy')[:,:pred_n][:,:,self.used_xyz_idx]
+				gtp_y = np.load(load_path + 'euler/' + basename + '_gt.npy')[:,:pred_n][:,:,self.used_xyz_idx]
 
-				model_pred = self.decoder.predict(new_enc)[:,cut_x+1:]
-				model_pred_euler = unormalize_angle(model_pred[:,:,self.euler_start:])
-				error[method]['euler'] = self.euler_error(y[:,cut_x+1:], model_pred_euler)
-				print method
-				print error[method]['euler']
+				# rand_idx = np.random.choice(x.shape[0], _N, replace=False)
+				# x, y, xy = self.__merge_n_reparameterize(x[rand_idx],y[rand_idx], True)
+				xy = self.__merge_n_reparameterize(x,y)
+				# y = unormalize_angle(y)
+				enc = self.encoder.predict(xy)
+				partial_enc = enc[:,cut_e]
 
-				image.plot_poses_euler(x[:2,cut_x+1:], model_pred[:2,:,:self.euler_start], title=method, image_dir='../new_out/')
+				# autoencoding error for partial seq
+				dec = self.decoder.predict(partial_enc)[:,:cut_x+1]
+				dec_euler = unormalize_angle(dec[:,:,self.euler_start:])
+				print self.euler_error(y[:,:cut_x+1], dec_euler)
+				#image.plot_poses_euler(x[:2,:cut+1], dec[:2,:,:self.euler_start], title='autoencoding', image_dir='../new_out/')
 
-				error[method]['z'] = np.mean([np.linalg.norm(new_enc[i] - enc[i,-1]) for i in range(_N)])
-				print error[method]['z']
+				for method in methods:
+					new_enc = np.zeros(partial_enc.shape)
+					for i in tqdm(range(_N)):
+						if method == 'closest_partial':
+							idx = metrics.closest_partial_index(embedding[:,0], partial_enc[i])
+							new_enc[i] = embedding[idx,1]
+						elif 'mean' in method:
+							n = int(method.split('-')[1])
+	                                                new_enc[i] = metrics.closest_mean(embedding[:,1], partial_enc[i], n=n)
+						elif method == 'add':
+							new_enc[i] = partial_enc[i]+mean_diff
+						elif method == 'closest':
+							new_enc[i] = metrics.closest(embedding[:,1], partial_enc[i])
 
-				for i in range(_N):
-					pose_err = metrics.pose_seq_error(x[i,cut_x+1:], model_pred[i,:,:self.euler_start], cumulative=True)
-					error[method]['pose'] = error[method]['pose'] + np.array(pose_err)
-				error[method]['pose'] = error[method]['pose']/_N
+					model_pred = self.decoder.predict(new_enc)[:,cut_x+1:]
+					model_pred_euler = unormalize_angle(model_pred[:,:,self.euler_start:])
+					# error[method]['euler'] = self.euler_error(y[:,cut_x+1:], model_pred_euler)
+					error[method]['euler'] = self.euler_error(gtp_y, model_pred_euler)
+					print method
+					print error[method]['euler']
+					error[method]['euler'] = error[method]['euler'].tolist()
 
-				print error[method]['pose']
-				error[method]['euler'] = error[method]['euler'].tolist()
-				error[method]['pose'] = error[method]['pose'].tolist()
+					image.plot_poses_euler(gtp_x[:2], model_pred[:2,:,:self.euler_start], title=method, image_dir='../new_out/')
+
+					# error[method]['z'] = np.mean([np.linalg.norm(new_enc[i] - enc[i,-1]) for i in range(_N)])
+					# print error[method]['z']
+
+					for i in range(_N):
+						pose_err = metrics.pose_seq_error(gtp_x[i], model_pred[i,:,:self.euler_start], cumulative=True)
+						error[method]['pose'] = error[method]['pose'] + np.array(pose_err)
+					error[method]['pose'] = error[method]['pose']/_N
+					print error[method]['pose']
+					error[method]['pose'] = error[method]['pose'].tolist()
 
 
-			with open('../new_out/%s_t%d_l%d_validation-train.json'%(NAME, self.timesteps, self.latent_dim), 'wb') as result_file:
-				json.dump(error, result_file)
+				with open('../new_out/%s_t%d_l%d_%s_validation-testset.json'%(NAME, self.timesteps, self.latent_dim, basename), 'wb') as result_file:
+					json.dump(error, result_file)
 
 
 
