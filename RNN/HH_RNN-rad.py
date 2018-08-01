@@ -4,19 +4,20 @@ matplotlib.use('Agg')
 import numpy as np
 from itertools import tee
 from sklearn import cross_validation
-from keras.layers import Input, RepeatVector, Lambda, concatenate, Reshape
+from keras.layers import Input, RepeatVector, Lambda, concatenate, Reshape, Dense, Add
 from keras.models import Model
 from keras.callbacks import TensorBoard
 from keras.optimizers import RMSprop
 import csv
 from tqdm import tqdm
 import json
+import keras.backend as K
 
 from utils import parser, image, embedding_plotter, metrics, metric_baselines, fk_animate, association_evaluation, evaluate
 
 NAME = 'HH_LSTM_R'
 USE_GRU = True
-L_RATE = 0.005
+L_RATE = 0.001
 
 if USE_GRU:
 	from keras.layers import GRU as RNN_UNIT
@@ -47,7 +48,8 @@ class HH_RNN_R:
 		self.timesteps = args['timesteps'] if 'timesteps' in args else 10
 		self.partial_ts = 5
 		self.partial_n = self.timesteps/self.partial_ts
-		self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.partial_ts-1,self.timesteps, self.partial_ts)
+		self.hierarchies = [14,24] # range(self.partial_ts-1,self.timesteps, self.partial_ts)
+		self.predict_hierarchies = [2,4]
 		# self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
@@ -61,6 +63,7 @@ class HH_RNN_R:
 
 		self.input_dim = len(self.used_euler_idx) + len(self.used_xyz_idx)
                 self.output_dim = self.input_dim
+		print 'data_dim', len(self.used_euler_idx), len(self.used_xyz_idx)
 
 		self.MODEL_CODE = metrics.H_LSTM
 
@@ -69,17 +72,19 @@ class HH_RNN_R:
 	def make_model(self):
 		inputs = Input(shape=(self.timesteps, self.input_dim))
 		reshaped = Reshape((self.partial_n, self.partial_ts, self.input_dim))(inputs)
+		encode_reshape = Reshape((self.partial_n, self.latent_dim))
 		encode_1 = RNN_UNIT(self.latent_dim)
 		encode_2 = RNN_UNIT(self.latent_dim, return_sequences=True)
 
 		def encode_partials(seq):
-			encoded = [None]*self.partial_length
-			for i in range(self.partial_length):
+			encoded = [None]*self.partial_n
+			for i in range(self.partial_n):
 				rs = Lambda(lambda x: x[:,i], output_shape=(self.partial_ts, self.input_dim))(seq)
 				encoded[i] = encode_1(rs)
-			return concatenate(encoded, axis=1)
+			return encode_reshape(concatenate(encoded, axis=1))
 
 		encoded = encode_partials(reshaped)
+		print K.int_shape(encoded), K.int_shape(reshaped)
 		encoded = encode_2(encoded)
 
 		z = Input(shape=(self.latent_dim,))
@@ -90,14 +95,14 @@ class HH_RNN_R:
 		decode_add = Add()
 
 		def decode_modality(seq):
-			modalities = [None]*self.timesteps
-			for i in range(self.partial_length):
+			modalities = [None]*self.partial_n
+			for i in range(self.partial_n):
 				e = Lambda(lambda x: x[:,i], output_shape=(self.latent_dim,))(seq)
 				modalities[i] = concatenate([decode_xyz(e), decode_euler(e)], axis=1)
 				residual = decode_repete(e)
 				residual = decode_residual(residual)
-				decoded[i] = decode_add([decode_repete(decoded[i]), residual])
-			return concatenate(decoded, axis=1)
+				modalities[i] = decode_add([decode_repete(modalities[i]), residual])
+			return concatenate(modalities, axis=1)
 
 		decoded = decode_modality(encoded)
 
@@ -200,9 +205,9 @@ class HH_RNN_R:
 				x = self.__merge_n_reparameterize(x,y)
 				e = self.encoder.predict(x)
 				if len(embedding) == 0:
-					embedding = e[:, self.hierarchies]
+					embedding = e[:, self.predict_hierarchies]
 				else:
-					embedding = np.concatenate((embedding, e[:,self.hierarchies]), axis=0)
+					embedding = np.concatenate((embedding, e[:,self.predict_hierarchies]), axis=0)
 				#break
 			embedding = np.array(embedding)
 			print 'emb', embedding.shape
@@ -210,9 +215,11 @@ class HH_RNN_R:
 
 			_N = 100
 			methods = ['closest_partial', 'closest', 'add']
-			cut = self.hierarchies[0]
-			pred_n = self.hierarchies[1]-cut
-			error = {m: {'euler': np.zeros(pred_n),
+			cut_e = self.predict_hierarchies[0]
+			cut_x = self.hierarchies[0]
+			pred_n = self.hierarchies[1]-cut_x
+			error = {m: {'euler': None,
+					'z': None
 					'pose': np.zeros(pred_n)}  for m in methods}
 
 			x, y = valid_data
@@ -220,12 +227,12 @@ class HH_RNN_R:
 			x, y, valid_data = self.__merge_n_reparameterize(x[rand_idx],y[rand_idx], True)
 			y = unormalize_angle(y)
 			enc = self.encoder.predict(valid_data)
-			partial_enc = enc[:,cut]
+			partial_enc = enc[:,cut_e]
 
 			# autoencoding error for partial seq
-			dec = self.decoder.predict(partial_enc)[:,:cut+1]
+			dec = self.decoder.predict(partial_enc)[:,:cut_x+1]
 			dec_euler = unormalize_angle(dec[:,:,self.euler_start:])
-			print self.euler_error(y[:,:cut+1], dec_euler)
+			print self.euler_error(y[:,:cut_x+1], dec_euler)
 			#image.plot_poses_euler(x[:2,:cut+1], dec[:2,:,:self.euler_start], title='autoencoding', image_dir='../new_out/')
 
 			for method in methods:
@@ -239,16 +246,19 @@ class HH_RNN_R:
 					elif method == 'add':
 						new_enc[i] = partial_enc[i]+mean_diff
 
-				model_pred = self.decoder.predict(new_enc)[:,cut+1:]
+				model_pred = self.decoder.predict(new_enc)[:,cut_x+1:]
 				model_pred_euler = unormalize_angle(model_pred[:,:,self.euler_start:])
-				error[method]['euler'] = self.euler_error(y[:,cut+1:], model_pred_euler)
+				error[method]['euler'] = self.euler_error(y[:,cut_x+1:], model_pred_euler)
 				print method
 				print error[method]['euler']
 
-				image.plot_poses_euler(x[:2,cut+1:], model_pred[:2,:,:self.euler_start], title=method, image_dir='../new_out/')
+				#image.plot_poses_euler(x[:2,cut_x+1:], model_pred[:2,:,:self.euler_start], title=method, image_dir='../new_out/')
+
+				error[method]['z'] = np.mean([np.linalg.norm(new_enc[i] - enc[i,-1]) for i in range(_N)])
+				print error[method['z']
 
 				for i in range(_N):
-					pose_err = metrics.pose_seq_error(x[i,cut+1:], model_pred[i,:,:self.euler_start], cumulative=True)
+					pose_err = metrics.pose_seq_error(x[i,cut_x+1:], model_pred[i,:,:self.euler_start], cumulative=True)
 					error[method]['pose'] = error[method]['pose'] + np.array(pose_err)
 				error[method]['pose'] = error[method]['pose']/_N
 

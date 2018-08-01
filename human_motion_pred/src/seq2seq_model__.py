@@ -363,9 +363,9 @@ if __name__ == '__main__':
       print action, n
       error = translate__.euler_diff(expmap_gt, expmap_pred, ae, normalized=[False, False])[0]
 
-      euler_cond = np.array(translate__.batch_expmap2euler(expmap_cond, ae, normalized=False))
-      euler_gt = np.array(translate__.batch_expmap2euler(expmap_gt, ae, normalized=False))
-      euler_pred = np.array(translate__.batch_expmap2euler(expmap_pred, ae, normalized=False))
+      euler_cond = np.array(translate__.batch_expmap2xyz(expmap_cond, ae, normalized=False))
+      euler_gt = np.array(translate__.batch_expmap2xyz(expmap_gt, ae, normalized=False))
+      euler_pred = np.array(translate__.batch_expmap2xyz(expmap_pred, ae, normalized=False))
 
       # euler_gt[0][:,0:6] = 0
       # idx_to_use = np.where( np.std(euler_gt[0], 0 ) > 1e-4 )[0]
@@ -376,9 +376,9 @@ if __name__ == '__main__':
       #euc_error = np.mean(np.sqrt(euc_error), 0)
       #print euc_error - error
 
-      np.save('../baselines/euler/%s_gt.npy'%(action), euler_gt)
-      np.save('../baselines/euler/%s_cond.npy'%(action), euler_cond)
-      np.save('../baselines/euler/%s_pred.npy'%(action), euler_pred)
+      np.save('../baselines/xyz/%s_gt.npy'%(action), euler_gt)
+      np.save('../baselines/xyz/%s_cond.npy'%(action), euler_cond)
+      np.save('../baselines/xyz/%s_pred.npy'%(action), euler_pred)
 
       #print translate__.euler_diff(expmap_gt, batch_data[:,-n:], ae, normalized=[False, True])
       #print translate__.euler_diff(expmap_gt, loaded_batch, ae, normalized=[False, True])[0]
