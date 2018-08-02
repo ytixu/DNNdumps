@@ -291,6 +291,7 @@ def convert__(ae, train_set, test_set):
       if new_max > max_:
         max_ = new_max
 
+  return max_
   for data_name, data_set in ({'train':train_set_, 'valid':test_set_}).iteritems():
     for k, x in data_set:
       print 'save', k, x.shape
@@ -309,6 +310,9 @@ if __name__ == '__main__':
   train_set, test_set, config = parser.get_parse(MODEL_NAME, HAS_LABELS)
   ae = seq2seq_ae__(config, HAS_LABELS)
   #test_gt, test_pred_gt = test_set
+
+  max_ = convert__(ae, train_set, test_set)
+  print max_
 
   '''
   test conversions
@@ -376,9 +380,9 @@ if __name__ == '__main__':
       #euc_error = np.mean(np.sqrt(euc_error), 0)
       #print euc_error - error
 
-      np.save('../baselines/xyz/%s_gt.npy'%(action), euler_gt)
-      np.save('../baselines/xyz/%s_cond.npy'%(action), euler_cond)
-      np.save('../baselines/xyz/%s_pred.npy'%(action), euler_pred)
+      np.save('../baselines/xyz/%s_gt.npy'%(action), euler_gt/max_)
+      np.save('../baselines/xyz/%s_cond.npy'%(action), euler_cond/max_)
+      np.save('../baselines/xyz/%s_pred.npy'%(action), euler_pred/max_)
 
       #print translate__.euler_diff(expmap_gt, batch_data[:,-n:], ae, normalized=[False, True])
       #print translate__.euler_diff(expmap_gt, loaded_batch, ae, normalized=[False, True])[0]

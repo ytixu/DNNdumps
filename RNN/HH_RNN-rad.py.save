@@ -4,7 +4,7 @@ matplotlib.use('Agg')
 import numpy as np
 from itertools import tee
 from sklearn import cross_validation
-import keras.layers as K_layer
+from keras.layers import Input, RepeatVector, Lambda, concatenate, Reshape, Dense, Add
 from keras.models import Model
 from keras.callbacks import TensorBoard
 from keras.optimizers import RMSprop
@@ -17,7 +17,7 @@ from utils import parser, image, embedding_plotter, metrics, metric_baselines, f
 
 NAME = 'HH_LSTM_R'
 USE_GRU = True
-L_RATE = 0.00001
+L_RATE = 0.001
 
 if USE_GRU:
 	from keras.layers import GRU as RNN_UNIT
@@ -25,8 +25,8 @@ if USE_GRU:
 else:
 	from keras.layers import LSTM as RNN_UNIT
 
-def wrap_angle(rad, center=np.pi):
-	return ( rad + center) % (2 * np.pi ) - center
+def wrap_angle(rad):
+	return ( rad + np.pi) % (2 * np.pi ) - np.pi
 
 def normalize_angle(rad):
 	return rad/np.pi
@@ -48,7 +48,7 @@ class HH_RNN_R:
 		self.timesteps = args['timesteps'] if 'timesteps' in args else 10
 		self.partial_ts = 5
 		self.partial_n = self.timesteps/self.partial_ts
-		self.hierarchies = range(self.partial_ts-1,self.timesteps, self.partial_ts)
+		self.hierarchies = [14,24] # range(self.partial_ts-1,self.timesteps, self.partial_ts)
 		self.predict_hierarchies = [2,4]
 		# self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
@@ -70,62 +70,53 @@ class HH_RNN_R:
 		# self.history = recorder.LossHistory()
 
 	def make_model(self):
-		inputs = K_layer.Input(shape=(self.timesteps, self.input_dim))
-		reshaped = K_layer.Reshape((self.partial_n, self.partial_ts, self.input_dim))(inputs)
-		encode_reshape = K_layer.Reshape((self.partial_n, self.latent_dim))
+		inputs = Input(shape=(self.timesteps, self.input_dim))
+		reshaped = Reshape((self.partial_n, self.partial_ts, self.input_dim))(inputs)
+		encode_reshape = Reshape((self.partial_n, self.latent_dim))
 		encode_1 = RNN_UNIT(self.latent_dim)
 		encode_2 = RNN_UNIT(self.latent_dim, return_sequences=True)
 
 		def encode_partials(seq):
 			encoded = [None]*self.partial_n
 			for i in range(self.partial_n):
-				rs = K_layer.Lambda(lambda x: x[:,i], output_shape=(self.partial_ts, self.input_dim))(seq)
+				rs = Lambda(lambda x: x[:,i], output_shape=(self.partial_ts, self.input_dim))(seq)
 				encoded[i] = encode_1(rs)
-			return encode_reshape(K_layer.concatenate(encoded, axis=1))
+			return encode_reshape(concatenate(encoded, axis=1))
 
 		encoded = encode_partials(reshaped)
 		print K.int_shape(encoded), K.int_shape(reshaped)
 		encoded = encode_2(encoded)
 
-		z = K_layer.Input(shape=(self.latent_dim,))
-		decode_xyz = K_layer.Dense(len(self.used_xyz_idx), activation='tanh')
-		decode_euler = K_layer.Dense(len(self.used_euler_idx), activation='tanh')
-		decode_repete = K_layer.RepeatVector(self.timesteps)
-		decode_residual = RNN_UNIT(self.output_dim/2, return_sequences=True)
-		decode_tanh = K_layer.Activation('tanh')
+		z = Input(shape=(self.latent_dim,))
+		decode_xyz = Dense(len(self.used_xyz_idx))
+		decode_euler = Dense(len(self.used_euler_idx))
+		decode_repete = RepeatVector(self.timesteps)
+		decode_residual = RNN_UNIT(self.output_dim, return_sequences=True)
+		decode_rescale_euler = Lambda(lambda x: x[:,:,self.euler_start:]*np.pi, output_shape=(self.timesteps, len(self.used_euler_idx)))
+		decode_add = Add()
 
 		def decode_modality(seq):
 			modalities = [None]*self.partial_n
 			for i in range(self.partial_n):
-				e = K_layer.Lambda(lambda x: x[:,i], output_shape=(self.latent_dim,))(seq)
-				modalities[i] = K_layer.concatenate([decode_xyz(e), decode_euler(e)], axis=1)
+				e = Lambda(lambda x: x[:,i], output_shape=(self.latent_dim,))(seq)
+				modalities[i] = concatenate([decode_xyz(e), decode_euler(e)], axis=1)
 				residual = decode_repete(e)
 				residual = decode_residual(residual)
-				modalities[i] = K_layer.add([decode_repete(modalities[i]), residual])
-				modalities[i] = decode_tanh(modalities[i])
-			return K_layer.concatenate(modalities, axis=1)
+				modalities[i] = decode_add([decode_repete(modalities[i]), residual])
+				modalities[i][:,:,self.euler_start:] = decode_rescale_euler(modalities[i])
+			return concatenate(modalities, axis=1)
 
 		decoded = decode_modality(encoded)
 
-		decoded_ = K_layer.concatenate([decode_xyz(z), decode_euler(z)], axis=1)
+		decoded_ = concatenate([decode_xyz(z), decode_euler(z)], axis=1)
 		residual_ = decode_residual(decode_repete(z))
-		decoded_ = decode_tanh(K_layer.add([decode_repete(decoded_), residual_]))
+		decoded_ = decode_add([decode_repete(decoded_), residual_])
 
 		self.encoder = Model(inputs, encoded)
 		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
 		opt = RMSprop(lr=L_RATE)
-
-		def mse(yTrue, yPred):
-			yt = K.reshape(yTrue, (-1, self.timesteps, self.output_dim))
-		 	yp = K.reshape(yPred, (-1, self.timesteps, self.output_dim))
-			loss = K.square(K.sin(yt[:,:,self.euler_start:]) - K.sin(yp[:,:,self.euler_start:]))
-			loss = loss + K.square(K.cos(yt[:,:,self.euler_start:]) - K.cos(yp[:,:,self.euler_start:]))
-			loss = loss + K.square(yt[:,:,:self.euler_start] - yp[:,:,:self.euler_start])
-			loss = K.mean(K.sqrt(loss))
-			return loss
-
-		self.autoencoder.compile(optimizer=opt, loss=mse)
+		self.autoencoder.compile(optimizer=opt, loss='mean_squared_error')
 
 		self.autoencoder.summary()
 		self.encoder.summary()
