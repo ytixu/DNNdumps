@@ -25,14 +25,14 @@ if USE_GRU:
 else:
 	from keras.layers import LSTM as RNN_UNIT
 
-def wrap_angle(rad, center=np.pi):
-	return ( rad + center) % (2 * np.pi ) - center
+def wrap_angle(rad, center=0):
+	return ( rad - center + np.pi ) % (2 * np.pi ) - np.pi
 
-def normalize_angle(rad):
-	return rad/np.pi
+#def normalize_angle(rad):
+#	return rad/np.pi
 
-def unormalize_angle(rad):
-	return rad*np.pi
+#def unormalize_angle(rad):
+#	return rad*np.pi
 
 class HH_RNN_R:
 	def __init__(self, args):
@@ -64,10 +64,16 @@ class HH_RNN_R:
 		self.input_dim = len(self.used_euler_idx) + len(self.used_xyz_idx)
                 self.output_dim = self.input_dim
 		print 'data_dim', len(self.used_euler_idx), len(self.used_xyz_idx)
+		self.get_ignored_dims()
 
 		self.MODEL_CODE = metrics.H_LSTM
 
-		# self.history = recorder.LossHistory()
+
+	def get_ignored_dims(self):
+		with open('../data/h3.6/full/stats_euler.json') as data_file:
+			data = json.load(data_file)
+			self.data_mean = np.array(data['data_mean'])[self.used_euler_idx]
+
 
 	def make_model(self):
 		inputs = K_layer.Input(shape=(self.timesteps, self.input_dim))
@@ -91,7 +97,7 @@ class HH_RNN_R:
 		decode_xyz = K_layer.Dense(len(self.used_xyz_idx), activation='tanh')
 		decode_euler = K_layer.Dense(len(self.used_euler_idx), activation='tanh')
 		decode_repete = K_layer.RepeatVector(self.timesteps)
-		decode_residual = RNN_UNIT(self.output_dim/2, return_sequences=True)
+		decode_residual = RNN_UNIT(self.output_dim, return_sequences=True)
 		decode_tanh = K_layer.Activation('tanh')
 
 		def decode_modality(seq):
@@ -139,6 +145,12 @@ class HH_RNN_R:
 			return True
 		return False
 
+	def normalize_angle(self, rad):
+		return wrap_angle(rad, self.data_mean)/np.pi
+
+	def unormalize_angle(self, rad):
+		return wrap_angle(rad*np.pi, -self.data_mean)
+
 	def __alter_y(self, y):
 		if len(self.hierarchies) == 1:
 			return y
@@ -151,16 +163,16 @@ class HH_RNN_R:
 
 
 	def __merge_n_reparameterize(self, x, y, return_orig=False):
-		y = normalize_angle(wrap_angle(y[:,:,self.used_euler_idx]))
+		y = y[:,:,self.used_euler_idx]
+		norm_y = self.normalize_angle(y)
 		x = x[:,:,self.used_xyz_idx]
-		xy = np.concatenate([x,y], -1)
+		xy = np.concatenate([x,norm_y], -1)
 		if return_orig:
 			return x, y, xy
 		return xy
 
 	def euler_error(self, yTrue, yPred):
 		return np.mean(np.sqrt(np.sum(np.square(yTrue - yPred), -1)), 0)
-
 
 	def interpolate(self, valid_data, l=8):
 		x, y = valid_data
@@ -206,7 +218,7 @@ class HH_RNN_R:
 					y_test_pred = self.encoder.predict(x[rand_idx])[:,-1]
 					y_test_pred = self.decoder.predict(y_test_pred)[:,:,self.euler_start:]
 
-					y_test_pred = unormalize_angle(y_test_pred)
+					y_test_pred = self.unormalize_angle(y_test_pred)
 					y_gt = wrap_angle(y[rand_idx][:,:,self.used_euler_idx])
 
 					mae = np.mean(np.abs(y_gt-y_test_pred))

@@ -25,8 +25,8 @@ if USE_GRU:
 else:
 	from keras.layers import LSTM as RNN_UNIT
 
-def wrap_angle(rad, center=np.pi):
-	return ( rad + center) % (2 * np.pi ) - center
+def wrap_angle(rad, center=0):
+	return ( rad - center + np.pi) % (2 * np.pi ) - np.pi
 
 
 class H_euler_RNN_R:
@@ -66,14 +66,14 @@ class H_euler_RNN_R:
 			self.data_mean = np.array(data['data_mean'])[self.used_euler_idx]
 
 		self.input_dim = len(self.used_euler_idx)*2
-        self.output_dim = self.input_dim
+		self.output_dim = self.input_dim
 		print 'data_dim', self.input_dim
 
 	def normalize_angle(self, rad):
-		return wrap_angle(rad, self.data_mean)/np.pi
+		return wrap_angle(rad, self.data_mean)
 
 	def unormalize_angle(self, rad):
-		return wrap_angle(rad, -self.data_mean)*np.pi
+		return wrap_angle(rad, -self.data_mean)
 
 	def make_model(self):
 		inputs = K_layer.Input(shape=(self.timesteps, self.input_dim))
@@ -96,8 +96,8 @@ class H_euler_RNN_R:
 		z = K_layer.Input(shape=(self.latent_dim,))
 		decode_euler = K_layer.Dense(self.output_dim)
 		decode_repete = K_layer.RepeatVector(self.timesteps)
-		decode_residual = RNN_UNIT(self.output_dim/2, return_sequences=True, activation='linear')
-		decode_sin = K_layer.Lambda(lambda x: K.sin(x), ouput_shape=(self.timesteps, self.output_dim))
+		decode_residual = RNN_UNIT(self.output_dim, return_sequences=True, activation='linear')
+		decode_sin = K_layer.Lambda(lambda x: K.sin(x), output_shape=(self.timesteps, self.output_dim))
 
 		def decode_modality(seq):
 			modalities = [None]*self.partial_n
@@ -121,7 +121,8 @@ class H_euler_RNN_R:
 		self.autoencoder = Model(inputs, decoded)
 		opt = RMSprop(lr=L_RATE)
 
-		# def mse(yTrue, yPred):
+		def mse(yTrue, yPred):
+			return K.mean(K.abs(yTrue-yPred))
 		# 	yt = K.reshape(yTrue, (-1, self.timesteps, self.output_dim))
 		#  	yp = K.reshape(yPred, (-1, self.timesteps, self.output_dim))
 		# 	loss = K.square(K.sin(yt) - K.sin(yp))
@@ -156,8 +157,8 @@ class H_euler_RNN_R:
 
 	def __alter_parameterization(self, y):
 		used_y = y[:,:,self.used_euler_idx]
-		normalised_y = self.normalize_angle(used_y)
-		return used_y, np.concatenate([np.sin(normalised_y), np.cos(normalised_y)], axis=-1)
+		normalized_y = self.normalize_angle(used_y)
+		return used_y, np.concatenate([np.sin(normalized_y), np.cos(normalized_y)], axis=-1)
 
 	def __recover_parameterization(self, yPred):
 		euler = np.arctan2(yPred[:,:,:-self.output_dim/2], yPred[:,:,-self.output_dim/2:])
@@ -169,7 +170,7 @@ class H_euler_RNN_R:
 
 	# def interpolate(self, valid_data, l=8):
 	# 	x, y = valid_data
- #        	rand_idx = np.random.choice(x.shape[0], 2, replace=False)
+	#	rand_idx = np.random.choice(x.shape[0], 2, replace=False)
 	# 	xy  = self.__merge_n_reparameterize(x[rand_idx],y[rand_idx])
 	# 	zs = self.encoder.predict(xy)[:,-1]
 	# 	z_a = zs[0]
@@ -188,10 +189,10 @@ class H_euler_RNN_R:
 			iter1, iter2 = tee(data_iterator)
 			for i in range(self.periods):
 				for x, y in iter1:
-					y, newY = self.__alter_parameterization(y)
-					x_train, x_test, y_train, y_test = cross_validation.train_test_split(newY, newY, test_size=self.cv_splits)
-					y_train = self.__alter_y(y_train)
-					y_test = self.__alter_y(y_test)
+					orig_y, norm_y = self.__alter_parameterization(y)
+					_, y, x_train, x_test = cross_validation.train_test_split(orig_y, norm_y, test_size=self.cv_splits)
+					y_train = self.__alter_y(x_train)
+					y_test = self.__alter_y(x_test)
 					history = self.autoencoder.fit(x_train, y_train,
 								shuffle=True,
 								epochs=self.epochs,
@@ -209,9 +210,9 @@ class H_euler_RNN_R:
 					rand_idx = np.random.choice(x_test.shape[0], 25, replace=False)
 					y_test_pred = self.encoder.predict(x_test[rand_idx])[:,-1]
 					y_test_pred = self.decoder.predict(y_test_pred)
-
-					y_test_pred = __recover_parameterization(y_test_pred)
-					y_gt = wrap_angle(y[rand_idx])
+					y_gt = y_test[rand_idx,-self.timesteps:]
+					#y_test_pred = self.__recover_parameterization(y_test_pred)
+					#y_gt = wrap_angle(y[rand_idx])
 
 					mae = np.mean(np.abs(y_gt-y_test_pred))
 					mse = self.euler_error(y_gt, y_test_pred)
