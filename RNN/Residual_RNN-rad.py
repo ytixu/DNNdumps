@@ -85,7 +85,7 @@ class RR_LSTM:
 		decode_repete = RepeatVector(self.timesteps)
 		decode_residual = GRU(self.output_dim, return_sequences=True, activation='linear')
 		decode_add = Add()
-		decode_sin = K_layer.Lambda(lambda x: K.sin(x), ouput_shape=(self.timesteps, self.output_dim))
+		decode_sin = Lambda(lambda x: K.sin(x), output_shape=(self.timesteps, self.output_dim))
 
 		decoded = [None]*len(self.hierarchies)
 		residual = [None]*len(self.hierarchies)
@@ -221,7 +221,7 @@ class RR_LSTM:
 						# y_test_decoded = np.reshape(y_test_decoded, (len(self.hierarchies), self.timesteps, -1))
 						# image.plot_poses(x_test[:1,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
 						# image.plot_hierarchies(y_test_orig[:,:,:-self.label_dim], y_test_decoded[:,:,:-self.label_dim])
-						#self.autoencoder.save_weights(self.save_path, overwrite=True)
+						self.autoencoder.save_weights(self.save_path, overwrite=True)
 					rand_idx = np.random.choice(x_test.shape[0], 25, replace=False)
 					#metrics.validate(x_test[rand_idx], self, self.log_path, history.history['loss'])
 					y_test_pred = self.encoder.predict(_y_test[rand_idx])[:,-1]
@@ -238,9 +238,9 @@ class RR_LSTM:
 					print 'Wrap_MAE', wrap_mae
 					print 'MSE', mse
 
-					# with open('../new_out/%s_t%d_l%d_log.csv'%(NAME, self.timesteps, self.latent_dim), 'a+') as f:
-					# 	spamwriter = csv.writer(f)
-					# 	spamwriter.writerow([new_loss, mse_, mae, wrap_mse, mse, LEARNING_RATE])
+					with open('../new_out/%s_t%d_l%d_log.csv'%(NAME, self.timesteps, self.latent_dim), 'a+') as f:
+					 	spamwriter = csv.writer(f)
+					 	spamwriter.writerow([new_loss, mse_, mae, wrap_mae, mse, LEARNING_RATE])
 
 
 					del x_train, x_test, y_train, y_test, y_train_, y_test_
