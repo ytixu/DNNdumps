@@ -80,11 +80,12 @@ class RR_LSTM:
 		encoded = GRU(self.latent_dim, return_sequences=True)(inputs)
 
 		z = Input(shape=(self.latent_dim,))
-		decode_pose = Dense(self.output_dim, activation='tanh')
+		decode_pose = Dense(self.output_dim)
 		# decode_name = Dense(self.label_dim, activation='relu')
 		decode_repete = RepeatVector(self.timesteps)
-		decode_residual = GRU(self.output_dim, return_sequences=True)
+		decode_residual = GRU(self.output_dim, return_sequences=True, activation='linear')
 		decode_add = Add()
+		decode_sin = K_layer.Lambda(lambda x: K.sin(x), ouput_shape=(self.timesteps, self.output_dim))
 
 		decoded = [None]*len(self.hierarchies)
 		residual = [None]*len(self.hierarchies)
@@ -95,6 +96,7 @@ class RR_LSTM:
 			residual[i] = decode_repete(e)
 			residual[i] = decode_residual(residual[i])
 			decoded[i] = decode_add([decode_repete(decoded[i]), residual[i]])
+			decoded[i] = decode_sin(decoded[i])
 
 		decoded = concatenate(decoded, axis=1)
 		residual = concatenate(residual, axis=1)
@@ -104,6 +106,7 @@ class RR_LSTM:
 		residual_ = decode_repete(z)
 		residual_ = decode_residual(residual_)
 		decoded_ = decode_add([decode_repete(decoded_), residual_])
+		decoded_ = decode_sin(decoded_)
 
 		def customLoss(yTrue, yPred):
 			loss = K.mean(K.square(yTrue - yPred))
@@ -124,7 +127,7 @@ class RR_LSTM:
 		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
 		opt = RMSprop(lr=LEARNING_RATE)
-		self.autoencoder.compile(optimizer=opt, loss=customLoss)
+		self.autoencoder.compile(optimizer=opt, loss='mean_squared_error')
 
 		self.autoencoder.summary()
 		self.encoder.summary()
@@ -235,9 +238,9 @@ class RR_LSTM:
 					print 'Wrap_MAE', wrap_mae
 					print 'MSE', mse
 
-					with open('../new_out/%s_t%d_l%d_log.csv'%(NAME, self.timesteps, self.latent_dim), 'a+') as f:
-						spamwriter = csv.writer(f)
-						spamwriter.writerow([new_loss, mse_, mae, wrap_mse, mse, LEARNING_RATE])
+					# with open('../new_out/%s_t%d_l%d_log.csv'%(NAME, self.timesteps, self.latent_dim), 'a+') as f:
+					# 	spamwriter = csv.writer(f)
+					# 	spamwriter.writerow([new_loss, mse_, mae, wrap_mse, mse, LEARNING_RATE])
 
 
 					del x_train, x_test, y_train, y_test, y_train_, y_test_
