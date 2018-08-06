@@ -17,7 +17,7 @@ from utils import parser, image, embedding_plotter, metrics, metric_baselines, f
 
 NAME = 'H_euler_LSTM_R'
 USE_GRU = True
-L_RATE = 0.001
+L_RATE = 0.0001
 
 if USE_GRU:
 	from keras.layers import GRU as RNN_UNIT
@@ -52,7 +52,7 @@ class H_euler_RNN_R:
 		self.save_path = args['save_path']
 		self.log_path = args['log_path']
 
-		# self.used_euler_idx = [6,7,8,9,12,13,14,15,21,22,23,24,27,28,29,30,36,37,38,39,40,41,42,43,44,45,46,47,51,52,53,54,55,56,57,60,61,62,75,76,77,78,79,80,81,84,85,86]
+		self.used_euler_idx = [6,7,8,9,12,13,14,15,21,22,23,24,27,28,29,30,36,37,38,39,40,41,42,43,44,45,46,47,51,52,53,54,55,56,57,60,61,62,75,76,77,78,79,80,81,84,85,86]
 
 		self.MODEL_CODE = metrics.H_LSTM
 
@@ -62,18 +62,18 @@ class H_euler_RNN_R:
 		import json
 		with open('../data/h3.6/full/stats_euler.json') as data_file:
 			data = json.load(data_file)
-			self.used_euler_idx = data['dim_to_use']
+			#self.used_euler_idx = data['dim_to_use']
 			self.data_mean = np.array(data['data_mean'])[self.used_euler_idx]
 
-		self.input_dim = len(self.used_euler_idx)*2
+		self.input_dim = len(self.used_euler_idx)
 		self.output_dim = self.input_dim
 		print 'data_dim', self.input_dim
 
 	def normalize_angle(self, rad):
-		return wrap_angle(rad, self.data_mean)
+		return wrap_angle(rad, self.data_mean)/np.pi
 
 	def unormalize_angle(self, rad):
-		return wrap_angle(rad, -self.data_mean)
+		return wrap_angle(rad*np.pi, -self.data_mean)
 
 	def make_model(self):
 		inputs = K_layer.Input(shape=(self.timesteps, self.input_dim))
@@ -94,10 +94,10 @@ class H_euler_RNN_R:
 		encoded = encode_2(encoded)
 
 		z = K_layer.Input(shape=(self.latent_dim,))
-		decode_euler = K_layer.Dense(self.output_dim)
+		decode_euler = K_layer.Dense(self.output_dim, activation='tanh')
 		decode_repete = K_layer.RepeatVector(self.timesteps)
-		decode_residual = RNN_UNIT(self.output_dim, return_sequences=True, activation='linear')
-		decode_sin = K_layer.Lambda(lambda x: K.sin(x), output_shape=(self.timesteps, self.output_dim))
+		decode_residual = RNN_UNIT(self.output_dim, return_sequences=True)
+		decode_tanh = K_layer.Lambda(lambda x: K.tanh(x), output_shape=(self.timesteps, self.output_dim))
 
 		def decode_modality(seq):
 			modalities = [None]*self.partial_n
@@ -107,14 +107,14 @@ class H_euler_RNN_R:
 				residual = decode_repete(e)
 				residual = decode_residual(residual)
 				modalities[i] = K_layer.add([decode_repete(modalities[i]), residual])
-				modalities[i] = decode_sin(modalities[i])
+				modalities[i] = decode_tanh(modalities[i])
 			return K_layer.concatenate(modalities, axis=1)
 
 		decoded = decode_modality(encoded)
 
 		decoded_ = decode_euler(z)
 		residual_ = decode_residual(decode_repete(z))
-		decoded_ = decode_sin(K_layer.add([decode_repete(decoded_), residual_]))
+		decoded_ = decode_tanh(K_layer.add([decode_repete(decoded_), residual_]))
 
 		self.encoder = Model(inputs, encoded)
 		self.decoder = Model(z, decoded_)
@@ -156,14 +156,9 @@ class H_euler_RNN_R:
 
 
 	def __alter_parameterization(self, y):
-		used_y = y[:,:,self.used_euler_idx]
-		normalized_y = self.normalize_angle(used_y)
-		return used_y, np.concatenate([np.sin(normalized_y), np.cos(normalized_y)], axis=-1)
-
-	def __recover_parameterization(self, yPred):
-		euler = np.arctan2(yPred[:,:,:-self.output_dim/2], yPred[:,:,-self.output_dim/2:])
-		euler = self.unormalize_angle(euler)
-		return euler
+		y = y[:,:,self.used_euler_idx]
+		norm_y = self.normalize_angle(y)
+		return y, norm_y
 
 	def euler_error(self, yTrue, yPred):
 		return np.mean(np.sqrt(np.sum(np.square(yTrue - yPred), -1)), 0)
@@ -182,17 +177,17 @@ class H_euler_RNN_R:
 
 	def run(self, data_iterator, valid_data):
 		# model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
-		if not self.load():
+		if self.load():
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			loss = 10000
 			iter1, iter2 = tee(data_iterator)
 			for i in range(self.periods):
 				for x, y in iter1:
-					orig_y, norm_y = self.__alter_parameterization(y)
-					_, y, x_train, x_test = cross_validation.train_test_split(orig_y, norm_y, test_size=self.cv_splits)
-					y_train = self.__alter_y(x_train)
-					y_test = self.__alter_y(x_test)
+					y, x = self.__alter_parameterization(x)
+					x_train, x_test, y_train, y_test = cross_validation.train_test_split(x, x, test_size=self.cv_splits)
+					y_train = self.__alter_y(y_train)
+					y_test = self.__alter_y(y_test)
 					history = self.autoencoder.fit(x_train, y_train,
 								shuffle=True,
 								epochs=self.epochs,
@@ -203,16 +198,16 @@ class H_euler_RNN_R:
 					print history.history['loss']
 					new_loss = np.mean(history.history['loss'])
 					if new_loss < loss:
-						# self.autoencoder.save_weights(self.save_path, overwrite=True)
+						self.autoencoder.save_weights(self.save_path, overwrite=True)
 						loss = new_loss
 						print 'Saved model - ', loss
 
-					rand_idx = np.random.choice(x_test.shape[0], 25, replace=False)
-					y_test_pred = self.encoder.predict(x_test[rand_idx])[:,-1]
+					rand_idx = np.random.choice(x.shape[0], 25, replace=False)
+					y_test_pred = self.encoder.predict(x[rand_idx])[:,-1]
 					y_test_pred = self.decoder.predict(y_test_pred)
-					y_gt = y_test[rand_idx,-self.timesteps:]
-					#y_test_pred = self.__recover_parameterization(y_test_pred)
-					#y_gt = wrap_angle(y[rand_idx])
+					#y_gt = x_test[rand_idx]
+					y_test_pred = self.unormalize_angle(y_test_pred)
+					y_gt = wrap_angle(y[rand_idx])
 
 					mae = np.mean(np.abs(y_gt-y_test_pred))
 					mse = self.euler_error(y_gt, y_test_pred)
@@ -220,9 +215,9 @@ class H_euler_RNN_R:
 					print 'MAE', mae
 					print 'MSE', mse
 
-					# with open('../new_out/%s_t%d_l%d_log.csv'%(NAME, self.timesteps, self.latent_dim), 'a+') as f:
-					# 	spamwriter = csv.writer(f)
-					# 	spamwriter.writerow([new_loss, mae, mse, L_RATE])
+					with open('../new_out/%s_t%d_l%d_log.csv'%(NAME, self.timesteps, self.latent_dim), 'a+') as f:
+					 	spamwriter = csv.writer(f)
+					 	spamwriter.writerow([new_loss, mae, mse, L_RATE])
 
 
 				iter1, iter2 = tee(iter2)
