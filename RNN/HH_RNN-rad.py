@@ -271,7 +271,7 @@ class HH_RNN_R:
 				y = np.zeros((_N, self.timesteps, 99))
 				y[:,:cut_x+1] = np.load(load_path + 'euler/' + basename + '_cond.npy')[:,-cut_x-1:]
 				gtp_x = np.load(load_path + 'xyz/' + basename + '_gt.npy')[:,:pred_n][:,:,self.used_xyz_idx]
-				gtp_y = np.load(load_path + 'euler/' + basename + '_gt.npy')[:,:pred_n][:,:,self.used_xyz_idx]
+				gtp_y = np.load(load_path + 'euler/' + basename + '_gt.npy')[:,:pred_n][:,:,self.used_euler_idx]
 
 				# rand_idx = np.random.choice(x.shape[0], _N, replace=False)
 				# x, y, xy = self.__merge_n_reparameterize(x[rand_idx],y[rand_idx], True)
