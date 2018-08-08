@@ -111,7 +111,7 @@ class H_euler_RNN_R:
 		#	return tf.maximum(tf.minimum(x, 1.0), -1.0)
 
 		decode_repete = K_layer.RepeatVector(self.timesteps)
-		decode_residual_1 = RNN_UNIT(self.latent_dim/2, return_sequences=True, activation=decoder_activation)
+		decode_residual_1 = RNN_UNIT(self.latent_dim/2, return_sequences=True, activation=decoder_activation))
 		decode_residual_2 = RNN_UNIT(self.output_dim, return_sequences=True, activation=decoder_activation)
 
 		#decode_activate = K_layer.Lambda(lambda x: K.tanh(x), output_shape=(self.timesteps, self.output_dim))
@@ -242,7 +242,7 @@ class H_euler_RNN_R:
 					print history.history['loss']
 					new_loss = np.mean(history.history['loss'])
 					if new_loss < loss:
-						self.autoencoder.save_weights(self.save_path, overwrite=True)
+						#self.autoencoder.save_weights(self.save_path, overwrite=True)
 						loss = new_loss
 						print 'Saved model - ', loss
 
@@ -259,9 +259,9 @@ class H_euler_RNN_R:
 					print 'MAE', mae
 					print 'MSE', mse
 
-					with open('../new_out/%s_t%d_l%d_log.csv'%(NAME, self.timesteps, self.latent_dim), 'a+') as f:
-						spamwriter = csv.writer(f)
-						spamwriter.writerow([new_loss, mae, mse, L_RATE])
+					#with open('../new_out/%s_t%d_l%d_log.csv'%(NAME, self.timesteps, self.latent_dim), 'a+') as f:
+					#	spamwriter = csv.writer(f)
+					#	spamwriter.writerow([new_loss, mae, mse, L_RATE])
 
 					#load_path = '../human_motion_pred/baselines/'
 					#for basename in metric_baselines.iter_actions():
