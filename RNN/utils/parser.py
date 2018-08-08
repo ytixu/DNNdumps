@@ -120,8 +120,8 @@ def data_generator(input_dir, output_dir, timesteps, batch_size, label=False, ls
 		yield x, y/norm
 
 
-def get_model_load_name(model_name):
-	return '../models/%s_%d.hdf5'%(model_name, time.time())
+def get_model_load_name(model_name, args):
+	return '../models/%s_t%d_l%d_%d.hdf5'%(model_name, args['timesteps'], args['latent_dim'], time.time())
 
 def get_log_name(model_name):
 	return '../new_out/%s_%d.csv'%(model_name, time.time())
@@ -137,8 +137,8 @@ def get_parse(model_name, labels=False):
 	ap.add_argument('-m', '--mode', required=False, help='Choose between training mode or sampling mode.', default='train', choices=list_of_modes)
 	ap.add_argument('-ep', '--epochs', required=False, help='Number of epochs', default='1', type=int)
 	ap.add_argument('-bs', '--batch_size', required=False, help='Batch size', default='16', type=int)
-	ap.add_argument('-lp', '--load_path', required=False, help='Model path', default=get_model_load_name(model_name))
-	ap.add_argument('-sp', '--save_path', required=False, help='Model save path', default=get_model_load_name(model_name))
+	ap.add_argument('-lp', '--load_path', required=False, help='Model path', default='')
+	ap.add_argument('-sp', '--save_path', required=False, help='Model save path', default='')
 	ap.add_argument('-t', '--timesteps', required=False, help='Timestep size', default='5', type=int)
 	ap.add_argument('-p', '--periods', required=False, help='Number of iterations of the data', default='1', type=int)
 	ap.add_argument('-ld', '--latent_dim', required=False, help='Embedding size', default='100', type=int)
@@ -149,8 +149,13 @@ def get_parse(model_name, labels=False):
 
 	# ap.add_argument('-lr', '--learning_rate', required=False, help='Learning rate', default='5000', choices=list_of_modes)
 
-
 	args = vars(ap.parse_args())
+
+	if args['save_path'] == '':
+		args['save_path'] = get_model_load_name(model_name, args)
+	if args['load_path'] == '':
+		args['load_path'] = get_model_load_name(model_name, args)
+
 	if args['mode'] == 'cont':
 		args['mode'] = 'sample'
 		TOGGLE_MODE = 'sample'

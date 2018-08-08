@@ -4,6 +4,7 @@ from keras.layers import Input, Dense
 from keras.models import Model
 from sklearn import cross_validation
 from keras.optimizers import RMSprop
+import keras.backend as K
 
 from utils import parser
 
@@ -23,7 +24,7 @@ class Forward_NN:
 		self.cv_splits = args['cv_splits'] if 'cv_splits' in args else 0.2
 		self.trained = args['mode'] == 'sample'
 
-		self.load_path = args['load_path'] if 'load_path' in args else '../models/Forward_NN_R-RNN-t25-l512.hdf5'
+		self.load_path = args['load_path'] if 'load_path' in args else '../models/Forward_NN_1533744948.hdf5'
 		self.save_path = args['save_path'] if 'save_path' in args else ''
 
 		self.model = None
@@ -31,12 +32,15 @@ class Forward_NN:
 	def make_model(self):
 		inputs = Input(shape=(self.input_dim,))
 		d1 = Dense(self.interim_dim, activation='relu')(inputs)
-		d2 = Dense(self.interim_dim, activation='relu')(d1)
-		d3 = Dense(self.interim_dim, activation='relu')(d2)
-		outputs = Dense(self.output_dim, activation='tanh')(d3)
+		#d2 = Dense(self.interim_dim, activation='relu')(d1)
+		#d3 = Dense(self.interim_dim, activation='relu')(d2)
+		outputs = Dense(self.output_dim, activation='tanh')(d1)
+
+		def mse(yTrue, yPred):
+			return K.mean(K.sqrt(K.sum(K.square(yTrue - yPred), axis=0)))
 
 		self.model = Model(inputs, outputs)
-		self.model.compile(optimizer='RMSprop', loss='mean_squared_error')
+		self.model.compile(optimizer='RMSprop', loss=mse)
 		self.model.summary()
 
 	def load(self):

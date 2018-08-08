@@ -20,15 +20,16 @@ def data_generator(data_path, n):
 		x = []
 		y = []
 		rand_f = np.random.choice(len(files), 10, replace=False)
-		for f in rand_f:
+		for f in range(len(files)):
+			print f
 			data = np.load(files[f])
 			N = data.shape[0]
 			# rand1 = np.random.choice(N, 3000, replace=False)
 			rand2 = np.random.choice(N, 3000, replace=False)
 			# new_x = np.concatenate([data[rand1,0],data[rand2,1]], axis=0)
 			# new_y = np.concatenate([data[rand1,2],data[rand2,2]], axis=0)
-			new_x = data[rand2,1]
-			new_y = data[rand2,2]
+			new_x = data[rand2,0]
+			new_y = data[rand2,1]
 			if len(x) == 0:
 				x = new_x
 				y = new_y
@@ -45,7 +46,7 @@ def get_parse(model_name, labels=False):
 	list_of_modes = ['train', 'sample']
 	ap.add_argument('-id', '--data_path', required=True, help='Input data directory')
 	ap.add_argument('-m', '--mode', required=False, help='Choose between training mode or sampling mode.', default='train', choices=list_of_modes)
-	ap.add_argument('-ep', '--epochs', required=False, help='Number of epochs', default='5', type=int)
+	ap.add_argument('-ep', '--epochs', required=False, help='Number of epochs', default='3', type=int)
 	ap.add_argument('-bs', '--batch_size', required=False, help='Batch size', default='16', type=int)
 	ap.add_argument('-lp', '--load_path', required=False, help='Model path', default=get_model_load_name(model_name))
 	ap.add_argument('-sp', '--save_path', required=False, help='Model save path', default=get_model_load_name(model_name))

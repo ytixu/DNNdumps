@@ -186,6 +186,7 @@ def euler_diff(batch_expmap1, batch_expmap2, model, normalized=[True, True]):
     # function provided by Ashesh Jain (in matlab), available at
     # https://github.com/asheshjain399/RNNexp/blob/srnn/structural_rnn/CRFProblems/H3.6m/dataParser/Utils/motionGenerationError.m#L40-L54
     idx_to_use = np.where( np.std( srnn_euler, 0 ) > 1e-4 )[0]
+    print idx_to_use
 
     # wraped_euc_error = wrap_angle(srnn_euler[:,idx_to_use]) - wrap_angle(batch_euler2[i][:,idx_to_use])
     # euc_error = np.power(wraped_euc_error, 2)

@@ -313,6 +313,9 @@ if __name__ == '__main__':
 
   max_ = convert__(ae, train_set, test_set)
   print max_
+  #max_ = 1.0
+
+  expmap_cond_all, expmap_pred_gt = test_set()
 
   '''
   test conversions
@@ -345,18 +348,18 @@ if __name__ == '__main__':
   import h5py
   # numpy implementation
   n = 100 # ae.timesteps - ae.conditioned_pred_steps
-  expmap_cond = np.zeros((8, n, 99))
+  #expmap_cond = np.zeros((8, n, 99))
   expmap_gt = np.zeros((8, n, 99))
   expmap_pred = np.zeros((8, n, 99))
   with h5py.File( '../baselines/samples.h5', 'r' ) as h5f:
     for i, action in enumerate(config['actions']):
       for j in range(8):
-        expmap_cond[j] = h5f['expmap/gt/%s_%d'%(action, j)] # [:n/2]
+        #expmap_cond[j] = h5f['expmap/gt/%s_%d'%(action, j)] # [:n/2]
         expmap_gt[j] = h5f['expmap/preds_gt/%s_%d'%(action, j)] # [:n]
         expmap_pred[j] = h5f['expmap/preds/%s_%d'%(action, j)] # [:n]
 
-      # batch_data = ae.get_batch_srnn( test_set, action)
-      # print batch_data.shape
+      #batch_data = ae.get_batch_srnn( test_set, action)
+      #print batch_data.shape
       #print [i*8+k for k in [0,4,1,5,2,6,3,7]]
       #loaded_batch = test_pred_gt[[i*8+k for k in [0,4,1,5,2,6,3,7]],:n]
       #xyz = translate__.batch_expmap2xyz(loaded_batch, ae)
@@ -364,12 +367,20 @@ if __name__ == '__main__':
       #xyz_p = translate__.batch_expmap2xyz(expmap_gt[:,:5], ae, normalized=False)
       #image.plot_poses(xyz[:,:5])
 
+      #loaded_batch = expmap_pred_gt[[i*8+k for k in [0,4,1,5,2,6,3,7]]]
+      #error = translate__.euler_diff(loaded_batch[:,:50], expmap_gt[:,:50], ae, normalized=[True, False])[0]
+      #print error
+      expmap_cond = expmap_cond_all[[i*8+k for k in [0,4,1,5,2,6,3,7]]]
+
       print action, n
       error = translate__.euler_diff(expmap_gt, expmap_pred, ae, normalized=[False, False])[0]
+      continue
+      #print error
 
-      euler_cond = np.array(translate__.batch_expmap2xyz(expmap_cond, ae, normalized=False))
+      euler_cond = np.array(translate__.batch_expmap2xyz(expmap_cond, ae, normalized=True))
       euler_gt = np.array(translate__.batch_expmap2xyz(expmap_gt, ae, normalized=False))
       euler_pred = np.array(translate__.batch_expmap2xyz(expmap_pred, ae, normalized=False))
+      print np.mean(np.abs(euler_cond[:,-1] - euler_gt[:,0])), np.mean(np.abs(euler_cond[:,-1] - euler_cond[:,-2]))
 
       # euler_gt[0][:,0:6] = 0
       # idx_to_use = np.where( np.std(euler_gt[0], 0 ) > 1e-4 )[0]
