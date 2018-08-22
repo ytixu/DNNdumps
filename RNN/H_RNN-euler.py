@@ -229,10 +229,12 @@ class H_euler_RNN_R:
 			iter1, iter2 = tee(data_iterator)
 			for i in range(self.periods):
 				for x, y in iter1:
+					image.plot_fk_from_euler(x[:3], title='test')
 					y, x = self.__alter_parameterization(x)
 					x_train, x_test, y_train, y_test = cross_validation.train_test_split(x, x, test_size=self.cv_splits)
 					y_train = self.__alter_y(y_train)
 					y_test = self.__alter_y(y_test)
+
 					history = self.autoencoder.fit(x_train, y_train,
 								shuffle=True,
 								epochs=self.epochs,
@@ -322,13 +324,13 @@ class H_euler_RNN_R:
 				# x, y = valid_data
 				# x = np.zeros((_N, self.timesteps, 96))
 				# x[:,:cut_x+1] = np.load(load_path + 'xyz/' + basename + '_cond.npy')[:,-cut_x-1:]
-				
+
 				y = np.zeros((_N, self.timesteps, 99))
 				y[:,:cut_x] = np.load(load_path + 'euler/' + basename + '_cond.npy')[:,-cut_x:]
-				
+
 				# y = np.load(load_path + 'euler/' + basename + '_cond.npy')[:,-25:]
 				# gtp_x = np.load(load_path + 'xyz/' + basename + '_gt.npy')[:,:pred_n][:,:,self.used_xyz_idx]
-				
+
 				gtp_y = np.load(load_path + 'euler/' + basename + '_gt.npy')[:,:pred_n]
 				#print np.mean(np.abs(y[:,cut_x-2] - y[:,cut_x-1])), np.mean(np.abs(y[:,cut_x-1] - gtp_y[:,0]))
 				#y[:,cut_x:] = gtp_y
@@ -336,7 +338,7 @@ class H_euler_RNN_R:
 
 				# rand_idx = np.random.choice(x.shape[0], _N, replace=False)
 				# x, y, xy = self.__merge_n_reparameterize(x[rand_idx],y[rand_idx], True)
-				
+
 				y, norm_y = self.__alter_parameterization(y)
 				y = wrap_angle(y)
 				enc = self.encoder.predict(norm_y)
