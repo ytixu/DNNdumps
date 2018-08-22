@@ -7,7 +7,7 @@ from sklearn import cross_validation
 import keras.layers as K_layer
 from keras.models import Model
 from keras.callbacks import TensorBoard
-from keras.optimizers import RMSprop
+from keras.optimizers import Nadam
 import csv
 from tqdm import tqdm
 import json
@@ -44,11 +44,11 @@ class H_euler_RNN_R:
 
                 self.trained = args['mode'] == 'sample' if 'mode' in args else False
 		self.timesteps = args['timesteps'] if 'timesteps' in args else 10
-		self.partial_ts = 5
+		self.partial_ts = 10
 		self.partial_n = self.timesteps/self.partial_ts
 		self.hierarchies = range(self.partial_ts-1,self.timesteps, self.partial_ts)
 		#[14,24] if self.trained else range(self.partial_ts-1,self.timesteps, self.partial_ts)
-		self.predict_hierarchies = [2,4]
+		self.predict_hierarchies = [2,3]
 		# self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.load_path = args['load_path']
@@ -87,8 +87,8 @@ class H_euler_RNN_R:
 
 		#decomposed = K_layer.concatenate([sin_layer(inputs), cos_layer(inputs)], axis=1)
 		reshaped = K_layer.Reshape((self.partial_n, self.partial_ts, self.input_dim))(inputs)
-		encode_reshape = K_layer.Reshape((self.partial_n, self.latent_dim))
-		encode_1 = RNN_UNIT(self.latent_dim)
+		encode_reshape = K_layer.Reshape((self.partial_n, self.latent_dim/2))
+		encode_1 = RNN_UNIT(self.latent_dim/2)
 		encode_2 = RNN_UNIT(self.latent_dim, return_sequences=True)
 
 		def encode_partials(seq):
@@ -111,7 +111,7 @@ class H_euler_RNN_R:
 		#	return tf.maximum(tf.minimum(x, 1.0), -1.0)
 
 		decode_repete = K_layer.RepeatVector(self.timesteps)
-		decode_residual_1 = RNN_UNIT(self.latent_dim/2, return_sequences=True, activation=decoder_activation))
+		decode_residual_1 = RNN_UNIT(self.latent_dim/2, return_sequences=True, activation=decoder_activation)
 		decode_residual_2 = RNN_UNIT(self.output_dim, return_sequences=True, activation=decoder_activation)
 
 		#decode_activate = K_layer.Lambda(lambda x: K.tanh(x), output_shape=(self.timesteps, self.output_dim))
@@ -144,7 +144,7 @@ class H_euler_RNN_R:
 		self.encoder = Model(inputs, encoded)
 		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
-		opt = RMSprop(lr=L_RATE)
+		#opt = RMSprop(lr=L_RATE)
 
 		def mse(yTrue, yPred):
 		# 	yt = K.reshape(yTrue, (-1, self.timesteps, self.output_dim))
@@ -157,7 +157,8 @@ class H_euler_RNN_R:
 		 	#loss = K.mean(K.sqrt(loss))
 		 	#return loss
 
-		self.autoencoder.compile(optimizer='Nadam', loss='mean_squared_error')
+		opt = Nadam(lr=0.00005)
+		self.autoencoder.compile(optimizer=opt, loss='mean_squared_error')
 
 		self.autoencoder.summary()
 		self.encoder.summary()
@@ -242,7 +243,7 @@ class H_euler_RNN_R:
 					print history.history['loss']
 					new_loss = np.mean(history.history['loss'])
 					if new_loss < loss:
-						#self.autoencoder.save_weights(self.save_path, overwrite=True)
+						self.autoencoder.save_weights(self.save_path, overwrite=True)
 						loss = new_loss
 						print 'Saved model - ', loss
 
@@ -259,9 +260,9 @@ class H_euler_RNN_R:
 					print 'MAE', mae
 					print 'MSE', mse
 
-					#with open('../new_out/%s_t%d_l%d_log.csv'%(NAME, self.timesteps, self.latent_dim), 'a+') as f:
-					#	spamwriter = csv.writer(f)
-					#	spamwriter.writerow([new_loss, mae, mse, L_RATE])
+					with open('../new_out/%s_t%d_l%d_log.csv'%(NAME, self.timesteps, self.latent_dim), 'a+') as f:
+						spamwriter = csv.writer(f)
+						spamwriter.writerow([new_loss, mae, mse, L_RATE])
 
 					#load_path = '../human_motion_pred/baselines/'
 					#for basename in metric_baselines.iter_actions():
@@ -280,7 +281,7 @@ class H_euler_RNN_R:
 		else:
 			# load embedding
 			embedding = []
-			#i = 0
+			i = 0
 			for x,y in data_iterator:
 				y, norm_y = self.__alter_parameterization(x)
 				e = self.encoder.predict(norm_y)
@@ -288,7 +289,7 @@ class H_euler_RNN_R:
 				#y_test_pred = self.unormalize_angle(y_test_pred)
 				#y_gt = wrap_angle(y)
 				#print self.euler_error(y_gt, y_test_pred)
-				#np.save('../data/embedding/t25-l512-euler/emb_%d.npy'%i, e[:,self.predict_hierarchies])
+				#np.save('../data/embedding/t40-l650-euler/emb_%d.npy'%i, e[:,self.predict_hierarchies])
 				#i += 1
 				#print i
 				#continue
@@ -387,8 +388,8 @@ class H_euler_RNN_R:
 					# error[method]['pose'] = error[method]['pose'].tolist()
 
 
-		#	with open('../new_out/%s_t%d_l%d_validation-testset-mseMartinez.json'%(NAME, self.timesteps, self.latent_dim), 'wb') as result_file:
-		#		json.dump(error, result_file)
+			with open('../new_out/%s_t%d_l%d_validation-testset-mseMartinez.json'%(NAME, self.timesteps, self.latent_dim), 'wb') as result_file:
+				json.dump(error, result_file)
 
 
 
