@@ -550,4 +550,4 @@ def plot_fk_from_euler(euler_angles, title='poses', image_dir='../new_out/'):
 			xyz_coord = fkl( rev_coord[i][j], parent, offset, rotInd, expmapInd )
 			xyz_coord = np.reshape(xyz_coord, (-1, 3))
 			xyz[i][j] = (xyz_coord[relevant_coords]).flatten()
-	plot_poses_euler(np.array(xyz), title=title, image_dir=image_dir)
+	plot_poses(np.array(xyz), title=title, image_dir=image_dir)
