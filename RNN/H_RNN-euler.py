@@ -44,7 +44,7 @@ class H_euler_RNN_R:
 
                 self.trained = args['mode'] == 'sample' if 'mode' in args else False
 		self.timesteps = args['timesteps'] if 'timesteps' in args else 10
-		self.partial_ts = 10
+		self.partial_ts = 5
 		self.partial_n = self.timesteps/self.partial_ts
 		self.hierarchies = range(self.partial_ts-1,self.timesteps, self.partial_ts)
 		#[14,24] if self.trained else range(self.partial_ts-1,self.timesteps, self.partial_ts)

@@ -334,7 +334,21 @@ def _some_variables():
 
 	return parent, offset, rotInd, expmapInd
 
+import math
 def euler2mat(ai, aj, ak, axes='sxyz'):
+
+	_AXES2TUPLE = {
+	'sxyz': (0, 0, 0, 0), 'sxyx': (0, 0, 1, 0), 'sxzy': (0, 1, 0, 0),
+	'sxzx': (0, 1, 1, 0), 'syzx': (1, 0, 0, 0), 'syzy': (1, 0, 1, 0),
+	'syxz': (1, 1, 0, 0), 'syxy': (1, 1, 1, 0), 'szxy': (2, 0, 0, 0),
+	'szxz': (2, 0, 1, 0), 'szyx': (2, 1, 0, 0), 'szyz': (2, 1, 1, 0),
+	'rzyx': (0, 0, 0, 1), 'rxyx': (0, 0, 1, 1), 'ryzx': (0, 1, 0, 1),
+	'rxzx': (0, 1, 1, 1), 'rxzy': (1, 0, 0, 1), 'ryzy': (1, 0, 1, 1),
+	'rzxy': (1, 1, 0, 1), 'ryxy': (1, 1, 1, 1), 'ryxz': (2, 0, 0, 1),
+	'rzxz': (2, 0, 1, 1), 'rxyz': (2, 1, 0, 1), 'rzyz': (2, 1, 1, 1)}
+
+	_NEXT_AXIS = [1, 2, 0, 1]
+
 	# https://github.com/matthew-brett/transforms3d/blob/master/transforms3d/euler.py#L164
 	"""Return rotation matrix from Euler angles and axis sequence.
 	Parameters
@@ -454,17 +468,17 @@ def revert_coordinate_space(channels, R0, T0):
 	"""
 	n, d = channels.shape
 
-	channels_rec = copy.copy(channels)
+	channels_rec = np.copy(channels)
 	R_prev = R0
 	T_prev = T0
 	rootRotInd = np.arange(3,6)
 
 	# Loop through the passed posses
 	for ii in range(n):
-		R_diff = data_utils.euler2rotmap( channels[ii, rootRotInd] )
+		R_diff = euler2rotmap( channels[ii, rootRotInd] )
 		R = R_diff.dot( R_prev )
 
-		channels_rec[ii, rootRotInd] = data_utils.rotmat2euler(R)
+		channels_rec[ii, rootRotInd] = rotmat2euler(R)
 		T = T_prev + ((R_prev.T).dot(np.reshape(channels[ii,:3],[3,1]))).reshape(-1)
 		channels_rec[ii,:3] = T
 		T_prev = T
@@ -487,7 +501,6 @@ def fkl( angles, parent, offset, rotInd, expmapInd ):
 	Returns
 		xyz: 32x3 3d points that represent a person in 3d space
 	"""
-
 	assert len(angles) == 99
 
 	# Structure that indicates parents for each joint
@@ -505,7 +518,7 @@ def fkl( angles, parent, offset, rotInd, expmapInd ):
 
 		r = angles[ expmapInd[i] ]
 
-		thisRotation = data_utils.euler2rotmap(r)
+		thisRotation = euler2rotmap(r)
 		thisPosition = np.array([xangle, yangle, zangle])
 
 		if parent[i] == -1: # Root node
@@ -526,6 +539,11 @@ def fkl( angles, parent, offset, rotInd, expmapInd ):
 
 def plot_fk_from_euler(euler_angles, title='poses', image_dir='../new_out'):
 	parent, offset, rotInd, expmapInd = _some_variables()
-	euler_angles = revert_coordinate_space( euler_angles, np.eye(3), np.zeros(3) )
-	xyz = fkl( euler_angles, parent, offset, rotInd, expmapInd )
-	plot_poses_euler(xyz, title=title, image_dir=image_dir)
+	n, t, _ = euler_angles.shape
+	rev_coord = [None]*n
+	xyz = [[None]*t]*n
+	for i in range(n):
+		rev_coord[i] = revert_coordinate_space( euler_angles[i], np.eye(3), np.zeros(3) )
+		for j in range(t):
+			xyz[i][j] = fkl( rev_coord[i][j], parent, offset, rotInd, expmapInd )
+	plot_poses_euler(np.array(xyz), title=title, image_dir=image_dir)
