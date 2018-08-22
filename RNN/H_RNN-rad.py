@@ -136,6 +136,7 @@ class H_RNN_R:
 			iter1, iter2 = tee(data_iterator)
 			for i in range(self.periods):
 				for x, y in iter1:
+					image.plot_fk_from_euler(x[:3], title='test')
 					x = self.__merge_n_reparameterize(x,y)
 					x_train, x_test, y_train, y_test = cross_validation.train_test_split(x, x, test_size=self.cv_splits)
 					y_train = self.__alter_y(y_train)
