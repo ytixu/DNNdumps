@@ -19,7 +19,7 @@ from Forward import NN
 
 NAME = 'H_euler_LSTM_R'
 USE_GRU = True
-L_RATE = 0.001
+L_RATE = 0.0005
 
 if USE_GRU:
 	from keras.layers import GRU as RNN_UNIT
@@ -44,7 +44,7 @@ class H_euler_RNN_R:
 
                 self.trained = args['mode'] == 'sample' if 'mode' in args else False
 		self.timesteps = args['timesteps'] if 'timesteps' in args else 10
-		self.partial_ts = 5
+		self.partial_ts = 10
 		self.partial_n = self.timesteps/self.partial_ts
 		self.hierarchies = range(self.partial_ts-1,self.timesteps, self.partial_ts)
 		#[14,24] if self.trained else range(self.partial_ts-1,self.timesteps, self.partial_ts)
@@ -157,7 +157,7 @@ class H_euler_RNN_R:
 		 	#loss = K.mean(K.sqrt(loss))
 		 	#return loss
 
-		opt = Nadam(lr=0.00005)
+		opt = Nadam(lr=L_RATE)
 		self.autoencoder.compile(optimizer=opt, loss='mean_squared_error')
 
 		self.autoencoder.summary()
@@ -222,14 +222,14 @@ class H_euler_RNN_R:
 
 	def run(self, data_iterator, valid_data):
 		# model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
-		if not self.load():
+		if self.load():
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			loss = 10000
 			iter1, iter2 = tee(data_iterator)
 			for i in range(self.periods):
 				for x, y in iter1:
-					image.plot_fk_from_euler(x[:3], title='test')
+					#image.plot_fk_from_euler(x[:3], title='test')
 					y, x = self.__alter_parameterization(x)
 					x_train, x_test, y_train, y_test = cross_validation.train_test_split(x, x, test_size=self.cv_splits)
 					y_train = self.__alter_y(y_train)
