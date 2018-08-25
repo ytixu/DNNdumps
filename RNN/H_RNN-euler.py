@@ -7,7 +7,7 @@ from sklearn import cross_validation
 import keras.layers as K_layer
 from keras.models import Model
 from keras.callbacks import TensorBoard
-from keras.optimizers import Nadam
+from keras import optimizers # import Nadam
 import csv
 from tqdm import tqdm
 import json
@@ -19,7 +19,7 @@ from Forward import NN
 
 NAME = 'H_euler_LSTM_R'
 USE_GRU = True
-L_RATE = 0.0005
+L_RATE = 0.001
 
 if USE_GRU:
 	from keras.layers import GRU as RNN_UNIT
@@ -41,8 +41,7 @@ class H_euler_RNN_R:
 		self.batch_size = args['batch_size']
 		self.periods = args['periods'] if 'periods' in args else 10
 		self.cv_splits = args['cv_splits'] if 'cv_splits' in args else 0.2
-
-                self.trained = args['mode'] == 'sample' if 'mode' in args else False
+		self.trained = args['mode'] == 'sample' if 'mode' in args else False
 		self.timesteps = args['timesteps'] if 'timesteps' in args else 10
 		self.partial_ts = 10
 		self.partial_n = self.timesteps/self.partial_ts
@@ -54,6 +53,10 @@ class H_euler_RNN_R:
 		self.load_path = args['load_path']
 		self.save_path = args['save_path']
 		self.log_path = args['log_path']
+
+		self.loss_func = args['loss_func']
+		self.opt = eval(args['optimizer'])
+		self.loss_opt_str = self.loss_func + '_' + args['optimizer'].replace('(', '-').replace(')', '').replace(',','-')
 
 		self.used_euler_idx = [6,7,8,9,12,13,14,15,21,22,23,24,27,28,29,30,36,37,38,39,40,41,42,43,44,45,46,47,51,52,53,54,55,56,57,60,61,62,75,76,77,78,79,80,81,84,85,86]
 		self.ignored_idx = list(set(range(99)) - set(self.used_euler_idx))
@@ -144,7 +147,6 @@ class H_euler_RNN_R:
 		self.encoder = Model(inputs, encoded)
 		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
-		#opt = RMSprop(lr=L_RATE)
 
 		def mse(yTrue, yPred):
 		# 	yt = K.reshape(yTrue, (-1, self.timesteps, self.output_dim))
@@ -157,8 +159,8 @@ class H_euler_RNN_R:
 		 	#loss = K.mean(K.sqrt(loss))
 		 	#return loss
 
-		opt = Nadam(lr=L_RATE)
-		self.autoencoder.compile(optimizer=opt, loss='mean_squared_error')
+		# opt = optimizers.Nadam(lr=L_RATE)
+		self.autoencoder.compile(optimizer=self.opt, loss=self.loss_func)
 
 		self.autoencoder.summary()
 		self.encoder.summary()
@@ -206,6 +208,15 @@ class H_euler_RNN_R:
 		print np.sum(np.sqrt(np.sum(np.square(yTrue - yPred), -1)), -1).shape
 		return np.mean(np.sum(np.sqrt(np.sum(np.square(yTrue - yPred), -1)), -1), 0)
 
+	def load_validation_data(self, load_path):
+		y = [None]*15
+		i = 0
+		for basename in metric_baselines.iter_actions():
+			y[i] = np.load(load_path + 'euler/' + basename + '_cond.npy')[:,-self.timesteps:]
+			i += 1
+		y = np.concatenate(y, axis=0)
+		y, x = self.__alter_parameterization(y)
+		return y, x
 
 
 	# def interpolate(self, valid_data, l=8):
@@ -221,6 +232,9 @@ class H_euler_RNN_R:
 	# 	image.plot_poses_euler(interpolation, title='interpolation', image_dir='../new_out/')
 
 	def run(self, data_iterator, valid_data):
+		load_path = '../human_motion_pred/baselines/'
+		test_data_y, test_data_x = self.load_validation_data(load_path)
+		test_data_y = wrap_angle(test_data_y)
 		# model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
 		if self.load():
 			# from keras.utils import plot_model
@@ -259,23 +273,18 @@ class H_euler_RNN_R:
 					mae = np.mean(np.abs(y_gt-y_test_pred))
 					mse = self.euler_error(y_gt, y_test_pred)
 
+					y_test_pred = self.encoder.predict(test_data_x)[:,-1]
+                    y_test_pred = self.decoder.predict(y_test_pred)
+					y_test_pred = self.unormalize_angle(y_test_pred)
+					mse_test = self.euler_error(test_data_y, y_test_pred)
+
 					print 'MAE', mae
 					print 'MSE', mse
+					print 'MSE TEST', mse_test
 
-					with open('../new_out/%s_t%d_l%d_log.csv'%(NAME, self.timesteps, self.latent_dim), 'a+') as f:
+					with open('../new_out/%s_t%d_l%d_%s_log.csv'%(NAME, self.timesteps, self.latent_dim, self.loss_opt_str), 'a+') as f:
 						spamwriter = csv.writer(f)
-						spamwriter.writerow([new_loss, mae, mse, L_RATE])
-
-					#load_path = '../human_motion_pred/baselines/'
-					#for basename in metric_baselines.iter_actions():
-					#	y = np.load(load_path + 'euler/' + basename + '_cond.npy')[:,-self.timesteps:]
-					#	y, x = self.__alter_parameterization(y)
-					#	y_test_pred = self.encoder.predict(x)[:,-1]
-	                                 #       y_test_pred = self.decoder.predict(y_test_pred)
-					#	y_test_pred = self.unormalize_angle(y_test_pred)
-					#	y_gt = wrap_angle(y)
-					#	print self.euler_error(y_gt, y_test_pred)
-					#	break
+						spamwriter.writerow([new_loss, mae, mse, mse_test, self.loss_opt_str])
 
 				iter1, iter2 = tee(iter2)
 
@@ -317,7 +326,6 @@ class H_euler_RNN_R:
 			error = {act: {m: {'euler': None} for m in methods} for act in metric_baselines.iter_actions()}
 
 			# a_n = 0
-			load_path = '../human_motion_pred/baselines/'
 			for basename in metric_baselines.iter_actions():
 				print basename, '================='
 
