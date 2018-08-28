@@ -121,10 +121,11 @@ def data_generator(input_dir, output_dir, timesteps, batch_size, label=False, ls
 
 
 def get_model_load_name(model_name, args):
-	return '../models/%s_t%d_l%d_%d-10.hdf5'%(model_name, args['timesteps'], args['latent_dim'], time.time())
+	opt_name = '-'.join('-'.join(args['optimizer'].strip('optimizers.').strip(')').split('(')).split(','))
+	return '../models/%s_t%d_l%d_opt%s_%d.hdf5'%(model_name, args['timesteps'], args['latent_dim'], opt_name, time.time())
 
 def get_log_name(model_name):
-	return '../new_out/%s_%d-10.csv'%(model_name, time.time())
+	return '../new_out/%s_%d.csv'%(model_name, time.time())
 
 def get_parse(model_name, labels=False):
 	global TOGGLE_MODE

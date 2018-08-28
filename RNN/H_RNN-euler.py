@@ -237,7 +237,7 @@ class H_euler_RNN_R:
 		test_data_y = wrap_angle(test_data_y)
 		print self.loss_opt_str
 		# model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
-		if not self.load():
+		if self.load():
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			loss = 10000
