@@ -6,8 +6,8 @@
 
 # python H_RNN-euler.py -t 20 -ld 514 -id ../data/h3.6/full/train_euler/ -od ../data/h3.6/full/train_euler/ -bs 64;
 
-loss_func=( "mean_squared_error" "mean_absolute_error" "binary_crossentropy" "kullback_leibler_divergence" "cosine_proximity");
-optimizers=( "optimizers.Nadam()" "optimizers.Nadam(lr=0.001)" "optimizers.Nadam(lr=0.003)" "optimizers.SGD()" "optimizers.Adagrad()" "optimizers.Adadelta()" "optimizers.Adam()" "optimizers.Adamax()" "optimizers.TFOptimizer()");
+loss_func=( "mean_squared_error" "mean_absolute_error");
+optimizers=( "optimizers.SGD(momentum=0.8,decay=0.001,nesterov=True)" "optimizers.SGD(momentum=0.8,decay=0.001,nesterov=False)" "optimizers.Adam(decay=0.0001)" "optimizers.Adam(lr=0.002)" "optimizers.Adam(lr=0.0005)" "optimizers.Nadam(schedule_decay=0.006)" "optimizers.Nadam(lr=0.0015)" );
 for loss in "${loss_func[@]}"
 do
 	for opt in "${optimizers[@]}"
