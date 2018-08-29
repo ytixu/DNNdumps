@@ -24,7 +24,7 @@ class Forward_NN:
 		self.cv_splits = args['cv_splits'] if 'cv_splits' in args else 0.2
 		self.trained = args['mode'] == 'sample'
 
-		self.load_path = args['load_path'] if 'load_path' in args else '../models/Forward_NN_1534902027.hdf5'
+		self.load_path = args['load_path'] if 'load_path' in args else '../models/Forward_NN_1535507607.hdf5'
 		self.save_path = args['save_path'] if 'save_path' in args else ''
 
 		self.model = None
