@@ -47,7 +47,8 @@ def data_generator_random(input_dir, output_dir, timesteps, batch_size, n, label
 			new_l[ls[name_label]] = 1
 			data[i] = (np.load(input_file), np.load(output_file), new_l)
 		else:
-			data[i] = (np.load(input_file), np.load(output_file))
+			# data[i] = (np.load(input_file), np.load(output_file))
+			data[i] = np.load(input_file)
 		total_i = i
 
 	def get_k(x):
@@ -56,13 +57,15 @@ def data_generator_random(input_dir, output_dir, timesteps, batch_size, n, label
 			return (np.array([np.concatenate((data[x][0][k+t], data[x][2])) for t in range(timesteps)]),
 				np.array([np.concatenate((data[x][1][k+t], data[x][2])) for t in range(timesteps)]))
 
-		return (data[x][0][k:k+timesteps], data[x][1][k:k+timesteps])
+		# return (data[x][0][k:k+timesteps], data[x][1][k:k+timesteps])
+		return data[x][0][k:k+timesteps]
 
 	for i in range(n):
 		idx = np.random.choice(total_i+1, batch_size)
-		dd = [get_k(j) for j in idx]
-		x, y = np.array([xx for xx,_ in dd]), np.array([yy for _,yy in dd])
-		yield x, y
+		x = [get_k(j) for j in idx]
+		# dd = [get_k(j) for j in idx]
+		# x, y = np.array([xx for xx,_ in dd]), np.array([yy for _,yy in dd])
+		yield x, np.copy(x)
 
 def data_generator(input_dir, output_dir, timesteps, batch_size, label=False, ls=[], ld=0, only_label=''):
 	# files must be in different directories,

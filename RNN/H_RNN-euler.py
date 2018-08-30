@@ -211,12 +211,34 @@ class H_euler_RNN_R:
 	def load_validation_data(self, load_path):
 		y = [None]*15
 		i = 0
+		cut = self.predict_hierarchies[-1]*self.partial_ts
 		for basename in metric_baselines.iter_actions():
-			y[i] = np.load(load_path + 'euler/' + basename + '_cond.npy')[:,-self.timesteps:]
+			cond = np.load(load_path + 'euler/' + basename + '_cond.npy')[:,-self.timesteps:]
+			y[i] = np.zeros(cond.shape)
+			y[i][:,:cut] = cond[-cut:]
+			y[i][:,cut:] = np.load(load_path + 'euler/' + basename + '_gt.npy')[:,:self.timesteps-cut]
 			i += 1
 		y = np.concatenate(y, axis=0)
 		y, x = self.__alter_parameterization(y)
 		return y, x
+
+
+	def validate_autoencoding(self, test_data_x, test_data_y):
+		y_test_pred = self.encoder.predict(test_data_x)[:,-1]
+		y_test_pred = self.decoder.predict(y_test_pred)
+		y_test_pred = self.unormalize_angle(y_test_pred)
+		return self.euler_error(test_data_y, y_test_pred)
+
+	def validate_prediction(self, x_train, x_test, y_test):
+		e = self.encoder.predict(x_train)
+		embedding = e[:, self.predict_hierarchies]
+		mean_diff, diff = metrics.get_embedding_diffs(embedding[:,1], embedding[:,0])
+		print 'std', np.std(diff)
+		z = self.encoder.predict(x_test)[:,self.predict_hierarchies[0]]
+		z = z + mean_diff
+		y_test_pred = self.decoder.predict(z)
+		y_test_pred = self.unormalize_angle(y_test_pred)
+		return self.euler_error(y_test, y_test_pred)
 
 
 	# def interpolate(self, valid_data, l=8):
@@ -265,27 +287,26 @@ class H_euler_RNN_R:
 						print 'Saved model - ', loss
 
 					rand_idx = np.random.choice(x.shape[0], 100, replace=False)
-					y_test_pred = self.encoder.predict(x[rand_idx])[:,-1]
-					y_test_pred = self.decoder.predict(y_test_pred)
-					#y_gt = x_test[rand_idx]
-					y_test_pred = self.unormalize_angle(y_test_pred)
+					# y_test_pred = self.encoder.predict(x[rand_idx])[:,-1]
+					# y_test_pred = self.decoder.predict(y_test_pred)
+					# #y_gt = x_test[rand_idx]
+					# y_test_pred = self.unormalize_angle(y_test_pred)
 					y_gt = wrap_angle(y[rand_idx])
 
-					mae = np.mean(np.abs(y_gt-y_test_pred))
-					mse = self.euler_error(y_gt, y_test_pred)
+					# mae = np.mean(np.abs(y_gt-y_test_pred))
+					# mse = self.euler_error(y_gt, y_test_pred)
+					mse = self.validate_autoencoding(x[rand_idx], y_gt)
+					mse_test = self.validate_autoencoding(test_data_x, test_data_y)
+					mse_pred = self.validate_prediction(x[rand_idx], test_data_x, test_data_y)
 
-					y_test_pred = self.encoder.predict(test_data_x)[:,-1]
-					y_test_pred = self.decoder.predict(y_test_pred)
-					y_test_pred = self.unormalize_angle(y_test_pred)
-					mse_test = self.euler_error(test_data_y, y_test_pred)
-
-					print 'MAE', mae
-					print 'MSE', mse
-					print 'MSE TEST', mse_test
+					# print 'MAE', mae
+					print 'MSE', np.mean(mse)
+					print 'MSE TEST', np.mean(mse_test)
+					print 'MSE PRED', mse_pred[:,-10:]
 
 					with open('../new_out/%s_t%d_l%d_%s_log.csv'%(NAME, self.timesteps, self.latent_dim, self.loss_opt_str), 'a+') as f:
 						spamwriter = csv.writer(f)
-						spamwriter.writerow([new_loss, mae, mse, mse_test, self.loss_opt_str])
+						spamwriter.writerow([new_loss, mse, mse_test, mse_pred, self.loss_opt_str])
 
 				iter1, iter2 = tee(iter2)
 
@@ -317,7 +338,7 @@ class H_euler_RNN_R:
 			print 'std', np.std(diff)
 
 			_N = 8
-			#methods = ['closest', 'closest_partial', 'mean-5', 
+			#methods = ['closest', 'closest_partial', 'mean-5',
 			methods = ['add', 'fn']
 			nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
 			nn.run(None)
