@@ -208,6 +208,15 @@ class HH_euler_RNN_R:
 		return np.mean(np.sum(np.sqrt(np.sum(np.square(yTrue - yPred), -1)), -1), 0)
 
 
+	def load_validation_data(self, load_path):
+		y = [None]*15
+		i = 0
+		for basename in metric_baselines.iter_actions():
+			y[i] = np.load(load_path + 'euler/' + basename + '_cond.npy')[:,-self.timesteps:]
+			i += 1
+		y = np.concatenate(y, axis=0)
+		y, x = self.__alter_parameterization(y)
+		return y, x
 
 	# def interpolate(self, valid_data, l=8):
 	# 	x, y = valid_data
@@ -223,7 +232,10 @@ class HH_euler_RNN_R:
 
 	def run(self, data_iterator, valid_data):
 		# model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
-		if not self.load():
+		load_path = '../human_motion_pred/baselines/'
+		test_data_y, test_data_x = self.load_validation_data(load_path)
+		test_data_y = wrap_angle(test_data_y)
+		if self.load():
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			loss = 10000
@@ -258,12 +270,18 @@ class HH_euler_RNN_R:
 					mae = np.mean(np.abs(y_gt-y_test_pred))
 					mse = self.euler_error(y_gt, y_test_pred)
 
+					y_test_pred = self.encoder.predict(test_data_x)[:,-1]
+					y_test_pred = self.decoder.predict(y_test_pred)
+					y_test_pred = self.unormalize_angle(y_test_pred)
+					mse_test = self.euler_error(test_data_y, y_test_pred)
+
 					print 'MAE', mae
 					print 'MSE', mse
+					print 'MSE TEST', mse_test
 
 					with open('../new_out/%s_t%d_l%d_log.csv'%(NAME, self.timesteps, self.latent_dim), 'a+') as f:
 						spamwriter = csv.writer(f)
-						spamwriter.writerow([new_loss, mae, mse, L_RATE])
+						spamwriter.writerow([new_loss, mae, mse, mse_test])
 
 					#load_path = '../human_motion_pred/baselines/'
 					#for basename in metric_baselines.iter_actions():

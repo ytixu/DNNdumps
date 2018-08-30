@@ -3,7 +3,7 @@ import time
 from keras.layers import Input, Dense
 from keras.models import Model
 from sklearn import cross_validation
-from keras.optimizers import RMSprop
+from keras.optimizers import Nadam as OptAlgo
 import keras.backend as K
 
 from utils import parser
@@ -24,23 +24,24 @@ class Forward_NN:
 		self.cv_splits = args['cv_splits'] if 'cv_splits' in args else 0.2
 		self.trained = args['mode'] == 'sample'
 
-		self.load_path = args['load_path'] if 'load_path' in args else '../models/Forward_NN_1535507607.hdf5'
+		self.load_path = args['load_path'] if 'load_path' in args else '../models/Forward_NN_1535572208.hdf5'
 		self.save_path = args['save_path'] if 'save_path' in args else ''
 
 		self.model = None
 
 	def make_model(self):
 		inputs = Input(shape=(self.input_dim,))
-		d1 = Dense(self.interim_dim, activation='relu')(inputs)
+		#d1 = Dense(self.interim_dim, activation='relu')(inputs)
 		#d2 = Dense(self.interim_dim, activation='relu')(d1)
 		#d3 = Dense(self.interim_dim, activation='relu')(d2)
-		outputs = Dense(self.output_dim, activation='tanh')(d1)
+		outputs = Dense(self.output_dim, activation='tanh')(inputs)
 
 		def mse(yTrue, yPred):
 			return K.mean(K.sqrt(K.sum(K.square(yTrue - yPred), axis=0)))
 
 		self.model = Model(inputs, outputs)
-		self.model.compile(optimizer='RMSprop', loss=mse)
+		opt = OptAlgo(lr=0.001)
+		self.model.compile(optimizer=opt, loss=mse)
 		self.model.summary()
 
 	def load(self):
@@ -74,7 +75,7 @@ class Forward_NN:
 					count = 0
 				elif count > 3:
 					lr = lr/2
-				 	opt = RMSprop(lr=lr)
+				 	opt = OptAlgo(lr=lr)
 				 	self.model.compile(optimizer=opt, loss='mean_squared_error')
 				 	print 'new learning rate', lr
 					count = 0

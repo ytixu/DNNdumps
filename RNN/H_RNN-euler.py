@@ -43,9 +43,9 @@ class H_euler_RNN_R:
 		self.cv_splits = args['cv_splits'] if 'cv_splits' in args else 0.2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
 		self.timesteps = args['timesteps'] if 'timesteps' in args else 10
-		self.partial_ts = 5
+		self.partial_ts = 10
 		self.partial_n = self.timesteps/self.partial_ts
-		self.hierarchies = range(self.partial_ts-1,self.timesteps, self.partial_ts)
+		self.hierarchies = [29,39] # range(self.partial_ts-1,self.timesteps, self.partial_ts)
 		#[14,24] if self.trained else range(self.partial_ts-1,self.timesteps, self.partial_ts)
 		self.predict_hierarchies = [2,3]
 		# self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
@@ -283,7 +283,7 @@ class H_euler_RNN_R:
 					print 'MSE', mse
 					print 'MSE TEST', mse_test
 
-					with open('../new_out/%s_t%d_l%d_%s_part5_log.csv'%(NAME, self.timesteps, self.latent_dim, self.loss_opt_str), 'a+') as f:
+					with open('../new_out/%s_t%d_l%d_%s_log.csv'%(NAME, self.timesteps, self.latent_dim, self.loss_opt_str), 'a+') as f:
 						spamwriter = csv.writer(f)
 						spamwriter.writerow([new_loss, mae, mse, mse_test, self.loss_opt_str])
 
@@ -301,7 +301,7 @@ class H_euler_RNN_R:
 				#y_test_pred = self.unormalize_angle(y_test_pred)
 				#y_gt = wrap_angle(y)
 				#print self.euler_error(y_gt, y_test_pred)
-				#np.save('../data/embedding/t40-l1024-euler-adam-abs/emb_%d.npy'%i, e[:,self.predict_hierarchies])
+				#np.save('../data/embedding/t40-l1024-euler-nadam-meanSqa/emb_%d.npy'%i, e[:,self.predict_hierarchies])
 				#i += 1
 				#print i
 				#continue
@@ -317,9 +317,11 @@ class H_euler_RNN_R:
 			print 'std', np.std(diff)
 
 			_N = 8
-			methods = ['closest', 'closest_partial', 'mean-5', 'add', 'fn']
+			#methods = ['closest', 'closest_partial', 'mean-5', 
+			methods = ['add', 'fn']
 			nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
 			nn.run(None)
+			#nn = None
 
 			cut_e = self.predict_hierarchies[0]
 			cut_x = self.hierarchies[0]+1
@@ -399,8 +401,8 @@ class H_euler_RNN_R:
 					# error[method]['pose'] = error[method]['pose'].tolist()
 
 
-			with open('../new_out/%s_t%d_l%d_opt-%s_validation-testset-mseMartinez.json'%(NAME, self.timesteps, self.latent_dim, self.loss_opt_str), 'wb') as result_file:
-				json.dump(error, result_file)
+			#with open('../new_out/%s_t%d_l%d_opt-%s_validation-testset-mseMartinez.json'%(NAME, self.timesteps, self.latent_dim, self.loss_opt_str), 'wb') as result_file:
+			#	json.dump(error, result_file)
 
 
 
