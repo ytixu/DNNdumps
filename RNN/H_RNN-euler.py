@@ -43,11 +43,11 @@ class H_euler_RNN_R:
 		self.cv_splits = args['cv_splits'] if 'cv_splits' in args else 0.2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
 		self.timesteps = args['timesteps'] if 'timesteps' in args else 10
-		self.partial_ts = 10
+		self.partial_ts = 5
 		self.partial_n = self.timesteps/self.partial_ts
-		self.hierarchies = [29,39] # range(self.partial_ts-1,self.timesteps, self.partial_ts)
+		self.hierarchies = range(self.partial_ts-1,self.timesteps, self.partial_ts)
 		#[14,24] if self.trained else range(self.partial_ts-1,self.timesteps, self.partial_ts)
-		self.predict_hierarchies = [2,3]
+		self.predict_hierarchies = [2,4]
 		# self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.load_path = args['load_path']
@@ -215,7 +215,7 @@ class H_euler_RNN_R:
 		for basename in metric_baselines.iter_actions():
 			cond = np.load(load_path + 'euler/' + basename + '_cond.npy')[:,-self.timesteps:]
 			y[i] = np.zeros(cond.shape)
-			y[i][:,:cut] = cond[-cut:]
+			y[i][:,:cut] = cond[:,-cut:]
 			y[i][:,cut:] = np.load(load_path + 'euler/' + basename + '_gt.npy')[:,:self.timesteps-cut]
 			i += 1
 		y = np.concatenate(y, axis=0)
@@ -233,12 +233,12 @@ class H_euler_RNN_R:
 		e = self.encoder.predict(x_train)
 		embedding = e[:, self.predict_hierarchies]
 		mean_diff, diff = metrics.get_embedding_diffs(embedding[:,1], embedding[:,0])
-		print 'std', np.std(diff)
+		add_std = np.std(diff, axis=0)
 		z = self.encoder.predict(x_test)[:,self.predict_hierarchies[0]]
 		z = z + mean_diff
 		y_test_pred = self.decoder.predict(z)
 		y_test_pred = self.unormalize_angle(y_test_pred)
-		return self.euler_error(y_test, y_test_pred)
+		return add_std, self.euler_error(y_test, y_test_pred)
 
 
 	# def interpolate(self, valid_data, l=8):
@@ -265,7 +265,7 @@ class H_euler_RNN_R:
 			loss = 10000
 			iter1, iter2 = tee(data_iterator)
 			for i in range(self.periods):
-				for x, y in iter1:
+				for x, _ in iter1:
 					#image.plot_fk_from_euler(x[:3], title='test')
 					y, x = self.__alter_parameterization(x)
 					x_train, x_test, y_train, y_test = cross_validation.train_test_split(x, x, test_size=self.cv_splits)
@@ -297,16 +297,18 @@ class H_euler_RNN_R:
 					# mse = self.euler_error(y_gt, y_test_pred)
 					mse = self.validate_autoencoding(x[rand_idx], y_gt)
 					mse_test = self.validate_autoencoding(test_data_x, test_data_y)
-					mse_pred = self.validate_prediction(x[rand_idx], test_data_x, test_data_y)
+					add_std, mse_pred = self.validate_prediction(x[rand_idx], test_data_x, test_data_y)
 
 					# print 'MAE', mae
+					add_mean_std, add_std_std = np.mean(add_std), np.std(add_std)
+					print 'STD', add_mean_std, add_std_std
 					print 'MSE', np.mean(mse)
 					print 'MSE TEST', np.mean(mse_test)
-					print 'MSE PRED', mse_pred[:,-10:]
+					print 'MSE PRED', mse_pred[-10:]
 
 					with open('../new_out/%s_t%d_l%d_%s_log.csv'%(NAME, self.timesteps, self.latent_dim, self.loss_opt_str), 'a+') as f:
 						spamwriter = csv.writer(f)
-						spamwriter.writerow([new_loss, mse, mse_test, mse_pred, self.loss_opt_str])
+						spamwriter.writerow([new_loss, mse, mse_test, mse_pred, add_mean_std, add_std_std, self.loss_opt_str])
 
 				iter1, iter2 = tee(iter2)
 

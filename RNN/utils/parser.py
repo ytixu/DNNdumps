@@ -58,14 +58,14 @@ def data_generator_random(input_dir, output_dir, timesteps, batch_size, n, label
 				np.array([np.concatenate((data[x][1][k+t], data[x][2])) for t in range(timesteps)]))
 
 		# return (data[x][0][k:k+timesteps], data[x][1][k:k+timesteps])
-		return data[x][0][k:k+timesteps]
+		return data[x][k:k+timesteps]
 
 	for i in range(n):
 		idx = np.random.choice(total_i+1, batch_size)
-		x = [get_k(j) for j in idx]
+		x = np.array([get_k(j) for j in idx])
 		# dd = [get_k(j) for j in idx]
 		# x, y = np.array([xx for xx,_ in dd]), np.array([yy for _,yy in dd])
-		yield x, np.copy(x)
+		yield x, None
 
 def data_generator(input_dir, output_dir, timesteps, batch_size, label=False, ls=[], ld=0, only_label=''):
 	# files must be in different directories,
