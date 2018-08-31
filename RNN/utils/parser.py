@@ -52,7 +52,8 @@ def data_generator_random(input_dir, output_dir, timesteps, batch_size, n, label
 		total_i = i
 
 	def get_k(x):
-		k = np.random.choice(data[x][0].shape[0]-timesteps, replace=False)
+		# k = np.random.choice(data[x][0].shape[0]-timesteps, replace=False)
+		k = np.random.choice(data[x].shape[0]-timesteps, replace=False)
 		if label:
 			return (np.array([np.concatenate((data[x][0][k+t], data[x][2])) for t in range(timesteps)]),
 				np.array([np.concatenate((data[x][1][k+t], data[x][2])) for t in range(timesteps)]))
@@ -61,6 +62,7 @@ def data_generator_random(input_dir, output_dir, timesteps, batch_size, n, label
 		return data[x][k:k+timesteps]
 
 	for i in range(n):
+		print 'ITER', i
 		idx = np.random.choice(total_i+1, batch_size)
 		x = np.array([get_k(j) for j in idx])
 		# dd = [get_k(j) for j in idx]
