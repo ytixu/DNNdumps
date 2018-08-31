@@ -211,7 +211,7 @@ class H_euler_RNN_R:
 	def load_validation_data(self, load_path):
 		y = [None]*15
 		i = 0
-		cut = self.predict_hierarchies[-1]*self.partial_ts
+		cut = (self.predict_hierarchies[0]+1)*self.partial_ts
 		for basename in metric_baselines.iter_actions():
 			cond = np.load(load_path + 'euler/' + basename + '_cond.npy')[:,-self.timesteps:]
 			y[i] = np.zeros(cond.shape)
@@ -219,6 +219,9 @@ class H_euler_RNN_R:
 			y[i][:,cut:] = np.load(load_path + 'euler/' + basename + '_gt.npy')[:,:self.timesteps-cut]
 			i += 1
 		y = np.concatenate(y, axis=0)
+		image.plot_fk_from_euler(y[:2,10:20], title='test')
+		image.plot_fk_from_euler(y[2:4,10:20], title='test')
+
 		y, x = self.__alter_parameterization(y)
 		return y, x
 

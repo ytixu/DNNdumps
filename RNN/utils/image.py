@@ -546,7 +546,7 @@ def plot_fk_from_euler(euler_angles, title='poses', image_dir='../new_out/'):
 	for i in range(n):
 		for j in range(t):
 			rev_coord = revert_coordinate_space( euler_angles[i:i+1,j], np.eye(3), np.zeros(3) )
-			xyz_coord = fkl( rev_coord, parent, offset, rotInd, expmapInd )
+			xyz_coord = fkl( rev_coord[0], parent, offset, rotInd, expmapInd )
 			xyz_coord = np.reshape(xyz_coord, (-1, 3))
 			xyz[i][j] = (xyz_coord[relevant_coords]).flatten()
 	plot_poses(np.array(xyz), title=title, image_dir=image_dir)
