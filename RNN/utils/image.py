@@ -540,14 +540,13 @@ def fkl( angles, parent, offset, rotInd, expmapInd ):
 def plot_fk_from_euler(euler_angles, title='poses', image_dir='../new_out/'):
 	parent, offset, rotInd, expmapInd = _some_variables()
 	n, t, _ = euler_angles.shape
-	rev_coord = [None]*n
 	xyz = [[None]*t]*n
 
 	relevant_coords = [0, 1, 2, 3, 6, 7, 8, 12, 13, 14, 15, 17, 18, 19, 25, 26, 27]
 	for i in range(n):
-		rev_coord[i] = revert_coordinate_space( euler_angles[i], np.eye(3), np.zeros(3) )
 		for j in range(t):
-			xyz_coord = fkl( rev_coord[i][j], parent, offset, rotInd, expmapInd )
+			rev_coord = revert_coordinate_space( euler_angles[i:i+1,j], np.eye(3), np.zeros(3) )
+			xyz_coord = fkl( rev_coord, parent, offset, rotInd, expmapInd )
 			xyz_coord = np.reshape(xyz_coord, (-1, 3))
 			xyz[i][j] = (xyz_coord[relevant_coords]).flatten()
 	plot_poses(np.array(xyz), title=title, image_dir=image_dir)
