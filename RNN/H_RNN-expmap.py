@@ -17,21 +17,47 @@ import tensorflow as tf
 from utils import parser, image, embedding_plotter, metrics, metric_baselines, fk_animate, association_evaluation, evaluate
 from Forward import NN
 
-NAME = 'H_euler_LSTM_R_h2'
+NAME = 'H_expmap_LSTM_R_h2'
 USE_GRU = True
 L_RATE = 0.001
 
 if USE_GRU:
 	from keras.layers import GRU as RNN_UNIT
-	NAME = 'H_euler_GRU_R_h2'
+	NAME = 'H_expmap_GRU_R_h2'
 else:
 	from keras.layers import LSTM as RNN_UNIT
 
-def wrap_angle(rad, center=0):
-	return ( rad - center + np.pi) % (2 * np.pi ) - np.pi
+def expmap2rotmat(r):
+	theta = np.linalg.norm( r )
+	r0  = np.divide( r, theta + np.finfo(np.float32).eps )
+	r0x = np.array([0, -r0[2], r0[1], 0, 0, -r0[0], 0, 0, 0]).reshape(3,3)
+	r0x = r0x - r0x.T
+	R = np.eye(3,3) + np.sin(theta)*r0x + (1-np.cos(theta))*(r0x).dot(r0x);
+	return R
+
+def rotmat2euler( R ):
+	if R[0,2] == 1 or R[0,2] == -1:
+		# special case
+		E3   = 0 # set arbitrarily
+		dlta = np.arctan2( R[0,1], R[0,2] );
+		if R[0,2] == -1:
+			E2 = np.pi/2;
+			E1 = E3 + dlta;
+		else:
+			E2 = -np.pi/2;
+			E1 = -E3 + dlta;
+	else:
+		E2 = -np.arcsin( R[0,2] )
+		E1 = np.arctan2( R[1,2]/np.cos(E2), R[2,2]/np.cos(E2) )
+		E3 = np.arctan2( R[0,1]/np.cos(E2), R[0,0]/np.cos(E2) )
+
+	eul = np.array([E1, E2, E3]);
+	return eul
+
+EULER_IDEX = [6,7,8,9,12,13,14,15,21,22,23,24,27,28,29,30,36,37,38,39,40,41,42,43,44,45,46,47,51,52,53,54,55,56,57,60,61,62,75,76,77,78,79,80,81,84,85,86]
 
 
-class H_euler_RNN_R:
+class H_expmap_RNN_R:
 	def __init__(self, args):
 		self.autoencoder = None
 		self.encoder = None
@@ -45,10 +71,10 @@ class H_euler_RNN_R:
 		self.timesteps = args['timesteps'] if 'timesteps' in args else 10
 		self.partial_ts = 10
 		self.partial_n = self.timesteps/self.partial_ts
-		self.hierarchies = [29,39] #range(self.partial_ts-1,self.timesteps, self.partial_ts)
-		self.hierarchies_index = [2,3] #range(self.partial_n)
+		self.hierarchies = range(self.partial_ts-1,self.timesteps, self.partial_ts)
+		self.hierarchies_index = range(self.partial_n)
 		#[14,24] if self.trained else range(self.partial_ts-1,self.timesteps, self.partial_ts)
-		self.predict_hierarchies = [2,3]
+		self.predict_hierarchies = [0,1]
 		# self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.load_path = args['load_path']
@@ -59,36 +85,37 @@ class H_euler_RNN_R:
 		self.opt = eval(args['optimizer'])
 		self.loss_opt_str = self.loss_func + '_' + args['optimizer'].replace('(', '-').replace(')', '').replace(',','-')
 
-		self.used_euler_idx = [6,7,8,9,12,13,14,15,21,22,23,24,27,28,29,30,36,37,38,39,40,41,42,43,44,45,46,47,51,52,53,54,55,56,57,60,61,62,75,76,77,78,79,80,81,84,85,86]
-		self.ignored_idx = list(set(range(99)) - set(self.used_euler_idx))
-
 		self.MODEL_CODE = metrics.H_LSTM
 
 		self.get_ignored_dims()
 
 	def get_ignored_dims(self):
 		import json
-		with open('../data/h3.6/full/stats_euler.json') as data_file:
+		with open('../data/h3.6/raw/h3.6m/params.json') as data_file:
 			data = json.load(data_file)
-			#self.used_euler_idx = data['dim_to_use']
-			self.data_mean_all = np.array(data['data_mean'])
-			self.data_mean = self.data_mean_all[self.used_euler_idx]
+			self.used_expmap_idx = np.array(data['dim_to_use'])
+			self.data_mean = np.array(data['data_mean'])
 
-		self.input_dim = len(self.used_euler_idx)
+		with open('../data/h3.6/full/stats_expmap.json') as data_file:
+			data = json.load(data_file)
+			self.data_max = np.ceil(data['data_max'])
+			self.data_min = np.floor(data['data_min'])
+
+		self.input_dim = len(self.used_expmap_idx)
 		self.output_dim = self.input_dim
 		print 'data_dim', self.input_dim
 
-	def normalize_angle(self, rad):
-		return wrap_angle(rad, self.data_mean)/np.pi
+	def normalize_angle(self, expmap):
+		return 2*(expmap-self.data_min)/(self.data_max-self.data_min)-1
 
-	def unormalize_angle(self, rad):
-		return wrap_angle(rad*np.pi, -self.data_mean)
+	def unormalize_angle(self, expmap):
+		return (expmap+1)/2*(self.data_max-self.data_min)+self.data_min
 
-	def recover(self, rad):
-		rec_rad = np.zeros((rad.shape[0], rad.shape[1], self.data_mean_all.shape[0]))
-		rec_rad[:,:] = self.data_mean_all
-		rec_rad[:,:,self.used_euler_idx] = rad
-		return rec_rad
+	def recover(self, expmap):
+		rec_expmap = np.zeros((expmap.shape[0], expmap.shape[1], self.data_mean.shape[0]))
+		rec_expmap[:,:] = self.data_mean
+		rec_expmap[:,:,self.used_expmap_idx] = expmap
+		return rec_expmap
 
 	def make_model(self):
 		inputs = K_layer.Input(shape=(self.timesteps, self.input_dim))
@@ -112,8 +139,8 @@ class H_euler_RNN_R:
 
 		z = K_layer.Input(shape=(self.latent_dim,))
 		decoder_activation = 'tanh'
-		decode_euler_1 = K_layer.Dense(self.latent_dim/2, activation=decoder_activation)
-		decode_euler_2 = K_layer.Dense(self.output_dim, activation=decoder_activation)
+		decode_expmap_1 = K_layer.Dense(self.latent_dim/2, activation=decoder_activation)
+		decode_expmap_2 = K_layer.Dense(self.output_dim, activation=decoder_activation)
 
 		#def angle_relu(x):
 		#	return tf.maximum(tf.minimum(x, 1.0), -1.0)
@@ -127,8 +154,8 @@ class H_euler_RNN_R:
 		#decode_atan2 = K_layer.Lambda(lambda x: tf.atan2(x[0], x[1]), output_shape=(self.timesteps, self.output_dim))
 
 		def decode_angle(e):
-			angle_sin = decode_euler_2(decode_euler_1(e))
-			#angle_cos = decode_euler_2(e)
+			angle_sin = decode_expmap_2(decode_expmap_1(e))
+			#angle_cos = decode_expmap_2(e)
 
 			residual = decode_repete(e)
 			residual = decode_residual_2(decode_residual_1(residual))
@@ -191,27 +218,24 @@ class H_euler_RNN_R:
 
 
 	def __alter_parameterization(self, y):
-		y = y[:,:,self.used_euler_idx]
 		norm_y = self.normalize_angle(y)
 		return y, norm_y
 
-	def __reparameterize(self, y):
-		yt = np.zeros((y.shape[0], y.shape[1], 99))
-		#0 - 6 are 0
-		yt[:,:,6:] = wrap_angle(self.data_mean_all[6:])
-		yt[:,:,self.used_euler_idx] = y
-		return yt
+	def to_euler(self, x):
+		x = self.recover(x)
+		b, t, d = x.shape
+		x = np.reshape(x, (-1,3))
+		euler_x = np.zeros(x.shape)
+		for i in range(x.shape[0]):
+			euler_x[i] = rotmat2euler(expmap2rotmat(x[i]))
+		return np.reshape(euler_x, (b,t,d))[:,:,EULER_IDEX]
+
+	def expmap_error(self, yTrue, yPred):
+		return np.mean(np.sqrt(np.sum(np.square(yTrue - yPred), -1)), 0)
 
 	def euler_error(self, yTrue, yPred):
-		#yTrue[:,:,:6] = 0
 		# from Matinez
-		#yPred = self.__reparameterize(yPred)
-		return np.mean(np.sqrt(np.sum(np.square(yTrue - yPred), -1)), 0)
-		# from Tang
-		yPred = np.reshape(self.__reparameterize(yPred), (-1, yPred.shape[1], 33, 3))
-		yTrue = np.reshape(yTrue, (-1, yTrue.shape[1], 33, 3))
-		print np.sum(np.sqrt(np.sum(np.square(yTrue - yPred), -1)), -1).shape
-		return np.mean(np.sum(np.sqrt(np.sum(np.square(yTrue - yPred), -1)), -1), 0)
+		return np.mean(np.sqrt(np.sum(np.square(self.to_euler(yTrue) - self.to_euler(yPred)), -1)), 0)
 
 	def load_validation_data(self, load_path):
 		y = [None]*15
@@ -233,7 +257,7 @@ class H_euler_RNN_R:
 		y_test_pred = self.encoder.predict(test_data_x)[:,-1]
 		y_test_pred = self.decoder.predict(y_test_pred)
 		y_test_pred = self.unormalize_angle(y_test_pred)
-		return self.euler_error(test_data_y, y_test_pred)
+		return self.expmap_error(test_data_y, y_test_pred)
 
 	def validate_prediction(self, x_train, x_test, y_test):
 		e = self.encoder.predict(x_train)
@@ -247,26 +271,11 @@ class H_euler_RNN_R:
 		return add_std, self.euler_error(y_test, y_test_pred)
 
 
-	# def interpolate(self, valid_data, l=8):
-	# 	x, y = valid_data
-	#	rand_idx = np.random.choice(x.shape[0], 2, replace=False)
-	# 	xy  = self.__merge_n_reparameterize(x[rand_idx],y[rand_idx])
-	# 	zs = self.encoder.predict(xy)[:,-1]
-	# 	z_a = zs[0]
-	# 	z_b = zs[1]
-	# 	dist = (z_b - z_a)/l
-	# 	zs = np.array([z_a+i*dist for i in range(l+1)])
-	# 	interpolation = self.decoder.predict(zs)[:,:,:self.euler_start]
-	# 	image.plot_poses_euler(interpolation, title='interpolation', image_dir='../new_out/')
-
-
 	def run(self, data_iterator, valid_data):
 		load_path = '../human_motion_pred/baselines/'
-		# model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
+		print self.loss_opt_str
 		if not self.load():
-			test_data_y, test_data_x = self.load_validation_data(load_path)
-        	        test_data_y = wrap_angle(test_data_y)
-	                print self.loss_opt_str
+			#test_data_y, test_data_x = self.load_validation_data(load_path)
 
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
@@ -290,33 +299,25 @@ class H_euler_RNN_R:
 					print history.history['loss']
 					new_loss = np.mean(history.history['loss'])
 					if new_loss < loss:
-						self.autoencoder.save_weights(self.save_path, overwrite=True)
+						#self.autoencoder.save_weights(self.save_path, overwrite=True)
 						loss = new_loss
 						print 'Saved model - ', loss
 
-					rand_idx = np.random.choice(x.shape[0], 5000, replace=False)
-					# y_test_pred = self.encoder.predict(x[rand_idx])[:,-1]
-					# y_test_pred = self.decoder.predict(y_test_pred)
-					# #y_gt = x_test[rand_idx]
-					# y_test_pred = self.unormalize_angle(y_test_pred)
-					y_gt = wrap_angle(y[rand_idx])
-
-					# mae = np.mean(np.abs(y_gt-y_test_pred))
-					# mse = self.euler_error(y_gt, y_test_pred)
+					rand_idx = np.random.choice(x.shape[0], 100, replace=False)
+					y_gt = y[rand_idx]
 					mse = self.validate_autoencoding(x[rand_idx], y_gt)
-					mse_test = self.validate_autoencoding(test_data_x, test_data_y)
-					add_std, mse_pred = self.validate_prediction(x[rand_idx], test_data_x, test_data_y)
+					#mse_test = self.validate_autoencoding(test_data_x, test_data_y)
+					#add_std, mse_pred = self.validate_prediction(x[rand_idx], test_data_x, test_data_y)
 
-					# print 'MAE', mae
-					add_mean_std, add_std_std = np.mean(add_std), np.std(add_std)
-					print 'STD', add_mean_std, add_std_std
+					#add_mean_std, add_std_std = np.mean(add_std), np.std(add_std)
+					#print 'STD', add_mean_std, add_std_std
 					print 'MSE', np.mean(mse)
-					print 'MSE TEST', np.mean(mse_test)
-					print 'MSE PRED', mse_pred[[-9,-7,-3,-1]]
+					#print 'MSE TEST', np.mean(mse_test)
+					#print 'MSE PRED', mse_pred[[-9,-7,-3,-1]]
 
-					with open('../new_out/%s_t%d_l%d_%s_log.csv'%(NAME, self.timesteps, self.latent_dim, self.loss_opt_str), 'a+') as f:
-						spamwriter = csv.writer(f)
-						spamwriter.writerow([new_loss, mse, mse_test, mse_pred, add_mean_std, add_std_std, self.loss_opt_str])
+					#with open('../new_out/%s_t%d_l%d_%s_log.csv'%(NAME, self.timesteps, self.latent_dim, self.loss_opt_str), 'a+') as f:
+					#	spamwriter = csv.writer(f)
+					#	spamwriter.writerow([new_loss, mse, mse_test, mse_pred, add_mean_std, add_std_std, self.loss_opt_str])
 
 				iter1, iter2 = tee(iter2)
 
@@ -326,11 +327,10 @@ class H_euler_RNN_R:
 			embedding = []
 			i = 0
 			for x,y in data_iterator:
-				y, norm_y = self.__alter_parameterization(x)
+				y_gt, norm_y = self.__alter_parameterization(x)
 				e = self.encoder.predict(norm_y)
 				#y_test_pred = self.decoder.predict(e[:,-1])
 				#y_test_pred = self.unormalize_angle(y_test_pred)
-				#y_gt = wrap_angle(y)
 				#print self.euler_error(y_gt, y_test_pred)
 				#np.save('../data/embedding/t40-l1024-euler-nadam-meanAbs-lr0.0001/emb_%d.npy'%i, e[:,self.predict_hierarchies])
 				#i += 1
@@ -369,38 +369,16 @@ class H_euler_RNN_R:
 
 				y = np.zeros((_N, self.timesteps, 99))
 				y[:,:cut_x] = np.load(load_path + 'euler/' + basename + '_cond.npy')[:,-cut_x:]
-
-				# y = np.load(load_path + 'euler/' + basename + '_cond.npy')[:,-25:]
-				# gtp_x = np.load(load_path + 'xyz/' + basename + '_gt.npy')[:,:pred_n][:,:,self.used_xyz_idx]
-
-				gtp_y_orig = np.load(load_path + 'euler/' + basename + '_gt.npy')[:,:pred_n]
-				#print np.mean(np.abs(y[:,cut_x-2] - y[:,cut_x-1])), np.mean(np.abs(y[:,cut_x-1] - gtp_y[:,0]))
-				#y[:,cut_x:] = gtp_y
-				#image.plot_fk_from_euler(gtp_y[:4])
-				#image.plot_fk_from_euler( wrap_angle(gtp_y[:4]))
-				gtp_y = wrap_angle(gtp_y_orig[:,:,self.used_euler_idx])
-
-				# rand_idx = np.random.choice(x.shape[0], _N, replace=False)
-				# x, y, xy = self.__merge_n_reparameterize(x[rand_idx],y[rand_idx], True)
+				gtp_y = np.load(load_path + 'euler/' + basename + '_gt.npy')[:,:pred_n]
 
 				y, norm_y = self.__alter_parameterization(y)
-				y = wrap_angle(y)
 				enc = self.encoder.predict(norm_y)
 				partial_enc = enc[:,cut_e]
-				#y = wrap_angle(y[:_N])
-				#partial_enc = e[:_N, cut_e]
-
-				# autoencoding error for partial seq
-				#dec = self.decoder.predict(enc[:,-1])
-				#dec = self.unormalize_angle(dec)
-				#print self.euler_error(y, dec)
-				#image.plot_poses_euler(x[:2,:cut+1], dec[:2,:,:self.euler_start], title='autoencoding', image_dir='../new_out/')
 
 				fn_pred = nn.model.predict(partial_enc)
 				#poses = [None]*(len(methods)+2)
 				#poses[1] = self.recover(gtp_y[0:1])
-				#poses[0] = gtp_y_orig[0:1]
-				#score_name = ''
+				#poses[0] = gtp_y[0:1]
 
 				for k,method in enumerate(methods):
 					new_enc = np.zeros(partial_enc.shape)
@@ -431,7 +409,6 @@ class H_euler_RNN_R:
 					print method
 					print error[basename][method]['euler'][[1,3,7,9]]
 					error[basename][method]['euler'] = error[basename][method]['euler'].tolist()
-					#score_name = score_name + '%s:%2f_' %(method, error[basename][method]['euler'][-1])
 
 					#poses[k+2] = self.recover(model_pred[:1])
 
@@ -458,5 +435,6 @@ class H_euler_RNN_R:
 
 if __name__ == '__main__':
 	data_iterator, valid_data, config = parser.get_parse(NAME)
-	ae = H_euler_RNN_R(config)
+	ae = H_expmap_RNN_R(config)
 	ae.run(data_iterator, valid_data)
+

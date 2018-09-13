@@ -17,13 +17,13 @@ import tensorflow as tf
 from utils import parser, image, embedding_plotter, metrics, metric_baselines, fk_animate, association_evaluation, evaluate
 from Forward import NN
 
-NAME = 'H_euler_LSTM_R_h2'
+NAME = 'LH_euler_LSTM_R'
 USE_GRU = True
 L_RATE = 0.001
 
 if USE_GRU:
 	from keras.layers import GRU as RNN_UNIT
-	NAME = 'H_euler_GRU_R_h2'
+	NAME = 'LH_euler_GRU_R'
 else:
 	from keras.layers import LSTM as RNN_UNIT
 
@@ -31,7 +31,7 @@ def wrap_angle(rad, center=0):
 	return ( rad - center + np.pi) % (2 * np.pi ) - np.pi
 
 
-class H_euler_RNN_R:
+class LH_euler_RNN_R:
 	def __init__(self, args):
 		self.autoencoder = None
 		self.encoder = None
@@ -45,8 +45,8 @@ class H_euler_RNN_R:
 		self.timesteps = args['timesteps'] if 'timesteps' in args else 10
 		self.partial_ts = 10
 		self.partial_n = self.timesteps/self.partial_ts
-		self.hierarchies = [29,39] #range(self.partial_ts-1,self.timesteps, self.partial_ts)
-		self.hierarchies_index = [2,3] #range(self.partial_n)
+		self.hierarchies = range(self.partial_ts-1,self.timesteps, self.partial_ts)
+		self.hierarchies_index = range(self.partial_n)
 		#[14,24] if self.trained else range(self.partial_ts-1,self.timesteps, self.partial_ts)
 		self.predict_hierarchies = [2,3]
 		# self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
@@ -61,6 +61,9 @@ class H_euler_RNN_R:
 
 		self.used_euler_idx = [6,7,8,9,12,13,14,15,21,22,23,24,27,28,29,30,36,37,38,39,40,41,42,43,44,45,46,47,51,52,53,54,55,56,57,60,61,62,75,76,77,78,79,80,81,84,85,86]
 		self.ignored_idx = list(set(range(99)) - set(self.used_euler_idx))
+
+		self.label_dim = args['label_dim']
+		self.labels = args['labels']
 
 		self.MODEL_CODE = metrics.H_LSTM
 
@@ -84,17 +87,9 @@ class H_euler_RNN_R:
 	def unormalize_angle(self, rad):
 		return wrap_angle(rad*np.pi, -self.data_mean)
 
-	def recover(self, rad):
-		rec_rad = np.zeros((rad.shape[0], rad.shape[1], self.data_mean_all.shape[0]))
-		rec_rad[:,:] = self.data_mean_all
-		rec_rad[:,:,self.used_euler_idx] = rad
-		return rec_rad
 
 	def make_model(self):
 		inputs = K_layer.Input(shape=(self.timesteps, self.input_dim))
-		#sin_layer = K_layer.Lambda(lambda x: K.sin(x), output_shape=(self.timesteps, self.input_dim))
-		#cos_layer = K_layer.Lambda(lambda x: K.cos(x), output_shape=(self.timesteps, self.input_dim))
-		#decomposed = K_layer.concatenate([sin_layer(inputs), cos_layer(inputs)], axis=1)
 		reshaped = K_layer.Reshape((self.partial_n, self.partial_ts, self.input_dim))(inputs)
 		encode_reshape = K_layer.Reshape((self.partial_n, self.latent_dim/2))
 		encode_1 = RNN_UNIT(self.latent_dim/2)
@@ -115,31 +110,16 @@ class H_euler_RNN_R:
 		decode_euler_1 = K_layer.Dense(self.latent_dim/2, activation=decoder_activation)
 		decode_euler_2 = K_layer.Dense(self.output_dim, activation=decoder_activation)
 
-		#def angle_relu(x):
-		#	return tf.maximum(tf.minimum(x, 1.0), -1.0)
-
 		decode_repete = K_layer.RepeatVector(self.timesteps)
 		decode_residual_1 = RNN_UNIT(self.latent_dim/2, return_sequences=True, activation=decoder_activation)
 		decode_residual_2 = RNN_UNIT(self.output_dim, return_sequences=True, activation=decoder_activation)
 
-		#decode_activate = K_layer.Lambda(lambda x: K.tanh(x), output_shape=(self.timesteps, self.output_dim))
-		#decode_cos = K_layer.Lambda(lambda x: K.sign(x[1])*K.sqrt(1 - K.square(x[0])), output_shape=(self.timesteps, self.output_dim))
-		#decode_atan2 = K_layer.Lambda(lambda x: tf.atan2(x[0], x[1]), output_shape=(self.timesteps, self.output_dim))
-
 		def decode_angle(e):
-			angle_sin = decode_euler_2(decode_euler_1(e))
-			#angle_cos = decode_euler_2(e)
-
+			angle = decode_euler_2(decode_euler_1(e))
 			residual = decode_repete(e)
 			residual = decode_residual_2(decode_residual_1(residual))
-			angle_sin = K_layer.Activation(decoder_activation)(K_layer.add([decode_repete(angle_sin), residual]))
-			#angle_cos = decode_activate(K_layer.add([decode_repete(angle_cos), residual]))
-
-			#angle_sin = K_layer.Activation(angle_relu)(angle_sin)
-			#angle_cos = decode_cos([angle_sin, angle_cos])
-			#angle = decode_atan2([angle_sin, angle_cos])
-			return angle_sin
-
+			angle = K_layer.Activation(decoder_activation)(K_layer.add([decode_repete(angle), residual]))
+			return angle
 
 		angles = [None]*len(self.hierarchies_index)
 		for i,k in enumerate(self.hierarchies_index):
@@ -153,18 +133,6 @@ class H_euler_RNN_R:
 		self.decoder = Model(z, decoded_)
 		self.autoencoder = Model(inputs, decoded)
 
-		def mse(yTrue, yPred):
-		# 	yt = K.reshape(yTrue, (-1, self.timesteps, self.output_dim))
-		#  	yp = K.reshape(yPred, (-1, self.timesteps, self.output_dim))
-			a = yTrue
-			b = yPred
-			return tf.reduce_mean(tf.abs(tf.atan2(tf.sin(a - b), tf.cos(a - b))))
-		 	#loss = K.square(K.sin(yTrue) - K.sin(yPred))
-		 	#loss = loss + K.square(K.cos(yTrue) - K.cos(yPred))
-		 	#loss = K.mean(K.sqrt(loss))
-		 	#return loss
-
-		# opt = optimizers.Nadam(lr=L_RATE)
 		self.autoencoder.compile(optimizer=self.opt, loss=self.loss_func)
 
 		self.autoencoder.summary()
@@ -191,27 +159,37 @@ class H_euler_RNN_R:
 
 
 	def __alter_parameterization(self, y):
-		y = y[:,:,self.used_euler_idx]
-		norm_y = self.normalize_angle(y)
+		n = self.data_mean_all.shape[0]
+		y = y[:,:,self.used_euler_idx+range(n,n+self.label_dim)]
+		norm_y = np.copy(y)
+		norm_y[:,:,:-self.label_dim] = self.normalize_angle(y[:,:,:-self.label_dim])
+		y[:,:,:-self.label_dim] = wrap_angle(y[:,:,:-self.label_dim])
 		return y, norm_y
 
-	def __reparameterize(self, y):
-		yt = np.zeros((y.shape[0], y.shape[1], 99))
-		#0 - 6 are 0
-		yt[:,:,6:] = wrap_angle(self.data_mean_all[6:])
-		yt[:,:,self.used_euler_idx] = y
-		return yt
+	def recover(self, y):
+		rec_y = np.zeros((y.shape[0], y.shape[1], self.data_mean_all.shape[0]+self.label_dim))
+		rec_y[:,:,:-self.label_dim] = self.data_mean_all
+		rec_y[:,:,self.used_euler_idx] = y[:,:,:-self.label_dim]
+		rec_y[:,:,-self.label_dim:] = y[:,:,-self.label_dim:]
+		return rec_y
+
+	# def __reparameterize(self, y):
+	# 	yt = np.zeros((y.shape[0], y.shape[1], 99))
+	# 	#0 - 6 are 0
+	# 	yt[:,:,6:] = wrap_angle(self.data_mean_all[6:])
+	# 	yt[:,:,self.used_euler_idx] = y
+	# 	return yt
 
 	def euler_error(self, yTrue, yPred):
 		#yTrue[:,:,:6] = 0
 		# from Matinez
 		#yPred = self.__reparameterize(yPred)
-		return np.mean(np.sqrt(np.sum(np.square(yTrue - yPred), -1)), 0)
+		return np.mean(np.sqrt(np.sum(np.square(yTrue[:,:,:-self.label_dim] - yPred[:,:,:-self.label_dim]), -1)), 0)
 		# from Tang
-		yPred = np.reshape(self.__reparameterize(yPred), (-1, yPred.shape[1], 33, 3))
-		yTrue = np.reshape(yTrue, (-1, yTrue.shape[1], 33, 3))
-		print np.sum(np.sqrt(np.sum(np.square(yTrue - yPred), -1)), -1).shape
-		return np.mean(np.sum(np.sqrt(np.sum(np.square(yTrue - yPred), -1)), -1), 0)
+		# yPred = np.reshape(self.__reparameterize(yPred), (-1, yPred.shape[1], 33, 3))
+		# yTrue = np.reshape(yTrue, (-1, yTrue.shape[1], 33, 3))
+		# print np.sum(np.sqrt(np.sum(np.square(yTrue - yPred), -1)), -1).shape
+		# return np.mean(np.sum(np.sqrt(np.sum(np.square(yTrue - yPred), -1)), -1), 0)
 
 	def load_validation_data(self, load_path):
 		y = [None]*15
@@ -219,21 +197,22 @@ class H_euler_RNN_R:
 		cut = (self.predict_hierarchies[0]+1)*self.partial_ts
 		for basename in metric_baselines.iter_actions():
 			cond = np.load(load_path + 'euler/' + basename + '_cond.npy')[:,-self.timesteps:]
-			y[i] = np.zeros(cond.shape)
-			y[i][:,:cut] = cond[:,-cut:]
-			y[i][:,cut:] = np.load(load_path + 'euler/' + basename + '_gt.npy')[:,:self.timesteps-cut]
+			b,t,d = cond.shape
+			y[i] = np.zeros((b,t,d+self.label_dim))
+			y[i][:,:cut,:-self.label_dim] = cond[:,-cut:]
+			y[i][:,cut:,:-self.label_dim] = np.load(load_path + 'euler/' + basename + '_gt.npy')[:,:self.timesteps-cut]
+			y[i][:,:,-self.label_dim+self.labels[basename]] = 1
 			i += 1
 		y = np.concatenate(y, axis=0)
 		print y.shape
 		y, x = self.__alter_parameterization(y)
 		return y, x
 
-
 	def validate_autoencoding(self, test_data_x, test_data_y):
 		y_test_pred = self.encoder.predict(test_data_x)[:,-1]
 		y_test_pred = self.decoder.predict(y_test_pred)
-		y_test_pred = self.unormalize_angle(y_test_pred)
-		return self.euler_error(test_data_y, y_test_pred)
+		y_test_pred = self.unormalize_angle(y_test_pred[:,:,:-self.label_dim])
+		return self.euler_error(test_data_y[:,:,:-self.label_dim], y_test_pred)
 
 	def validate_prediction(self, x_train, x_test, y_test):
 		e = self.encoder.predict(x_train)
@@ -243,30 +222,15 @@ class H_euler_RNN_R:
 		z = self.encoder.predict(x_test)[:,self.predict_hierarchies[0]]
 		z = z + mean_diff
 		y_test_pred = self.decoder.predict(z)
-		y_test_pred = self.unormalize_angle(y_test_pred)
-		return add_std, self.euler_error(y_test, y_test_pred)
-
-
-	# def interpolate(self, valid_data, l=8):
-	# 	x, y = valid_data
-	#	rand_idx = np.random.choice(x.shape[0], 2, replace=False)
-	# 	xy  = self.__merge_n_reparameterize(x[rand_idx],y[rand_idx])
-	# 	zs = self.encoder.predict(xy)[:,-1]
-	# 	z_a = zs[0]
-	# 	z_b = zs[1]
-	# 	dist = (z_b - z_a)/l
-	# 	zs = np.array([z_a+i*dist for i in range(l+1)])
-	# 	interpolation = self.decoder.predict(zs)[:,:,:self.euler_start]
-	# 	image.plot_poses_euler(interpolation, title='interpolation', image_dir='../new_out/')
-
+		y_test_pred = self.unormalize_angle(y_test_pred[:,:,:-self.label_dim])
+		return add_std, self.euler_error(y_test[:,:,:-self.label_dim], y_test_pred)
 
 	def run(self, data_iterator, valid_data):
 		load_path = '../human_motion_pred/baselines/'
 		# model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
 		if not self.load():
 			test_data_y, test_data_x = self.load_validation_data(load_path)
-        	        test_data_y = wrap_angle(test_data_y)
-	                print self.loss_opt_str
+			print self.loss_opt_str
 
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
@@ -294,15 +258,9 @@ class H_euler_RNN_R:
 						loss = new_loss
 						print 'Saved model - ', loss
 
-					rand_idx = np.random.choice(x.shape[0], 5000, replace=False)
-					# y_test_pred = self.encoder.predict(x[rand_idx])[:,-1]
-					# y_test_pred = self.decoder.predict(y_test_pred)
-					# #y_gt = x_test[rand_idx]
-					# y_test_pred = self.unormalize_angle(y_test_pred)
-					y_gt = wrap_angle(y[rand_idx])
+					rand_idx = np.random.choice(x.shape[0], 1000, replace=False)
+					y_gt = y[rand_idx]
 
-					# mae = np.mean(np.abs(y_gt-y_test_pred))
-					# mse = self.euler_error(y_gt, y_test_pred)
 					mse = self.validate_autoencoding(x[rand_idx], y_gt)
 					mse_test = self.validate_autoencoding(test_data_x, test_data_y)
 					add_std, mse_pred = self.validate_prediction(x[rand_idx], test_data_x, test_data_y)
@@ -330,7 +288,7 @@ class H_euler_RNN_R:
 				e = self.encoder.predict(norm_y)
 				#y_test_pred = self.decoder.predict(e[:,-1])
 				#y_test_pred = self.unormalize_angle(y_test_pred)
-				#y_gt = wrap_angle(y)
+				#y_gt = (y)
 				#print self.euler_error(y_gt, y_test_pred)
 				#np.save('../data/embedding/t40-l1024-euler-nadam-meanAbs-lr0.0001/emb_%d.npy'%i, e[:,self.predict_hierarchies])
 				#i += 1
@@ -348,8 +306,7 @@ class H_euler_RNN_R:
 			print 'std', np.std(diff)
 
 			_N = 8
-			#methods = ['closest', 'closest_partial', 'mean-5', 'add', 'fn']
-			methods = ['0v']
+			methods = ['closest', 'closest_partial', 'mean-5', 'add', 'fn']
 			nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
 			nn.run(None)
 			#nn = None
@@ -363,28 +320,17 @@ class H_euler_RNN_R:
 			for basename in metric_baselines.iter_actions():
 				print basename, '================='
 
-				# x, y = valid_data
-				# x = np.zeros((_N, self.timesteps, 96))
-				# x[:,:cut_x+1] = np.load(load_path + 'xyz/' + basename + '_cond.npy')[:,-cut_x-1:]
-
-				y = np.zeros((_N, self.timesteps, 99))
+				y = np.zeros((_N, self.timesteps, 99+self.label_dim))
 				y[:,:cut_x] = np.load(load_path + 'euler/' + basename + '_cond.npy')[:,-cut_x:]
-
-				# y = np.load(load_path + 'euler/' + basename + '_cond.npy')[:,-25:]
-				# gtp_x = np.load(load_path + 'xyz/' + basename + '_gt.npy')[:,:pred_n][:,:,self.used_xyz_idx]
-
+				y[:,:cut_x,-self.label_dim+self.labels[basename]] = 1
 				gtp_y_orig = np.load(load_path + 'euler/' + basename + '_gt.npy')[:,:pred_n]
 				#print np.mean(np.abs(y[:,cut_x-2] - y[:,cut_x-1])), np.mean(np.abs(y[:,cut_x-1] - gtp_y[:,0]))
 				#y[:,cut_x:] = gtp_y
 				#image.plot_fk_from_euler(gtp_y[:4])
 				#image.plot_fk_from_euler( wrap_angle(gtp_y[:4]))
-				gtp_y = wrap_angle(gtp_y_orig[:,:,self.used_euler_idx])
-
-				# rand_idx = np.random.choice(x.shape[0], _N, replace=False)
-				# x, y, xy = self.__merge_n_reparameterize(x[rand_idx],y[rand_idx], True)
+				gtp_y = wrap_angle(gtp_y[:,:,self.used_euler_idx])
 
 				y, norm_y = self.__alter_parameterization(y)
-				y = wrap_angle(y)
 				enc = self.encoder.predict(norm_y)
 				partial_enc = enc[:,cut_e]
 				#y = wrap_angle(y[:_N])
@@ -457,6 +403,7 @@ class H_euler_RNN_R:
 
 
 if __name__ == '__main__':
-	data_iterator, valid_data, config = parser.get_parse(NAME)
-	ae = H_euler_RNN_R(config)
+	data_iterator, valid_data, config = parser.get_parse(NAME, labels=True)
+	ae = LH_euler_RNN_R(config)
 	ae.run(data_iterator, valid_data)
+

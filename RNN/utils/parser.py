@@ -45,20 +45,22 @@ def data_generator_random(input_dir, output_dir, timesteps, batch_size, n, label
 			name_label = name_id.split('_')[0]
 			new_l = np.zeros(ld)
 			new_l[ls[name_label]] = 1
-			data[i] = (np.load(input_file), np.load(output_file), new_l)
+			# data[i] = (np.load(input_file), np.load(output_file), new_l)
+			data[i] = (np.load(output_file), new_l)
 		else:
 			# data[i] = (np.load(input_file), np.load(output_file))
 			data[i] = np.load(input_file)
 		total_i = i
 
 	def get_k(x):
-		# k = np.random.choice(data[x][0].shape[0]-timesteps, replace=False)
-		k = np.random.choice(data[x].shape[0]-timesteps, replace=False)
 		if label:
-			return (np.array([np.concatenate((data[x][0][k+t], data[x][2])) for t in range(timesteps)]),
-				np.array([np.concatenate((data[x][1][k+t], data[x][2])) for t in range(timesteps)]))
+			k = np.random.choice(data[x][0].shape[0]-timesteps, replace=False)
+			# return (np.array([np.concatenate((data[x][0][k+t], data[x][2])) for t in range(timesteps)]),
+			# 	np.array([np.concatenate((data[x][1][k+t], data[x][2])) for t in range(timesteps)]))
+			return np.array([np.concatenate((data[x][0][k+t], data[x][2])) for t in range(timesteps)])
 
 		# return (data[x][0][k:k+timesteps], data[x][1][k:k+timesteps])
+		k = np.random.choice(data[x].shape[0]-timesteps, replace=False)
 		return data[x][k:k+timesteps]
 
 	for i in range(n):
