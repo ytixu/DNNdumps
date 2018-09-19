@@ -77,7 +77,7 @@ class LH_euler_RNN_R:
 			self.data_mean_all = np.array(data['data_mean'])
 			self.data_mean = self.data_mean_all[self.used_euler_idx]
 
-		self.input_dim = len(self.used_euler_idx)
+		self.input_dim = len(self.used_euler_idx)+self.label_dim
 		self.output_dim = self.input_dim
 		print 'data_dim', self.input_dim
 
