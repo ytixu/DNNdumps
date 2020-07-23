@@ -43,11 +43,11 @@ class H_euler_RNN_R:
 		self.cv_splits = args['cv_splits'] if 'cv_splits' in args else 0.2
 		self.trained = args['mode'] == 'sample' if 'mode' in args else False
 		self.timesteps = args['timesteps'] if 'timesteps' in args else 10
-		self.partial_ts = 5
+		self.partial_ts = 10
 		self.partial_n = self.timesteps/self.partial_ts
 		self.hierarchies = range(self.partial_ts-1,self.timesteps, self.partial_ts)
 		#[14,24] if self.trained else range(self.partial_ts-1,self.timesteps, self.partial_ts)
-		self.predict_hierarchies = [2,4]
+		self.predict_hierarchies = [1,2]
 		# self.hierarchies = args['hierarchies'] if 'hierarchies' in args else range(self.timesteps)
 		self.latent_dim = args['latent_dim'] if 'latent_dim' in args else (args['input_dim']+args['output_dim'])/2
 		self.load_path = args['load_path']
@@ -219,9 +219,7 @@ class H_euler_RNN_R:
 			y[i][:,cut:] = np.load(load_path + 'euler/' + basename + '_gt.npy')[:,:self.timesteps-cut]
 			i += 1
 		y = np.concatenate(y, axis=0)
-		image.plot_fk_from_euler(y[:2,10:20], title='test')
-		image.plot_fk_from_euler(y[2:4,10:20], title='test')
-
+		print y.shape
 		y, x = self.__alter_parameterization(y)
 		return y, x
 
@@ -258,11 +256,12 @@ class H_euler_RNN_R:
 
 	def run(self, data_iterator, valid_data):
 		load_path = '../human_motion_pred/baselines/'
-		test_data_y, test_data_x = self.load_validation_data(load_path)
-		test_data_y = wrap_angle(test_data_y)
-		print self.loss_opt_str
 		# model_vars = [NAME, self.latent_dim, self.timesteps, self.batch_size]
 		if not self.load():
+			test_data_y, test_data_x = self.load_validation_data(load_path)
+        	        test_data_y = wrap_angle(test_data_y)
+	                print self.loss_opt_str
+
 			# from keras.utils import plot_model
 			# plot_model(self.autoencoder, to_file='model.png')
 			loss = 10000
@@ -289,7 +288,7 @@ class H_euler_RNN_R:
 						loss = new_loss
 						print 'Saved model - ', loss
 
-					rand_idx = np.random.choice(x.shape[0], 100, replace=False)
+					rand_idx = np.random.choice(x.shape[0], 5000, replace=False)
 					# y_test_pred = self.encoder.predict(x[rand_idx])[:,-1]
 					# y_test_pred = self.decoder.predict(y_test_pred)
 					# #y_gt = x_test[rand_idx]
@@ -307,7 +306,7 @@ class H_euler_RNN_R:
 					print 'STD', add_mean_std, add_std_std
 					print 'MSE', np.mean(mse)
 					print 'MSE TEST', np.mean(mse_test)
-					print 'MSE PRED', mse_pred[-10:]
+					print 'MSE PRED', mse_pred[[-9,-7,-3,-1]]
 
 					with open('../new_out/%s_t%d_l%d_%s_log.csv'%(NAME, self.timesteps, self.latent_dim, self.loss_opt_str), 'a+') as f:
 						spamwriter = csv.writer(f)
@@ -344,10 +343,10 @@ class H_euler_RNN_R:
 
 			_N = 8
 			#methods = ['closest', 'closest_partial', 'mean-5',
-			methods = ['add', 'fn']
-			nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
-			nn.run(None)
-			#nn = None
+			methods = ['add'] #, 'fn']
+			#nn = NN.Forward_NN({'input_dim':self.latent_dim, 'output_dim':self.latent_dim, 'mode':'sample'})
+			#nn.run(None)
+			nn = None
 
 			cut_e = self.predict_hierarchies[0]
 			cut_x = self.hierarchies[0]+1
@@ -389,7 +388,7 @@ class H_euler_RNN_R:
 				#print self.euler_error(y, dec)
 				#image.plot_poses_euler(x[:2,:cut+1], dec[:2,:,:self.euler_start], title='autoencoding', image_dir='../new_out/')
 
-				fn_pred = nn.model.predict(partial_enc)
+				#fn_pred = nn.model.predict(partial_enc)
 
 				for method in methods:
 					new_enc = np.zeros(partial_enc.shape)
